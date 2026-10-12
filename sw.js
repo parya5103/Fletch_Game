@@ -1,5 +1,5 @@
 /* Arrow Out! service worker — save as sw.js next to index.html */
-const CACHE = 'arrow-out-v2';
+const CACHE = 'arrow-out-v3';
 const ASSETS = ['./', './index.html', './sw.js'];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
