@@ -1,25 +1,19 @@
-var CACHE = "fletch-v2";
-var ASSETS = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png"];
-self.addEventListener("install", function(e){
-  e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(ASSETS); }));
-  self.skipWaiting();
+/* Arrow Out! service worker — save as sw.js next to index.html */
+const CACHE = 'arrow-out-v1';
+const ASSETS = ['./', './index.html', './sw.js'];
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
-self.addEventListener("activate", function(e){
-  e.waitUntil(caches.keys().then(function(keys){
-    return Promise.all(keys.filter(function(k){ return k !== CACHE; }).map(function(k){ return caches.delete(k); }));
-  }));
-  self.clients.claim();
+self.addEventListener('activate', (e) => {
+  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
-self.addEventListener("fetch", function(e){
-  var req = e.request;
-  if(req.method !== "GET" || req.url.indexOf(self.location.origin) !== 0) return;
+self.addEventListener('fetch', (e) => {
+  if (e.request.method !== 'GET') return;
   e.respondWith(
-    fetch(req).then(function(res){
-      var copy = res.clone();
-      caches.open(CACHE).then(function(c){ c.put(req, copy); });
-      return res;
-    }).catch(function(){
-      return caches.match(req).then(function(m){ return m || caches.match("index.html"); });
-    })
+    caches.match(e.request, { ignoreSearch: true }).then((hit) => hit || fetch(e.request).then((resp) => {
+      const copy = resp.clone();
+      caches.open(CACHE).then((c) => c.put(e.request, copy));
+      return resp;
+    }).catch(() => caches.match('./index.html')))
   );
 });
