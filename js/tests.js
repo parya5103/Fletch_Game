@@ -97,12 +97,24 @@ const Tests = (function() {
     // Test hint arrow
     try {
       var level = GameCore.genLevel(25);
-      var hint = GameCore.hintArrow(level.arrows);
-      addResult('GameCore.hintArrow finds valid arrow',
-        hint >= 0 && hint < level.arrows.length,
-        'Hint arrow not found');
+      var N = level.cols * level.rows;
+      var occ = new Int32Array(N).fill(-1);
+      for (var i = 0; i < level.arrows.length; i++) {
+        occ[level.arrows[i].y * level.cols + level.arrows[i].x] = i;
+      }
+      var hint = GameCore.hintArrow(level.arrows, occ, level.cols, level.rows);
+      var isValid = hint >= 0 && hint < level.arrows.length;
+      var isRemovable = false;
+      if (isValid) {
+        var blocker = GameCore.rayBlocker(occ, level.arrows, level.cols, level.rows,
+          level.arrows[hint].x, level.arrows[hint].y, level.arrows[hint].dir);
+        isRemovable = blocker === -1;
+      }
+      addResult('GameCore.hintArrow finds valid removable arrow',
+        isValid && isRemovable,
+        isValid ? (isRemovable ? '' : 'Hint arrow is blocked') : 'Hint arrow not found');
     } catch(e) {
-      addResult('GameCore.hintArrow finds valid arrow', false, e.message);
+      addResult('GameCore.hintArrow finds valid removable arrow', false, e.message);
     }
   }
 

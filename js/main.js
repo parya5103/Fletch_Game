@@ -662,7 +662,7 @@ const Game = (function() {
   function doHint() {
     if (!gameState) return;
     
-    var h = GameCore.hintArrow(gameState.arrows);
+    var h = GameCore.hintArrow(gameState.arrows, gameState.occ, gameState.cols, gameState.rows);
     if (h < 0) return;
     
     gameState.hintIdx = h;

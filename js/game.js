@@ -187,15 +187,14 @@ const GameCore = (function() {
   }
 
   // Find a guaranteed removable arrow (for hints)
-  function hintArrow(arrows) {
-    var best = -1, bestStep = -1;
-    for (var i = 0; i < arrows.length; i++) {
-      if (arrows[i].alive && arrows[i].step > bestStep) { 
-        bestStep = arrows[i].step; 
-        best = i; 
+  function hintArrow(arrows, occ, W, H) {
+    for (var i = arrows.length - 1; i >= 0; i--) {
+      if (arrows[i].alive) {
+        var blocker = rayBlocker(occ, arrows, W, H, arrows[i].x, arrows[i].y, arrows[i].dir);
+        if (blocker === -1) return i;
       }
     }
-    return best;
+    return -1;
   }
 
   // Generate daily challenge level
