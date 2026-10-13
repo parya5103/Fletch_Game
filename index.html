@@ -553,12 +553,12 @@
   /* ---------------- level generation (reverse placement = solvable) -- */
   function levelConfig(n) {
     var grid, arrows;
-    if (n <= 100) {                                   // intro arc: 5x5 -> 9x9, 5 -> 66 arrows
+    if (n <= 50) {                                    // short intro arc: 5x5 -> 9x9, 5 -> 42 arrows
       grid = Math.min(9, 4 + Math.ceil(n / 13));
-      arrows = Math.min(66, 4 + Math.round(n * 0.75));
-    } else {                                          // long march to level 1000: 9x9 -> 12x12, up to 112 arrows
-      grid = Math.min(12, 9 + Math.floor((n - 100) / 250));
-      arrows = Math.min(112, 66 + Math.round((n - 100) * 0.051));
+      arrows = Math.min(42, 4 + Math.round(n * 0.75));
+    } else {                                          // EXTREME: full 12x12 board, 100+ arrows, up to 130
+      grid = 12;
+      arrows = Math.min(130, 100 + Math.round((n - 50) * 0.032));
     }
     return { grid: grid, arrows: arrows, seed: ((n * 2654435761) ^ 0x9E3779B9) >>> 0 };
   }
@@ -597,23 +597,26 @@
 
     // 2. reverse placement: each arrow's exit ray must be clear of arrows
     //    already on the board -> guarantees a full solution exists.
+    //    Dense (extreme) boards need "most-constrained-first": every step we
+    //    scan empty cells and place the one with the FEWEST clear directions,
+    //    so boards can be packed with 100-130 arrows without getting stuck.
     var arrows = [];
     var occ = new Int32Array(N).fill(-1);
     for (var step = 0; step < cfg.arrows; step++) {
-      var placed = false;
-      for (var attempt = 0; attempt < 60 && !placed; attempt++) {
-        var pick = shapeCells[(rng() * shapeCells.length) | 0];
+      var best = -1, bestOpts = null, bestCount = 99;
+      for (var sc = 0; sc < shapeCells.length; sc++) {
+        var pick = shapeCells[sc];
         if (occ[pick] !== -1) continue;
         var px = pick % W, py = (pick / W) | 0;
         var good = [];
         for (var d = 0; d < 4; d++) if (rayClear(occ, W, H, px, py, d)) good.push(d);
         if (!good.length) continue;
-        var dir = good[(rng() * good.length) | 0];
-        occ[pick] = arrows.length;
-        arrows.push({ x: px, y: py, dir: dir, c: (rng() * PALETTE.length) | 0, step: step, alive: true });
-        placed = true;
+        if (good.length < bestCount) { bestCount = good.length; best = pick; bestOpts = good; }
       }
-      if (!placed) break; // board full enough; fewer arrows is still valid
+      if (best === -1) break; // board full enough; fewer arrows is still valid
+      var dir = bestOpts[(rng() * bestOpts.length) | 0];
+      occ[best] = arrows.length;
+      arrows.push({ x: best % W, y: (best / W) | 0, dir: dir, c: (rng() * PALETTE.length) | 0, step: step, alive: true });
     }
     return { level: n, cols: W, rows: H, shape: inShape, arrows: arrows };
   }
@@ -1328,7 +1331,7 @@
      ===================================================================== */
   var SW_SRC = [
     "/* Arrow Out! service worker — save as sw.js next to index.html */",
-    "const CACHE = 'arrow-out-v5';",
+    "const CACHE = 'arrow-out-v6';",
     "const ASSETS = ['./', './index.html', './sw.js'];",
     "self.addEventListener('install', (e) => {",
     "  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));",
