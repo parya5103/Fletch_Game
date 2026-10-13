@@ -458,14 +458,14 @@
     </div>
   </div>
 
-  <!-- Load scripts in order -->
-  <script src="js/game.js"></script>
-  <script src="js/render.js"></script>
-  <script src="js/audio.js"></script>
-  <script src="js/haptics.js"></script>
-  <script src="js/storage.js"></script>
-  <script src="js/pwa.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/main.js"></script>
+  <!-- Load scripts in order with defer for non-blocking -->
+  <script src="js/game.js" defer></script>
+  <script src="js/render.js" defer></script>
+  <script src="js/audio.js" defer></script>
+  <script src="js/haptics.js" defer></script>
+  <script src="js/storage.js" defer></script>
+  <script src="js/pwa.js" defer></script>
+  <script src="js/ui.js" defer></script>
+  <script src="js/main.js" defer></script>
 </body>
 </html>
