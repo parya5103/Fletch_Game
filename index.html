@@ -157,6 +157,11 @@
   .status-list .ok { color: #2f9e44; font-weight: 700; }
   .status-list .no { color: #d64562; font-weight: 700; }
 
+  /* hint badge + demo ad box */
+  #btn-hint { position: relative; }
+  .hint-count { position: absolute; top: 3px; right: 7px; font-size: 10.5px; font-weight: 800; background: #4c6ef5; color: #fff; border-radius: 999px; min-width: 16px; height: 16px; line-height: 16px; }
+  .ad-box { border: 2px dashed #c9d4f2; border-radius: 12px; padding: 28px 12px; color: #8a97b8; font-weight: 700; }
+
   /* toast */
   #toast {
     position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px));
@@ -285,6 +290,7 @@
         Undo
       </button>
       <button class="btn" id="btn-hint" type="button" aria-label="Show a hint">
+        <span id="hint-count" class="hint-count">3</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a7 7 0 0 0-4 12.7V18h8v-2.3A7 7 0 0 0 12 3z"/><path d="M10 21h4"/></svg>
         Hint
       </button>
@@ -332,7 +338,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
     </button>
     <h2 id="lv-title">Levels</h2>
-    <p class="sub">100 levels · ★★★ = no mistakes, no hints · best stars save automatically on this device.</p>
+    <p class="sub">1000 levels · ★★★ = no mistakes, no hints · best stars save automatically on this device.</p>
     <div id="lv-grid"></div>
   </div>
 </div>
@@ -350,6 +356,7 @@
       <li>A blocked tap <b>costs one heart</b> (♥♥♥). Lose all three and the level restarts.</li>
       <li>Clear <b>every arrow</b> to finish the level. Order is everything!</li>
       <li>Stars: ★★★ = no mistakes & no hints · ★★ = up to 2 mistakes & 1 hint · ★ = cleared.</li>
+      <li><b>3 free hints</b> per level — after that, watch a short ad to reveal another hint.</li>
       <li><b>Hint</b> glows a free arrow · <b>Undo</b> brings the last arrow back · <b>Restart</b> resets.</li>
       <li>Your progress saves automatically — come back any time.</li>
     </ul>
@@ -438,6 +445,29 @@
   </div>
 </div>
 
+<!-- Out of free hints -> rewarded ad -->
+<div class="overlay" id="dlg-adhint" role="dialog" aria-modal="true" aria-labelledby="adhint-title">
+  <div class="card" style="text-align:center;">
+    <div class="big-emoji" aria-hidden="true">💡</div>
+    <h2 id="adhint-title">Out of free hints</h2>
+    <p style="margin-bottom:16px;">You get <b>3 free hints</b> per level. Watch a short ad to reveal one more.</p>
+    <div class="stack">
+      <button class="btn primary" id="btn-adhint-watch" type="button">▶ Watch ad for a hint</button>
+      <button class="btn" id="btn-adhint-close" type="button">No thanks</button>
+    </div>
+  </div>
+</div>
+
+<!-- Demo rewarded ad (a real provider plugs into Ads.requestRewarded) -->
+<div class="overlay" id="dlg-ad" role="dialog" aria-modal="true" aria-labelledby="ad-title">
+  <div class="card" style="text-align:center;">
+    <h2 id="ad-title">Demo ad</h2>
+    <p style="font-size:12.5px;color:#8a97b8;margin-bottom:14px;">A real ad plays here once an ad provider is connected.</p>
+    <div class="ad-box" aria-hidden="true">Ad space</div>
+    <p id="ad-count" style="font-size:14px;font-weight:700;margin:12px 0 0;">Demo ad — hint in 5s…</p>
+  </div>
+</div>
+
 <!-- iOS install instructions -->
 <div class="overlay" id="dlg-ios" role="dialog" aria-modal="true" aria-labelledby="ios-title">
   <div class="card">
@@ -479,8 +509,9 @@
      ===================================================================== */
 
   var SAVE_KEY = 'arrowOut.v1';
-  var DESIGN_LEVELS = 100;
+  var DESIGN_LEVELS = 1000;
   var MAX_HEARTS = 3;
+  var FREE_HINTS = 3; // free hints per level; after that a (demo) rewarded ad unlocks more
   var REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   var PALETTE = ['#ff5d8f', '#ff9f43', '#ffd93d', '#4ade80', '#2dd4bf', '#38bdf8', '#818cf8', '#c084fc'];
   var DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]]; // up, right, down, left
@@ -521,8 +552,14 @@
 
   /* ---------------- level generation (reverse placement = solvable) -- */
   function levelConfig(n) {
-    var grid = Math.min(9, 4 + Math.ceil(n / 13));       // 5x5 ... 9x9 across 100 levels
-    var arrows = Math.min(66, 4 + Math.round(n * 0.75)); // L1: 5 arrows, grows to 66
+    var grid, arrows;
+    if (n <= 100) {                                   // intro arc: 5x5 -> 9x9, 5 -> 66 arrows
+      grid = Math.min(9, 4 + Math.ceil(n / 13));
+      arrows = Math.min(66, 4 + Math.round(n * 0.75));
+    } else {                                          // long march to level 1000: 9x9 -> 12x12, up to 112 arrows
+      grid = Math.min(12, 9 + Math.floor((n - 100) / 250));
+      arrows = Math.min(112, 66 + Math.round((n - 100) * 0.051));
+    }
     return { grid: grid, arrows: arrows, seed: ((n * 2654435761) ^ 0x9E3779B9) >>> 0 };
   }
 
@@ -744,12 +781,47 @@
 
   function hint() {
     if (game.over || game.failed) return;
+    if (game.hintsUsed >= FREE_HINTS) { Sound.ui(); openDlg('dlg-adhint'); return; }
+    doHint();
+  }
+  function doHint() {
     var h = hintArrow(game.arrows);
     if (h < 0) return;
     game.hintIdx = h;
     game.hintsUsed++;
+    updateHintBtn();
     Sound.hint();
     needsRender = true; ensureLoop();
+  }
+  /* rewarded-ad flow: a real provider (Ads.provider) plays the ad; without one,
+     a clearly-labelled 5-second demo ad runs so the whole loop is testable. */
+  function adForHint() {
+    closeAll(); Sound.ui(); Sound.unlock();
+    if (Ads.enabled && Ads.provider && Ads.provider.requestRewarded) {
+      Ads.requestRewarded(function (ok) { if (ok) { doHint(); toast('Hint unlocked ✓'); } });
+      return;
+    }
+    openDlg('dlg-ad');
+    var t = 5, el = $('ad-count');
+    el.textContent = 'Demo ad — hint in ' + t + 's…';
+    var iv = setInterval(function () {
+      t--;
+      if (t <= 0) {
+        clearInterval(iv);
+        closeAll();
+        doHint();
+        toast('Hint unlocked ✓');
+      } else el.textContent = 'Demo ad — hint in ' + t + 's…';
+    }, 1000);
+  }
+  function updateHintBtn() {
+    var left = Math.max(0, FREE_HINTS - game.hintsUsed);
+    var b = $('hint-count');
+    if (b) {
+      b.textContent = left;
+      b.style.display = left > 0 ? '' : 'none';
+    }
+    $('btn-hint').setAttribute('aria-label', 'Show a hint (' + left + ' free left)');
   }
 
   /* stars: 3 = no mistakes & no hints, 2 = <=2 mistakes & <=1 hint, 1 = cleared */
@@ -1104,6 +1176,7 @@
     $('hearts').setAttribute('aria-label', game.hearts + (game.hearts === 1 ? ' heart' : ' hearts') + ' remaining');
     $('btn-undo').disabled = game.over || game.failed || !game.undoIds.length;
     $('btn-hint').disabled = game.over || game.failed;
+    updateHintBtn();
     $('btn-restart').disabled = game.over;
   }
   function openDlg(id) { $(id).classList.add('show'); }
@@ -1208,6 +1281,8 @@
   on($('btn-install-menu'), 'click', function () { Sound.ui(); PWA.installAction(); });
 
   on($('btn-undo'), 'click', function () { undo(); });
+  on($('btn-adhint-watch'), 'click', function () { adForHint(); });
+  on($('btn-adhint-close'), 'click', function () { Sound.ui(); closeAll(); });
   on($('btn-hint'), 'click', function () { hint(); });
   on($('btn-restart'), 'click', function () {
     if (game.over) return;
@@ -1253,7 +1328,7 @@
      ===================================================================== */
   var SW_SRC = [
     "/* Arrow Out! service worker — save as sw.js next to index.html */",
-    "const CACHE = 'arrow-out-v4';",
+    "const CACHE = 'arrow-out-v5';",
     "const ASSETS = ['./', './index.html', './sw.js'];",
     "self.addEventListener('install', (e) => {",
     "  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));",
