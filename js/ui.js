@@ -284,6 +284,7 @@ const UI = (function() {
   // Home screen
   function showHomeScreen() {
     closeAll();
+    updateHUD();
     
     var save = Storage.getSave();
     var dlgHome = $('dlg-home');
