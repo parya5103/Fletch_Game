@@ -1,0 +1,293 @@
+/**
+ * Arrow Out! - PWA Module
+ * Handles Progressive Web App functionality
+ */
+'use strict';
+
+const PWA = (function() {
+  var deferredPrompt = null;
+  var swActive = false;
+  var manifestBuilt = false;
+
+  // Service worker source
+  var SW_SRC = [
+    "/* Arrow Out! service worker - save as sw.js next to index.html */",
+    "const CACHE = 'arrow-out-v7';",
+    "const ASSETS = ['./', './index.html', './sw.js', './js/game.js', './js/render.js', './js/audio.js', './js/haptics.js', './js/storage.js', './js/pwa.js', './js/ui.js', './js/main.js', './css/styles.css'];",
+    "self.addEventListener('install', (e) => {",
+    "  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));",
+    "});",
+    "self.addEventListener('activate', (e) => {",
+    "  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));",
+    "});",
+    "self.addEventListener('fetch', (e) => {",
+    "  if (e.request.method !== 'GET') return;",
+    "  e.respondWith(",
+    "    caches.match(e.request, { ignoreSearch: true }).then((hit) => hit || fetch(e.request).then((resp) => {",
+    "      const copy = resp.clone();",
+    "      caches.open(CACHE).then((c) => c.put(e.request, copy));",
+    "      return resp;",
+    "    }).catch(() => caches.match('./index.html')))",
+    "  );",
+    "});"
+  ].join('\n');
+
+  function isStandalone() {
+    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+           window.navigator.standalone === true;
+  }
+
+  function isIOS() {
+    return /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+
+  function iconDataURL(size, bgColor, arrowColor) {
+    var c = document.createElement('canvas');
+    c.width = size; c.height = size;
+    var g = c.getContext('2d');
+    
+    // Background
+    g.fillStyle = bgColor || '#4c6ef5';
+    if (g.roundRect) { 
+      g.beginPath(); 
+      g.roundRect(0, 0, size, size, size * 0.22); 
+    } else {
+      g.beginPath(); 
+      g.moveTo(size * 0.22, 0); 
+      g.arcTo(size, 0, size, size, size * 0.22);
+      g.arcTo(size, size, 0, size, size * 0.22); 
+      g.arcTo(0, size, 0, 0, size * 0.22);
+      g.arcTo(0, 0, size, 0, size * 0.22); 
+      g.closePath();
+    }
+    g.fill();
+    
+    // Arrow
+    g.save();
+    g.translate(size / 2, size / 2);
+    var a = size * 0.3;
+    g.beginPath();
+    g.moveTo(0, -1.05 * a);
+    g.lineTo(0.72 * a, -0.05 * a);
+    g.lineTo(0.26 * a, -0.05 * a);
+    g.lineTo(0.26 * a, 0.95 * a);
+    g.lineTo(-0.26 * a, 0.95 * a);
+    g.lineTo(-0.26 * a, -0.05 * a);
+    g.lineTo(-0.72 * a, -0.05 * a);
+    g.closePath();
+    g.fillStyle = arrowColor || '#ffffff';
+    g.fill();
+    g.restore();
+    
+    return c.toDataURL('image/png');
+  }
+
+  function buildManifest() {
+    if (manifestBuilt) return;
+    manifestBuilt = true;
+    
+    try {
+      var i192 = iconDataURL(192, '#0d1230', '#748ffc');
+      var i512 = iconDataURL(512, '#0d1230', '#748ffc');
+      var base = location.href.indexOf('#') > -1 ? location.href.slice(0, location.href.indexOf('#')) : location.href;
+      
+      var man = {
+        name: 'Arrow Out!',
+        short_name: 'Arrow Out!',
+        description: 'Tap arrows away and clear the board. A premium tap-away logic puzzle.',
+        start_url: base,
+        scope: base.slice(0, base.lastIndexOf('/') + 1) || './',
+        display: 'standalone',
+        orientation: 'any',
+        background_color: '#0d1230',
+        theme_color: '#748ffc',
+        icons: [
+          { src: i192, sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: i512, sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: i512, sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+        ]
+      };
+      
+      var link = document.querySelector('link[rel="manifest"]');
+      if (!link) { 
+        link = document.createElement('link'); 
+        link.rel = 'manifest'; 
+        document.head.appendChild(link); 
+      }
+      link.href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(man));
+      
+      var apple = document.querySelector('link[rel="apple-touch-icon"]');
+      if (!apple) { 
+        apple = document.createElement('link'); 
+        apple.rel = 'apple-touch-icon'; 
+        document.head.appendChild(apple); 
+      }
+      apple.href = i192;
+      
+      // Add meta tags for theme color
+      var themeMeta = document.querySelector('meta[name="theme-color"]');
+      if (!themeMeta) {
+        themeMeta = document.createElement('meta');
+        themeMeta.name = 'theme-color';
+        document.head.appendChild(themeMeta);
+      }
+      themeMeta.content = '#0d1230';
+      
+    } catch (e) {
+      console.log('Manifest build error:', e);
+    }
+  }
+
+  function showInstallBanner(label, action) {
+    var bb = document.getElementById('install-banner');
+    if (!bb) return;
+    
+    var btn = document.getElementById('btn-banner-install');
+    var text = document.getElementById('ib-text');
+    
+    if (btn) btn.textContent = label;
+    if (text) {
+      text.innerHTML = (label === 'Add')
+        ? '\ud83d\udcf2 <b>Add Arrow Out! to your Home Screen</b> \u2014 tap Add, then \u201cAdd to Home Screen\ud83d\udc47.'
+        : '\ud83d\udcf2 <b>Install Arrow Out!</b> \u2014 play full-screen, works offline.';
+    }
+    
+    if (btn) {
+      btn.onclick = function() { 
+        hideBanner(); 
+        action(); 
+      };
+    }
+    
+    bb.classList.add('show');
+  }
+
+  function hideBanner() {
+    var bb = document.getElementById('install-banner');
+    if (bb) bb.classList.remove('show');
+    
+    // Update save to remember banner was hidden
+    var save = Storage.getSave();
+    save.installHidden = true;
+    Storage.updateSave(save);
+  }
+
+  function maybeIOSBanner() {
+    var save = Storage.getSave();
+    if (save.installHidden || isStandalone()) return;
+    if (isIOS()) showInstallBanner('Add', function() { installAction(); });
+  }
+
+  function installAction() {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt = null;
+      return;
+    }
+    
+    if (isIOS()) {
+      // Show iOS instructions
+      var dlg = document.getElementById('dlg-ios');
+      if (dlg) {
+        dlg.classList.add('show');
+      }
+      return;
+    }
+    
+    // Show install dialog
+    var dlg = document.getElementById('dlg-install');
+    if (dlg) {
+      var status = document.getElementById('inst-status');
+      if (status) {
+        status.textContent = 'The browser has not offered installation in this context. ' +
+          (isStandalone()
+            ? 'You are already running the installed app.'
+            : 'To enable one-tap install: host this file over HTTPS, save the service worker code as sw.js next to it, then open it in Chrome on Android.');
+      }
+      dlg.classList.add('show');
+    }
+  }
+
+  function registerSW() {
+    if (!('serviceWorker' in navigator)) return;
+    
+    var deployable = location.protocol === 'https:' ||
+      location.hostname === 'localhost' || 
+      location.hostname === '127.0.0.1';
+    
+    if (!deployable) {
+      // In non-deployable context, service worker won't work
+      // but we can still try for testing
+      try {
+        navigator.serviceWorker.register('sw.js').then(function() {
+          swActive = true;
+        }).catch(function() { 
+          swActive = false; 
+        });
+      } catch(e) {
+        swActive = false;
+      }
+      return;
+    }
+    
+    navigator.serviceWorker.register('sw.js').then(function() {
+      swActive = true;
+    }).catch(function() { 
+      swActive = false; 
+    });
+  }
+
+  function canPrompt() {
+    return !!deferredPrompt;
+  }
+
+  // Set up event listeners
+  function setupListeners() {
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      deferredPrompt = e;
+      
+      var save = Storage.getSave();
+      if (!save.installHidden && !isStandalone()) {
+        showInstallBanner('Install', function() { installAction(); });
+      } else {
+        // Can't show banner, but user can still install via menu
+      }
+    });
+    
+    window.addEventListener('appinstalled', function() {
+      deferredPrompt = null;
+      // Show toast or update UI
+      var toast = document.getElementById('toast');
+      if (toast) {
+        toast.textContent = 'Installed \u2713 Enjoy Arrow Out!';
+        toast.classList.add('show');
+        setTimeout(function() { toast.classList.remove('show'); }, 2200);
+      }
+    });
+    
+    // Handle banner close button
+    var closeBtn = document.getElementById('btn-banner-close');
+    if (closeBtn) {
+      closeBtn.onclick = function() { hideBanner(); };
+    }
+  }
+
+  // Initialize
+  buildManifest();
+  registerSW();
+  setupListeners();
+
+  return {
+    isStandalone: isStandalone,
+    isIOS: isIOS,
+    canPrompt: canPrompt,
+    buildManifest: buildManifest,
+    registerSW: registerSW,
+    maybeIOSBanner: maybeIOSBanner,
+    installAction: installAction,
+    get swActive() { return swActive; },
+    get SW_SRC() { return SW_SRC; }
+  };
+})();
