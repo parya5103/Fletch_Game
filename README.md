@@ -1,6 +1,6 @@
 # Arrow Out! 🏹
 
-A mobile-first **tap-away arrow puzzle** game — a single HTML file, zero dependencies, installable as a PWA. **100 levels** with **real accounts (email + password via Supabase Auth)** and cloud-synced playing data.
+A mobile-first **tap-away arrow puzzle** game — a single HTML file, zero dependencies, installable as a PWA. **100 levels**, progress saves automatically on your device.
 
 Play online: `https://<your-user>.github.io/<repo>/` after enabling GitHub Pages (see below).
 
@@ -21,53 +21,14 @@ All 100 levels are verified solvable (levels ramp from 5 arrows on a 5×5 board 
 ## Features
 
 - 💯 **100 levels** with a smooth difficulty ramp and a campaign-complete celebration
-- 🔐 **Real accounts** — email + password sign-up / login (Supabase Auth, no SDK, plain REST)
-- ☁ **Playing data in the cloud** — best stars & plays per level sync automatically to your own Supabase project; rows are private to each account (row-level security)
+- 💾 **Auto-save** — stars, plays and current level save privately on your device and restore on reopen; no account needed, works fully offline
 - 📱 Mobile-first: touch pointer events, 44px+ tap targets, safe-area aware, works from 320px-wide screens
 - ⭐ 3-star scoring: ★★★ = no mistakes & no hints · ★★ = ≤2 mistakes & ≤1 hint · ★ = otherwise
 - 🗺️ Level map with best stars, locked padlocks and current-level highlight
 - 🔊 Synthesized sound effects via the Web Audio API — no audio files; mute toggle
-- 💾 Progress auto-saved to `localStorage` — works fully offline, syncs when online
-- 📲 PWA: runtime manifest + canvas-generated icons, service worker, Android install prompt, iOS Add-to-Home-Screen hint — install success reported honestly, never faked
+- 📲 PWA: runtime manifest + canvas-generated icons, service worker for offline play, Android install prompt, iOS Add-to-Home-Screen hint — install success is reported honestly, never faked
 - 🏗️ Ad-ready no-op hook points for a future ad provider
 - 🎨 Dark neon theme, color-coded arrows, smooth overlay animations
-
-## Accounts & cloud sync setup (Supabase, ~5 minutes)
-
-The game talks to Supabase over plain REST — no SDK, no build step.
-
-1. Create a free project at [supabase.com](https://supabase.com).
-2. Open **SQL Editor** and run:
-
-```sql
-create table if not exists public.level_progress (
-  user_id uuid not null references auth.users(id) on delete cascade,
-  level int not null check (level between 1 and 100),
-  stars int not null default 0 check (stars between 0 and 3),
-  plays int not null default 0,
-  updated_at timestamptz not null default now(),
-  primary key (user_id, level)
-);
-
-alter table public.level_progress enable row level security;
-create policy "own rows select" on public.level_progress for select to authenticated using (auth.uid() = user_id);
-create policy "own rows insert" on public.level_progress for insert to authenticated with check (auth.uid() = user_id);
-create policy "own rows update" on public.level_progress for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
-```
-
-3. **Auth → Sign In / Providers → Email**: turn **off** "Confirm email" for instant sign-up (or leave it on — players then click the confirmation link once before logging in).
-4. Go to **Project Settings → API** and copy the **Project URL** and the **anon public** key.
-5. In the game: **Menu → ☁ Cloud sync** → paste URL + key → **Connect** → **Create account** (email + password, min 6 chars) or **Log in**.
-
-### How the sync works
-
-- Every level win pushes that level's best stars + plays to `level_progress` under your `user_id`.
-- **Sync now** does a full two-way merge — better stars win, plays take the max.
-- Log in on any other device with the same account and your progress appears there.
-- Sessions persist locally (access + refresh tokens) — you stay logged in; tokens auto-refresh.
-- Offline? Everything still works and saves on-device.
-
-> **Privacy:** row-level security means every player can only read/write **their own** rows — the server enforces it, not the client.
 
 ## Files
 
@@ -75,7 +36,7 @@ create policy "own rows update" on public.level_progress for update to authentic
 |---|---|
 | `index.html` | The entire game — HTML, CSS and JS in one file. |
 | `sw.js` | Service worker that caches the game shell for offline play. |
-| `README.md` | This file — how to play, accounts/cloud setup, deploy steps. |
+| `README.md` | This file — how to play and deploy steps. |
 | `LICENSE` | MIT license. |
 
 ## Run locally
@@ -96,8 +57,7 @@ python3 -m http.server 8000
 
 ## Roadmap
 
-- Google / OAuth sign-in via Supabase Auth providers
-- Leaderboards (stars per level across all players)
+- Online accounts & cross-device sync (Supabase / Firebase)
 - Daily challenge levels
 - Ad provider integration at the existing hook points
 

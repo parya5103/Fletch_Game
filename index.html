@@ -157,12 +157,6 @@
   .status-list .ok { color: #2f9e44; font-weight: 700; }
   .status-list .no { color: #d64562; font-weight: 700; }
 
-  /* cloud sync form fields */
-  .field { display: flex; flex-direction: column; gap: 4px; margin: 0 0 10px; text-align: left; }
-  .field label { font-size: 12.5px; font-weight: 700; color: #3b4a6b; }
-  .field input { width: 100%; box-sizing: border-box; font: inherit; font-size: 13.5px; padding: 10px 12px; min-height: 44px; border-radius: 10px; border: 1px solid #e3e9fb; background: #f2f5ff; color: #1c2a4a; }
-  .field input:focus { outline: 2px solid #4c6ef5; outline-offset: 1px; }
-
   /* toast */
   #toast {
     position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px));
@@ -236,9 +230,6 @@
   .status-list div { background: #101736; border-color: #22305e; color: #c6cff2; }
   .status-list .ok { color: #69f0a4; }
   .status-list .no { color: #ff9aa5; }
-  .field label { color: #c6cff2; }
-  .field input { background: #101736; border-color: #22305e; color: #e8ecff; }
-  .field input:focus { outline-color: #7c9aff; }
   #toast { background: #262f57; border: 1px solid #3a4470; color: #e8ecff; }
   #ad-slot { background: #141b3d; border-color: #2a3564; color: #93a0c8; }
 
@@ -327,7 +318,6 @@
       <button class="btn primary" id="btn-play" type="button">Play · Level 1</button>
       <button class="btn" id="btn-levels" type="button">Levels</button>
       <button class="btn" id="btn-stats-menu" type="button">Stats</button>
-      <button class="btn" id="btn-cloud-menu" type="button">☁ Cloud sync</button>
       <button class="btn" id="btn-howto" type="button">How to play</button>
       <button class="btn" id="btn-install-menu" type="button">Install app</button>
       <button class="btn" id="btn-settings" type="button">Settings</button>
@@ -342,7 +332,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
     </button>
     <h2 id="lv-title">Levels</h2>
-    <p class="sub">100 levels · ★★★ = no mistakes, no hints · best stars save on this device (and to the cloud when connected).</p>
+    <p class="sub">100 levels · ★★★ = no mistakes, no hints · best stars save automatically on this device.</p>
     <div id="lv-grid"></div>
   </div>
 </div>
@@ -386,7 +376,6 @@
       <div><span>Offline caching</span><span id="st-sw">—</span></div>
       <div><span>Install prompt</span><span id="st-install">—</span></div>
       <div><span>Saved progress</span><span id="st-storage">—</span></div>
-      <div><span>Cloud sync</span><span id="st-cloud">—</span></div>
     </div>
     <p style="font-size:12.5px; color:#8a97b8; margin-bottom:10px;">
       For full offline install: host this file over HTTPS, save the service worker as <b>sw.js</b> next to it, then open it in Chrome on Android.
@@ -443,60 +432,8 @@
       <div><span>Total plays</span><span id="stat-plays">—</span></div>
     </div>
     <p style="font-size:12.5px;color:#93a0c8;">
-      Progress saves privately on this device. Create a free account (email + password) from
-      <b>Menu → ☁ Cloud sync</b> to sync stars &amp; progress across devices — your rows are private
-      to your account (Supabase Auth + row-level security).
-    </p>
-  </div>
-</div>
-
-<!-- Cloud sync (Supabase) -->
-<div class="overlay" id="dlg-cloud" role="dialog" aria-modal="true" aria-labelledby="cloud-title">
-  <div class="card">
-    <button class="btn icon close-x" data-close type="button" aria-label="Close cloud sync">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-    </button>
-    <h2 id="cloud-title">☁ Cloud sync</h2>
-    <p class="sub">Real account (email + password) — your stars &amp; progress sync privately across devices.</p>
-    <div class="status-list">
-      <div><span>Backend</span><span id="cloud-status">—</span></div>
-      <div><span>Account</span><span id="cloud-account">—</span></div>
-      <div><span>Last sync</span><span id="cloud-last">—</span></div>
-    </div>
-    <div id="cloud-fields">
-      <div class="field">
-        <label for="in-cloud-url">Supabase project URL</label>
-        <input id="in-cloud-url" type="url" inputmode="url" autocomplete="off" placeholder="https://your-project.supabase.co" />
-      </div>
-      <div class="field">
-        <label for="in-cloud-key">Anon (public) key</label>
-        <input id="in-cloud-key" type="text" autocomplete="off" placeholder="eyJhbGciOi… anon public key" />
-      </div>
-      <button class="btn primary" id="btn-cloud-connect" type="button">Connect</button>
-    </div>
-    <div id="cloud-auth" style="display:none;">
-      <div class="field">
-        <label for="in-cloud-email">Email</label>
-        <input id="in-cloud-email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" />
-      </div>
-      <div class="field">
-        <label for="in-cloud-pass">Password</label>
-        <input id="in-cloud-pass" type="password" autocomplete="current-password" placeholder="at least 6 characters" />
-      </div>
-      <div style="display:flex; gap:8px;">
-        <button class="btn primary" id="btn-cloud-login" type="button" style="flex:1;">Log in</button>
-        <button class="btn" id="btn-cloud-signup" type="button" style="flex:1;">Create account</button>
-      </div>
-    </div>
-    <div id="cloud-actions-on" class="stack" style="display:none;">
-      <button class="btn" id="btn-cloud-sync" type="button">Sync now</button>
-      <button class="btn small danger" id="btn-cloud-off" type="button">Log out</button>
-    </div>
-    <p id="cloud-msg" style="font-size:12.5px;color:#d64562;min-height:17px;margin:8px 0 0;"></p>
-    <p style="font-size:12.5px;color:#8a97b8;margin:10px 0 0;">
-      One-time setup: create a project at <b>supabase.com</b> → SQL Editor → run the <b>level_progress</b>
-      script from the README → Auth → Email provider → turn <b>off</b> "Confirm email" for instant sign-up →
-      Project Settings → API → paste the URL + anon key above. Your rows are private to your account (RLS).
+      All progress (stars, plays, current level) saves privately on this device and restores
+      automatically — no account needed, works fully offline.
     </p>
   </div>
 </div>
@@ -554,7 +491,7 @@
 
   /* ---------------- storage (safe everywhere) ---------------- */
   var storageOk = true;
-  function defaultSave() { return { v: 1, unlocked: 1, best: {}, cur: null, sound: true, installHidden: false, supa: null }; }
+  function defaultSave() { return { v: 1, unlocked: 1, best: {}, cur: null, sound: true, installHidden: false }; }
   var save = defaultSave();
   try {
     var raw = localStorage.getItem(SAVE_KEY);
@@ -566,180 +503,11 @@
     for (var pk in save.perfect) if (!save.best[pk]) save.best[pk] = { stars: 3, plays: 1 };
   }
   if (typeof save.installHidden !== 'boolean') save.installHidden = false;
-  if (!save.supa || typeof save.supa !== 'object') save.supa = null;
   save.unlocked = Math.max(1, Math.min(save.unlocked || 1, DESIGN_LEVELS));
   function persist() {
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }
     catch (e) { if (storageOk) { storageOk = false; toast('Progress saving is unavailable in this preview.'); } }
   }
-
-  /* ---------------- cloud sync (Supabase REST, optional) ----------------
-     No SDK, no external files — plain fetch to the Supabase REST API.
-     The user creates a free project + one table (SQL in the README),
-     pastes the project URL and anon key in Menu → Cloud sync. Progress
-     (save.best) maps 1:1 to per-user rows in level_progress (Supabase Auth).
-     Everything degrades gracefully: no config / no network = offline only. */
-  var Cloud = (function () {
-    function cfg() { return (save.supa && save.supa.url && save.supa.key) ? save.supa : null; }
-    function sess() { return (save.supa && save.supa.session) ? save.supa.session : null; }
-    function signedIn() { return !!(cfg() && sess() && sess().user_id); }
-    function errMsg(j) {
-      if (!j) return 'request failed';
-      if (j.msg) return j.msg;
-      if (j.error_description) return j.error_description;
-      if (j.error) return j.error;
-      return 'request failed';
-    }
-    function authCall(path, body) {
-      return fetch(save.supa.url + '/auth/v1/' + path, {
-        method: 'POST',
-        headers: { 'apikey': save.supa.key, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      }).then(function (r) {
-        return r.json().then(function (j) {
-          if (!r.ok) throw new Error(errMsg(j));
-          return j;
-        });
-      });
-    }
-    function setSession(j) {
-      save.supa.session = {
-        access_token: j.access_token,
-        refresh_token: j.refresh_token,
-        user_id: j.user && j.user.id ? j.user.id : '',
-        email: j.user && j.user.email ? j.user.email : '',
-        expires_at: Date.now() + ((j.expires_in || 3600) * 1000)
-      };
-      persist();
-    }
-    function clearSession() { save.supa.session = null; persist(); }
-    function ensureToken() {
-      var s = sess();
-      if (!s) return Promise.reject(new Error('Not signed in'));
-      if (s.expires_at && s.expires_at < Date.now() + 30000) {
-        return authCall('token?grant_type=refresh_token', { refresh_token: s.refresh_token }).then(setSession);
-      }
-      return Promise.resolve(s);
-    }
-    function headers(extra) {
-      var s = sess();
-      var h = { 'apikey': save.supa.key, 'Content-Type': 'application/json' };
-      h['Authorization'] = 'Bearer ' + (s ? s.access_token : save.supa.key);
-      if (extra) for (var k in extra) h[k] = extra[k];
-      return h;
-    }
-    function rest(path, opts) {
-      return ensureToken().then(function (s) {
-        return fetch(save.supa.url + '/rest/v1/' + path, opts()).then(function (r) {
-          if (r.status === 401) {
-            return authCall('token?grant_type=refresh_token', { refresh_token: s.refresh_token }).then(function (j) {
-              setSession(j);
-              return fetch(save.supa.url + '/rest/v1/' + path, opts()).then(function (r2) {
-                if (!r2.ok) throw new Error('HTTP ' + r2.status);
-                return r2;
-              });
-            });
-          }
-          if (!r.ok) throw new Error('HTTP ' + r.status);
-          return r;
-        });
-      });
-    }
-    function pull() {
-      return rest('level_progress?select=level,stars,plays&user_id=eq.' + encodeURIComponent(sess().user_id), function () {
-        return { headers: headers() };
-      }).then(function (r) { return r.json(); });
-    }
-    function push(rows) {
-      return rest('level_progress', function () {
-        return { method: 'POST', headers: headers({ 'Prefer': 'resolution=merge-duplicates' }), body: JSON.stringify(rows) };
-      }).then(function () {});
-    }
-    function rowFor(n) {
-      var b = save.best[n];
-      if (!b) return null;
-      return { user_id: sess().user_id, level: n, stars: b.stars, plays: b.plays || 1, updated_at: new Date().toISOString() };
-    }
-    function merge(remote) {
-      var changed = false;
-      for (var i = 0; i < remote.length; i++) {
-        var r = remote[i], n = Number(r.level) | 0;
-        if (!(n >= 1 && n <= DESIGN_LEVELS)) continue;
-        var prev = save.best[n] || { stars: 0, plays: 0 };
-        var m = { stars: Math.max(prev.stars, r.stars || 0), plays: Math.max(prev.plays || 0, r.plays || 0) };
-        if (m.stars !== prev.stars || m.plays !== (prev.plays || 0)) changed = true;
-        save.best[n] = m;
-        if (m.stars > 0 && n >= save.unlocked) save.unlocked = Math.min(n + 1, DESIGN_LEVELS);
-      }
-      if (changed) persist();
-      return changed;
-    }
-    function sync() {
-      if (!signedIn()) return Promise.reject(new Error('Sign in first'));
-      return pull().then(function (remote) {
-        merge(remote || []);
-        var rows = [];
-        for (var n in save.best) { var row = rowFor(Number(n) | 0); if (row) rows.push(row); }
-        if (rows.length) return push(rows);
-      }).then(function () {
-        save.supa.last = new Date().toISOString(); persist();
-      });
-    }
-    function connect(url, key) {
-      url = (url || '').trim().replace(/\/+$/, '');
-      key = (key || '').trim();
-      if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url)) return Promise.reject(new Error('Invalid URL — use https://your-project.supabase.co'));
-      if (key.length < 20) return Promise.reject(new Error('That anon key looks too short'));
-      save.supa = { url: url, key: key, session: (save.supa && save.supa.session) ? save.supa.session : null, last: null };
-      persist();
-      return Promise.resolve(true);
-    }
-    function signUp(email, pass) {
-      if (!cfg()) return Promise.reject(new Error('Connect the backend first'));
-      email = (email || '').trim();
-      if (pass.length < 6) return Promise.reject(new Error('Password needs at least 6 characters'));
-      return authCall('signup', { email: email, password: pass }).then(function (j) {
-        if (!j.access_token) throw new Error('Almost there — confirm the email we sent you, then log in.');
-        setSession(j);
-        return sync();
-      });
-    }
-    function logIn(email, pass) {
-      if (!cfg()) return Promise.reject(new Error('Connect the backend first'));
-      return authCall('token?grant_type=password', { email: (email || '').trim(), password: pass }).then(function (j) {
-        setSession(j);
-        return sync();
-      });
-    }
-    function logOut() {
-      var s = sess();
-      var done = function () { clearSession(); };
-      if (!s) { done(); return Promise.resolve(); }
-      return fetch(save.supa.url + '/auth/v1/logout', {
-        method: 'POST',
-        headers: { 'apikey': save.supa.key, 'Authorization': 'Bearer ' + s.access_token }
-      }).then(done, done);
-    }
-    function pushLevel(n) {
-      if (!signedIn()) return;
-      var row = rowFor(n); if (!row) return;
-      push([row]).then(function () {
-        save.supa.last = new Date().toISOString(); persist();
-      }).catch(function () { /* offline — local progress stays safe */ });
-    }
-    return {
-      configured: function () { return !!cfg(); },
-      signedIn: signedIn,
-      email: function () { var s = sess(); return s ? (s.email || '') : ''; },
-      sync: sync,
-      connect: connect,
-      signUp: signUp,
-      logIn: logIn,
-      logOut: logOut,
-      disconnect: function () { save.supa = null; persist(); },
-      pushLevel: pushLevel
-    };
-  })();
 
   /* ---------------- deterministic RNG (stable levels) ---------------- */
   function mulberry32(a) {
@@ -1015,7 +783,6 @@
     if (game.level >= save.unlocked) save.unlocked = Math.min(game.level + 1, DESIGN_LEVELS);
     save.cur = null;
     persist();
-    Cloud.pushLevel(game.level);
     setTimeout(function () {
       var done = game.level >= DESIGN_LEVELS;
       $('win-title').textContent = done ? 'Campaign complete!' : 'Board cleared!';
@@ -1438,75 +1205,6 @@
   on($('btn-howto'), 'click', function () { Sound.ui(); openDlg('dlg-howto'); });
   on($('btn-settings'), 'click', function () { Sound.ui(); updateSettingsStatus(); openDlg('dlg-settings'); });
 
-  /* ---------------- cloud sync dialog ---------------- */
-  function cloudMsg(text, busy) {
-    var msg = $('cloud-msg');
-    msg.style.color = busy ? '#8a97b8' : '';
-    msg.textContent = text;
-  }
-  function refreshCloudDlg() {
-    var conn = Cloud.configured(), signed = Cloud.signedIn();
-    $('cloud-status').innerHTML = conn ? '<span class="ok">Connected ✓</span>' : '<span class="no">Not connected</span>';
-    $('cloud-account').innerHTML = signed ? '<span class="ok">' + Cloud.email() + '</span>' : 'Not signed in';
-    $('cloud-last').textContent = (save.supa && save.supa.last) ? 'Last sync: ' + new Date(save.supa.last).toLocaleString() : 'Last sync: —';
-    $('cloud-fields').style.display = conn ? 'none' : '';
-    $('cloud-auth').style.display = (conn && !signed) ? '' : 'none';
-    $('cloud-actions-on').style.display = signed ? '' : 'none';
-    if (!conn) {
-      $('in-cloud-url').value = (save.supa && save.supa.url) || '';
-      $('in-cloud-key').value = (save.supa && save.supa.key) || '';
-    }
-    $('in-cloud-pass').value = '';
-    cloudMsg('', false);
-  }
-  on($('btn-cloud-menu'), 'click', function () { Sound.ui(); refreshCloudDlg(); openDlg('dlg-cloud'); });
-  on($('btn-cloud-connect'), 'click', function () {
-    Sound.ui();
-    cloudMsg('Connecting backend…', true);
-    Cloud.connect($('in-cloud-url').value, $('in-cloud-key').value).then(function () {
-      toast('Backend connected — log in or create an account');
-      refreshCloudDlg();
-    }).catch(function (e) {
-      cloudMsg('Could not connect: ' + (e && e.message ? e.message : 'check URL and anon key'));
-    });
-  });
-  on($('btn-cloud-login'), 'click', function () {
-    Sound.ui();
-    cloudMsg('Signing in…', true);
-    Cloud.logIn($('in-cloud-email').value, $('in-cloud-pass').value).then(function () {
-      toast('Signed in as ' + Cloud.email() + ' — progress synced ✓');
-      refreshCloudDlg(); updateHUD();
-    }).catch(function (e) {
-      cloudMsg('Login failed: ' + (e && e.message ? e.message : 'wrong email or password'));
-    });
-  });
-  on($('btn-cloud-signup'), 'click', function () {
-    Sound.ui();
-    cloudMsg('Creating account…', true);
-    Cloud.signUp($('in-cloud-email').value, $('in-cloud-pass').value).then(function () {
-      toast('Account created — progress synced ✓');
-      refreshCloudDlg(); updateHUD();
-    }).catch(function (e) {
-      cloudMsg('Sign-up failed: ' + (e && e.message ? e.message : 'check email and password (min 6 chars)'));
-    });
-  });
-  on($('btn-cloud-sync'), 'click', function () {
-    Sound.ui();
-    cloudMsg('Syncing…', true);
-    Cloud.sync().then(function () {
-      toast('Synced with cloud ✓');
-      refreshCloudDlg(); updateHUD();
-    }).catch(function (e) {
-      cloudMsg('Sync failed: ' + (e && e.message ? e.message : 'network error'));
-    });
-  });
-  on($('btn-cloud-off'), 'click', function () {
-    Sound.ui();
-    Cloud.logOut().then(function () {
-      toast('Logged out');
-      refreshCloudDlg();
-    });
-  });
   on($('btn-install-menu'), 'click', function () { Sound.ui(); PWA.installAction(); });
 
   on($('btn-undo'), 'click', function () { undo(); });
@@ -1546,7 +1244,6 @@
     $('st-sw').innerHTML = PWA.swActive ? '<span class="ok">Active ✓</span>' : '<span class="no">Not active</span>';
     $('st-install').innerHTML = PWA.canPrompt() ? '<span class="ok">Available ✓</span>' : 'Not available';
     $('st-storage').innerHTML = storageOk ? '<span class="ok">Saving ✓</span>' : '<span class="no">Unavailable</span>';
-    $('st-cloud').innerHTML = Cloud.signedIn() ? '<span class="ok">' + Cloud.email() + '</span>' : (Cloud.configured() ? 'Connected — not signed in' : 'Not set up');
   }
 
   /* =====================================================================
@@ -1556,7 +1253,7 @@
      ===================================================================== */
   var SW_SRC = [
     "/* Arrow Out! service worker — save as sw.js next to index.html */",
-    "const CACHE = 'arrow-out-v3';",
+    "const CACHE = 'arrow-out-v4';",
     "const ASSETS = ['./', './index.html', './sw.js'];",
     "self.addEventListener('install', (e) => {",
     "  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));",
