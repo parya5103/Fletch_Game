@@ -86,6 +86,7 @@ const Haptics = (function() {
   return {
     enabled: enabled,
     supported: supported,
+    checkSupport: checkSupport,
     setEnabled: setEnabled,
     getEnabled: getEnabled,
     isSupported: isSupported,
