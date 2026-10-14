@@ -21,13 +21,28 @@ const Audio = (function() {
   function tone(f0, f1, dur, type, vol, delay) {
     var c = getCtx();
     if (!c || c.state !== 'running') return;
-    var t0 = c.currentTime + (delay || 0);
+    
+    // Validate all numeric parameters are finite
+    f0 = Number(f0);
+    f1 = f1 !== undefined && f1 !== null ? Number(f1) : null;
+    dur = Number(dur);
+    vol = Number(vol);
+    delay = Number(delay || 0);
+    
+    // Reject non-finite values
+    if (!isFinite(f0) || !isFinite(dur) || !isFinite(vol) || !isFinite(delay)) return;
+    if (f0 <= 0) return; // Frequency must be positive
+    if (dur <= 0) return; // Duration must be positive
+    if (vol <= 0) return; // Volume must be positive
+    if (f1 !== null && !isFinite(f1) || f1 <= 0) return;
+    
+    var t0 = c.currentTime + delay;
     var o = c.createOscillator(), g = c.createGain();
     o.type = type || 'sine';
     o.frequency.setValueAtTime(f0, t0);
     if (f1) o.frequency.exponentialRampToValueAtTime(f1, t0 + dur);
     g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(vol || 0.18, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
     o.connect(g);
     g.connect(c.destination);
