@@ -196,23 +196,23 @@
     <div class="ib-text" id="ib-text"></div>
     <div class="ib-actions">
       <button class="btn small primary" id="btn-banner-install" type="button">Install</button>
-      <button class="btn iconx" id="btn-banner-close" type="button" aria-label="Dismiss install banner">\u2715</button>
+      <button class="btn iconx" id="btn-banner-close" type="button" aria-label="Dismiss install banner">✕</button>
     </div>
   </div>
 
   <!-- ===== HOME SCREEN ===== -->
   <div class="overlay" id="dlg-home" role="dialog" aria-modal="true" aria-labelledby="home-title">
     <div class="card">
-      <h2 id="home-title">\u27a4 Arrow Out!</h2>
+      <h2 id="home-title">➤ Arrow Out!</h2>
       <p class="sub">Tap arrows away. Clear the board. Premium puzzle experience.</p>
       
       <div class="home-buttons">
         <button class="btn primary" id="btn-continue" type="button">Continue Playing</button>
-        <button class="btn" id="btn-daily" type="button">\ud83c\udf1d Daily Challenge</button>
-        <button class="btn" id="btn-levels" type="button">\ud83d\udcc1 Levels</button>
-        <button class="btn" id="btn-achievements" type="button">\ud83c\udf96 Achievements</button>
-        <button class="btn" id="btn-stats-menu" type="button">\ud83d\udcca Statistics</button>
-        <button class="btn" id="btn-settings" type="button">\u2699\ufe0f Settings</button>
+        <button class="btn" id="btn-daily" type="button">🌝 Daily Challenge</button>
+        <button class="btn" id="btn-levels" type="button">📁 Levels</button>
+        <button class="btn" id="btn-achievements" type="button">🎖 Achievements</button>
+        <button class="btn" id="btn-stats-menu" type="button">📊 Statistics</button>
+        <button class="btn" id="btn-settings" type="button">⚙️ Settings</button>
       </div>
       
       <div class="home-progress">
@@ -241,17 +241,17 @@
   <!-- ===== MAIN MENU ===== -->
   <div class="overlay" id="dlg-menu" role="dialog" aria-modal="true" aria-labelledby="menu-title">
     <div class="card">
-      <h2 id="menu-title">\u27a4 Arrow Out!</h2>
+      <h2 id="menu-title">➤ Arrow Out!</h2>
       <p class="sub">Tap arrows away. Clear the whole board.</p>
       <div class="stack">
-        <button class="btn primary" id="btn-play" type="button">Play \u00b7 Level 1</button>
-        <button class="btn" id="btn-levels-menu" type="button">\ud83d\udcc1 Levels</button>
-        <button class="btn" id="btn-stats-menu-2" type="button">\ud83d\udcca Stats</button>
-        <button class="btn" id="btn-achievements-menu" type="button">\ud83c\udf96 Achievements</button>
-        <button class="btn" id="btn-daily-menu" type="button">\ud83c\udf1d Daily Challenge</button>
-        <button class="btn" id="btn-howto" type="button">\u2753 How to play</button>
-        <button class="btn" id="btn-install-menu" type="button">\ud83d\udcf2 Install app</button>
-        <button class="btn" id="btn-settings-menu" type="button">\u2699\ufe0f Settings</button>
+        <button class="btn primary" id="btn-play" type="button">Play · Level 1</button>
+        <button class="btn" id="btn-levels-menu" type="button">📁 Levels</button>
+        <button class="btn" id="btn-stats-menu-2" type="button">📊 Stats</button>
+        <button class="btn" id="btn-achievements-menu" type="button">🎖 Achievements</button>
+        <button class="btn" id="btn-daily-menu" type="button">🌝 Daily Challenge</button>
+        <button class="btn" id="btn-howto" type="button">❓ How to play</button>
+        <button class="btn" id="btn-install-menu" type="button">📲 Install app</button>
+        <button class="btn" id="btn-settings-menu" type="button">⚙️ Settings</button>
       </div>
     </div>
   </div>
@@ -263,7 +263,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>
       <h2 id="lv-title">Levels</h2>
-      <p class="sub">1000 levels \u00b7 \u2605\u2605\u2605 = no mistakes, no hints \u00b7 best stars save automatically.</p>
+      <p class="sub">1000 levels · ★★★ = no mistakes, no hints · best stars save automatically.</p>
       <div id="lv-grid"></div>
     </div>
   </div>
@@ -276,14 +276,14 @@
       </button>
       <h2 id="how-title">How to play</h2>
       <ul>
-        <li><b>Tap an arrow</b> \u2014 it flies off the board in the direction it points.</li>
+        <li><b>Tap an arrow</b> — it flies off the board in the direction it points.</li>
         <li>It only leaves if its <b>path to the edge is clear</b>. Another arrow in the way blocks it.</li>
-        <li>A blocked tap <b>costs one heart</b> (\u2665\u2665\u2665). Lose all three and the level restarts.</li>
+        <li>A blocked tap <b>costs one heart</b> (♥♥♥). Lose all three and the level restarts.</li>
         <li>Clear <b>every arrow</b> to finish the level. Order is everything!</li>
-        <li>Stars: \u2605\u2605\u2605 = no mistakes & no hints \u00b7 \u2605\u2605 = up to 2 mistakes & 1 hint \u00b7 \u2605 = cleared.</li>
-        <li><b>3 free hints</b> per level \u2014 after that, watch a short ad to reveal another hint.</li>
-        <li><b>Hint</b> glows a free arrow \u00b7 <b>Undo</b> brings the last arrow back \u00b7 <b>Restart</b> resets.</li>
-        <li>Your progress saves automatically \u2014 come back any time.</li>
+        <li>Stars: ★★★ = no mistakes & no hints · ★★ = up to 2 mistakes & 1 hint · ★ = cleared.</li>
+        <li><b>3 free hints</b> per level — after that, watch a short ad to reveal another hint.</li>
+        <li><b>Hint</b> glows a free arrow · <b>Undo</b> brings the last arrow back · <b>Restart</b> resets.</li>
+        <li>Your progress saves automatically — come back any time.</li>
       </ul>
       <p style="font-size:12.5px;color:#8a97b8;">No timer, no pressure. Take your time and untangle the board.</p>
     </div>
@@ -324,10 +324,10 @@
       </div>
       
       <div class="status-list">
-        <div><span>Running mode</span><span id="st-mode">\u2014</span></div>
-        <div><span>Offline caching</span><span id="st-sw">\u2014</span></div>
-        <div><span>Install prompt</span><span id="st-install">\u2014</span></div>
-        <div><span>Saved progress</span><span id="st-storage">\u2014</span></div>
+        <div><span>Running mode</span><span id="st-mode">—</span></div>
+        <div><span>Offline caching</span><span id="st-sw">—</span></div>
+        <div><span>Install prompt</span><span id="st-install">—</span></div>
+        <div><span>Saved progress</span><span id="st-storage">—</span></div>
       </div>
       
       <p style="font-size:12.5px; color:#8a97b8; margin-bottom:10px;">
@@ -344,7 +344,7 @@
   <!-- ===== WIN DIALOG ===== -->
   <div class="overlay" id="dlg-win" role="alertdialog" aria-modal="true" aria-labelledby="win-title">
     <div class="card" style="text-align:center;">
-      <div class="big-emoji" aria-hidden="true">\ud83c\udf89</div>
+      <div class="big-emoji" aria-hidden="true">🎉</div>
       <h2 id="win-title">Board cleared!</h2>
       <div id="win-stars" aria-hidden="true"></div>
       <p id="win-sub"></p>
@@ -361,9 +361,9 @@
   <!-- ===== OUT OF HEARTS ===== -->
   <div class="overlay" id="dlg-fail" role="alertdialog" aria-modal="true" aria-labelledby="fail-title">
     <div class="card" style="text-align:center;">
-      <div class="big-emoji" aria-hidden="true">\ud83d\udc94</div>
+      <div class="big-emoji" aria-hidden="true">💔</div>
       <h2 id="fail-title">Out of hearts</h2>
-      <p style="margin-bottom:16px;">Three blocked taps \u2014 take a fresh look and try again.</p>
+      <p style="margin-bottom:16px;">Three blocked taps — take a fresh look and try again.</p>
       <div class="stack">
         <button class="btn primary" id="btn-retry" type="button">Retry level</button>
         <button class="btn" id="btn-fail-levels" type="button">Levels</button>
@@ -380,17 +380,17 @@
       <h2 id="stats-title">Your stats</h2>
       <p class="sub">Saved privately on this device.</p>
       <div class="status-list">
-        <div><span>Current level</span><span id="stat-current">\u2014</span></div>
-        <div><span>Levels cleared</span><span id="stat-levels">\u2014</span></div>
-        <div><span>Total stars</span><span id="stat-stars">\u2014</span></div>
-        <div><span>Total plays</span><span id="stat-plays">\u2014</span></div>
-        <div><span>Hints used</span><span id="stat-hints">\u2014</span></div>
-        <div><span>Mistakes</span><span id="stat-mistakes">\u2014</span></div>
-        <div><span>Current streak</span><span id="stat-streaks">\u2014</span></div>
+        <div><span>Current level</span><span id="stat-current">—</span></div>
+        <div><span>Levels cleared</span><span id="stat-levels">—</span></div>
+        <div><span>Total stars</span><span id="stat-stars">—</span></div>
+        <div><span>Total plays</span><span id="stat-plays">—</span></div>
+        <div><span>Hints used</span><span id="stat-hints">—</span></div>
+        <div><span>Mistakes</span><span id="stat-mistakes">—</span></div>
+        <div><span>Current streak</span><span id="stat-streaks">—</span></div>
       </div>
       <p style="font-size:12.5px;color:#93a0c8;">
         All progress (stars, plays, current level) saves privately on this device and restores
-        automatically \u2014 no account needed, works fully offline.
+        automatically — no account needed, works fully offline.
       </p>
     </div>
   </div>
@@ -410,11 +410,11 @@
   <!-- ===== OUT OF FREE HINTS ===== -->
   <div class="overlay" id="dlg-adhint" role="dialog" aria-modal="true" aria-labelledby="adhint-title">
     <div class="card" style="text-align:center;">
-      <div class="big-emoji" aria-hidden="true">\ud83d\udca1</div>
+      <div class="big-emoji" aria-hidden="true">💡</div>
       <h2 id="adhint-title">Out of free hints</h2>
       <p style="margin-bottom:16px;">You get <b>3 free hints</b> per level. Watch a short ad to reveal one more.</p>
       <div class="stack">
-        <button class="btn primary" id="btn-adhint-watch" type="button">\u25b6 Watch ad for a hint</button>
+        <button class="btn primary" id="btn-adhint-watch" type="button">▶ Watch ad for a hint</button>
         <button class="btn" id="btn-adhint-close" type="button">No thanks</button>
       </div>
     </div>
@@ -426,7 +426,7 @@
       <h2 id="ad-title">Demo ad</h2>
       <p style="font-size:12.5px;color:#8a97b8;margin-bottom:14px;">A real ad plays here once an ad provider is connected.</p>
       <div class="ad-box" aria-hidden="true">Ad space</div>
-      <p id="ad-count" style="font-size:14px;font-weight:700;margin:12px 0 0;">Demo ad \u2014 hint in 5s\u2026</p>
+      <p id="ad-count" style="font-size:14px;font-weight:700;margin:12px 0 0;">Demo ad — hint in 5s…</p>
     </div>
   </div>
 
@@ -441,7 +441,7 @@
       <ul>
         <li>Tap the <b>Share</b> button <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg> in the toolbar.</li>
         <li>Scroll and tap <b>Add to Home Screen</b>.</li>
-        <li>Tap <b>Add</b> \u2014 Arrow Out! will open full-screen from your home screen.</li>
+        <li>Tap <b>Add</b> — Arrow Out! will open full-screen from your home screen.</li>
       </ul>
       <p style="font-size:12.5px;color:#8a97b8;">This is the standard way to install web apps on iOS.</p>
     </div>
