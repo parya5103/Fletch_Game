@@ -215,7 +215,7 @@ const Game = (function() {
     });
     
     // Levels button
-    on($('btn-levels'), 'click', function() {
+    on($('btn-levels-menu'), 'click', function() {
       Audio.ui();
       UI.buildLevelGrid();
       UI.openDlg('dlg-levels');
@@ -229,14 +229,14 @@ const Game = (function() {
     });
     
     // Achievements button
-    on($('btn-achievements'), 'click', function() {
+    on($('btn-achievements-menu'), 'click', function() {
       Audio.ui();
       UI.buildAchievementsGrid();
       UI.openDlg('dlg-achievements');
     });
     
     // Daily challenge button
-    on($('btn-daily'), 'click', function() {
+    on($('btn-daily-menu'), 'click', function() {
       Audio.ui();
       loadDailyChallenge();
     });
@@ -248,7 +248,7 @@ const Game = (function() {
     });
     
     // Settings button
-    on($('btn-settings'), 'click', function() {
+    on($('btn-settings-menu'), 'click', function() {
       Audio.ui();
       UI.updateSettingsStatus();
       UI.openDlg('dlg-settings');

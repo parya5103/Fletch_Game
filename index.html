@@ -245,13 +245,13 @@
       <p class="sub">Tap arrows away. Clear the whole board.</p>
       <div class="stack">
         <button class="btn primary" id="btn-play" type="button">Play \u00b7 Level 1</button>
-        <button class="btn" id="btn-levels" type="button">\ud83d\udcc1 Levels</button>
-        <button class="btn" id="btn-stats-menu" type="button">\ud83d\udcca Stats</button>
-        <button class="btn" id="btn-achievements" type="button">\ud83c\udf96 Achievements</button>
-        <button class="btn" id="btn-daily" type="button">\ud83c\udf1d Daily Challenge</button>
+        <button class="btn" id="btn-levels-menu" type="button">\ud83d\udcc1 Levels</button>
+        <button class="btn" id="btn-stats-menu-2" type="button">\ud83d\udcca Stats</button>
+        <button class="btn" id="btn-achievements-menu" type="button">\ud83c\udf96 Achievements</button>
+        <button class="btn" id="btn-daily-menu" type="button">\ud83c\udf1d Daily Challenge</button>
         <button class="btn" id="btn-howto" type="button">\u2753 How to play</button>
         <button class="btn" id="btn-install-menu" type="button">\ud83d\udcf2 Install app</button>
-        <button class="btn" id="btn-settings" type="button">\u2699\ufe0f Settings</button>
+        <button class="btn" id="btn-settings-menu" type="button">\u2699\ufe0f Settings</button>
       </div>
     </div>
   </div>
@@ -458,14 +458,14 @@
     </div>
   </div>
 
-  <!-- Load scripts in order -->
+  <!-- Load scripts in dependency order -->
   <script src="js/game.js"></script>
-  <script src="js/render.js"></script>
+  <script src="js/storage.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/haptics.js"></script>
-  <script src="js/storage.js"></script>
   <script src="js/pwa.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/render.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>
