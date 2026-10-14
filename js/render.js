@@ -318,6 +318,7 @@ const Render = (function() {
     spawnConfetti: spawnConfetti,
     ensureLoop: ensureLoop,
     needsRender: function() { needsRender = true; },
-    getCanvas: function() { return canvas; }
+    getCanvas: function() { return canvas; },
+    getCellSize: function() { return view ? view.cell : 0; }
   };
 })();

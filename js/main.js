@@ -115,8 +115,10 @@ const Game = (function() {
     e.preventDefault();
     
     var rect = canvas.getBoundingClientRect();
+    var cellSize = Render.getCellSize();
+    if (!cellSize || cellSize <= 0) return;
     var x = e.clientX - rect.left, y = e.clientY - rect.top;
-    var col = Math.floor(x / Render.view.cell), row = Math.floor(y / Render.view.cell);
+    var col = Math.floor(x / cellSize), row = Math.floor(y / cellSize);
     
     if (col < 0 || row < 0 || col >= gameState.cols || row >= gameState.rows) return;
     
