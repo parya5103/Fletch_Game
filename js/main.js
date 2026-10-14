@@ -793,7 +793,7 @@ const Game = (function() {
   };
 })();
 
-// Start the game when all scripts are loaded
-window.addEventListener('load', function() {
+// Start the game when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
   Game.init();
 });
