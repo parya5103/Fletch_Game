@@ -445,6 +445,7 @@ const UI = (function() {
   initTheme();
 
   return {
+    init: init,
     setGameState: setGameState,
     getGameState: getGameState,
     updateHUD: updateHUD,
