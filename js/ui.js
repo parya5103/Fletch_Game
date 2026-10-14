@@ -68,8 +68,12 @@ const UI = (function() {
     var hearts = $('hearts');
     
     if (hudLevel) {
-      var difficulty = GameCore.getDifficultyName(gameState.level);
-      hudLevel.textContent = 'Arrow Out! \u00b7 Level ' + gameState.level + ' (' + difficulty + ')';
+      if (gameState.level === 'daily') {
+        hudLevel.textContent = 'Arrow Out! \u00b7 Daily Challenge';
+      } else {
+        var difficulty = GameCore.getDifficultyName(gameState.level);
+        hudLevel.textContent = 'Arrow Out! \u00b7 Level ' + gameState.level + ' (' + difficulty + ')';
+      }
     }
     
     var left = aliveCount();
@@ -329,7 +333,8 @@ const UI = (function() {
     if (!gameState) return;
     
     var stars = GameCore.calcStars(gameState.wrong, gameState.hintsUsed);
-    var done = gameState.level >= Storage.DESIGN_LEVELS;
+    // Daily challenges have no "next" campaign level; treat them as complete
+    var done = gameState.level === 'daily' || gameState.level >= Storage.DESIGN_LEVELS;
     
     var winTitle = $('win-title');
     var btnNext = $('btn-next');
@@ -469,3 +474,4 @@ const UI = (function() {
     REDUCED: REDUCED
   };
 })();
+

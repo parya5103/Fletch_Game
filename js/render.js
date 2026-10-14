@@ -164,6 +164,7 @@ const Render = (function() {
 
   function spawnFly(i, state) {
     if (!gameState || !gameState.arrows[i]) return;
+    if (!view || !(view.cell > 0)) return; // canvas not laid out yet
     var A = gameState.arrows[i];
     var cell = view.cell;
     gameState.flying.push({
@@ -322,3 +323,4 @@ const Render = (function() {
     getCellSize: function() { return view ? view.cell : 0; }
   };
 })();
+

@@ -60,7 +60,13 @@ const Game = (function() {
     // Canvas input
     var canvasEl = document.getElementById('board');
     if (canvasEl) {
-      on(canvasEl, 'pointerdown', handlePointerDown, { passive: false });
+      if (window.PointerEvent) {
+        on(canvasEl, 'pointerdown', handlePointerDown, { passive: false });
+      } else {
+        // Fallback for browsers without Pointer Events (older mobile WebViews)
+        on(canvasEl, 'touchstart', handlePointerDown, { passive: false });
+        on(canvasEl, 'mousedown', handlePointerDown, { passive: false });
+      }
       on(canvasEl, 'contextmenu', function(e) { e.preventDefault(); });
       on(canvasEl, 'dblclick', function(e) { e.preventDefault(); });
     }
@@ -108,27 +114,42 @@ const Game = (function() {
   function $(id) { return document.getElementById(id); }
   function on(el, ev, fn, opts) { if (el) el.addEventListener(ev, fn, opts); }
 
-  // Handle pointer down on canvas
+  // Handle pointer/touch/mouse down on canvas
   var lastTap = { t: 0, idx: -1 };
+  function pointerPos(e) {
+    if (typeof e.clientX === 'number' && typeof e.clientY === 'number') {
+      return { x: e.clientX, y: e.clientY };
+    }
+    var t = e.changedTouches && e.changedTouches[0];
+    return t ? { x: t.clientX, y: t.clientY } : null;
+  }
   function handlePointerDown(e) {
-    if (!gameState || gameState.over || gameState.failed || !e.isPrimary) return;
+    if (!gameState || gameState.over || gameState.failed || !gameState.occ) return;
+    if (e.isPrimary === false) return; // ignore non-primary pointers
     e.preventDefault();
-    
+
     var rect = canvas.getBoundingClientRect();
+    if (!rect) return;
     var cellSize = Render.getCellSize();
-    if (!cellSize || cellSize <= 0) return;
-    var x = e.clientX - rect.left, y = e.clientY - rect.top;
+    if (!(cellSize > 0)) return; // canvas not laid out yet
+
+    var p = pointerPos(e);
+    if (!p || !isFinite(p.x) || !isFinite(p.y)) return;
+    var x = p.x - rect.left, y = p.y - rect.top;
     var col = Math.floor(x / cellSize), row = Math.floor(y / cellSize);
-    
+
+    // Reject out-of-bounds grid coordinates
     if (col < 0 || row < 0 || col >= gameState.cols || row >= gameState.rows) return;
-    
+
     var ai = gameState.occ[row * gameState.cols + col];
-    if (ai === -1 || !gameState.arrows[ai].alive) return;
-    
+    var A = gameState.arrows[ai];
+    if (ai === undefined || ai === -1 || !A || !A.alive) return;
+
+    // Debounce double events on the same arrow
     var now = performance.now();
     if (ai === lastTap.idx && now - lastTap.t < 160) return;
     lastTap = { t: now, idx: ai };
-    
+
     Audio.unlock();
     tapArrow(ai);
   }
@@ -181,7 +202,10 @@ const Game = (function() {
       var save = Storage.getSave();
       var btnPlay = $('btn-play');
       if (btnPlay) {
-        btnPlay.textContent = 'Play \u00b7 Level ' + (gameState && gameState.over ? Math.min(gameState.level + 1, Storage.DESIGN_LEVELS) : (gameState ? gameState.level : 1));
+        var lv = gameState ? gameState.level : 1;
+        btnPlay.textContent = lv === 'daily'
+          ? 'Play \u00b7 Daily'
+          : 'Play \u00b7 Level ' + (gameState && gameState.over ? Math.min(lv + 1, Storage.DESIGN_LEVELS) : lv);
       }
       UI.openDlg('dlg-menu');
     });
@@ -192,9 +216,9 @@ const Game = (function() {
       Audio.ui();
       Audio.unlock();
       if (gameState && gameState.over) {
-        loadLevel(Math.min(gameState.level + 1, Storage.DESIGN_LEVELS));
+        nextLevel();
       } else if (gameState && gameState.failed) {
-        loadLevel(gameState.level);
+        reloadLevel();
       } else {
         var save = Storage.getSave();
         loadLevel(Math.min(save.unlocked, Storage.DESIGN_LEVELS));
@@ -268,7 +292,7 @@ const Game = (function() {
     on($('btn-restart'), 'click', function() {
       if (gameState && gameState.over) return;
       Audio.ui();
-      loadLevel(gameState.level);
+      reloadLevel();
       UI.toast('Level restarted');
     });
     
@@ -276,12 +300,12 @@ const Game = (function() {
     on($('btn-next'), 'click', function() {
       UI.closeAll();
       Audio.ui();
-      loadLevel(Math.min(gameState.level + 1, Storage.DESIGN_LEVELS));
+      nextLevel();
     });
     on($('btn-replay'), 'click', function() {
       UI.closeAll();
       Audio.ui();
-      loadLevel(gameState.level);
+      reloadLevel();
     });
     on($('btn-win-levels'), 'click', function() {
       Audio.ui();
@@ -293,7 +317,7 @@ const Game = (function() {
     on($('btn-retry'), 'click', function() {
       UI.closeAll();
       Audio.ui();
-      loadLevel(gameState.level);
+      reloadLevel();
     });
     on($('btn-fail-levels'), 'click', function() {
       Audio.ui();
@@ -369,8 +393,24 @@ const Game = (function() {
     }, 80);
   }
 
+  // Level navigation helpers (safe for both numeric levels and 'daily')
+  function nextLevel() {
+    if (!gameState) { loadLevel(1); return; }
+    if (gameState.level === 'daily') { loadDailyChallenge(); return; }
+    loadLevel(Math.min(gameState.level + 1, Storage.DESIGN_LEVELS));
+  }
+  function reloadLevel() {
+    if (!gameState) { loadLevel(1); return; }
+    if (gameState.level === 'daily') { loadDailyChallenge(); return; }
+    loadLevel(gameState.level);
+  }
+
   // Game state management
   function loadLevel(n) {
+    // Sanitize level number so NaN/undefined can never reach level generation
+    n = Math.floor(Number(n));
+    if (!isFinite(n) || n < 1) n = 1;
+    if (n > Storage.DESIGN_LEVELS) n = Storage.DESIGN_LEVELS;
     var L = GameCore.genLevel(n);
     
     gameState = {
@@ -499,25 +539,47 @@ const Game = (function() {
   function tryRestore() {
     var save = Storage.getSave();
     var c = save.cur;
-    
-    if (!c || typeof c.level !== 'number' || !Array.isArray(c.arrows)) return false;
+
+    // Validate the shape of the saved game before touching gameState
+    if (!c || typeof c.level !== 'number' ||
+        !Array.isArray(c.arrows) || !Array.isArray(c.alive) ||
+        !Array.isArray(c.shapeIdx) || !Array.isArray(c.undoIds)) return false;
+    if (typeof c.cols !== 'number' || typeof c.rows !== 'number' ||
+        !(c.cols > 0) || !(c.rows > 0)) return false;
     if (c.arrows.length !== c.alive.length) return false;
     if ((c.hearts | 0) <= 0) return false;
-    
+
     var N = c.cols * c.rows;
-    if (N > 400) return false;
-    
+    if (!isFinite(N) || N <= 0 || N > 400) return false;
+
+    // Validate arrows fully before committing any state
+    var restored = [];
+    for (var a = 0; a < c.arrows.length; a++) {
+      var A = c.arrows[a];
+      if (!A || typeof A.x !== 'number' || typeof A.y !== 'number' ||
+          A.x < 0 || A.x >= c.cols || A.y < 0 || A.y >= c.rows) return false;
+      var ci = (typeof A.c === 'number' && A.c >= 0) ? A.c : 0;
+      restored.push({
+        x: A.x,
+        y: A.y,
+        dir: (A.dir | 0) & 3,
+        c: ci % GameCore.PALETTE.length,
+        step: A.step | 0,
+        alive: !!c.alive[a]
+      });
+    }
+
     gameState = {
       level: c.level,
       cols: c.cols,
       rows: c.rows,
       shape: new Uint8Array(N),
-      arrows: [],
+      arrows: restored,
       occ: null,
       hearts: Math.min(GameCore.MAX_HEARTS, Math.max(0, c.hearts | 0)),
       wrong: c.wrong | 0,
       hintsUsed: c.hintsUsed | 0,
-      undoIds: Array.isArray(c.undoIds) ? c.undoIds.slice(-40) : [],
+      undoIds: c.undoIds.slice(-40),
       over: false,
       failed: false,
       hintIdx: -1,
@@ -526,40 +588,28 @@ const Game = (function() {
       flying: [],
       particles: []
     };
-    
+
     for (var i = 0; i < c.shapeIdx.length; i++) {
       var idx = c.shapeIdx[i];
       if (idx < 0 || idx >= N) return false;
       gameState.shape[idx] = 1;
     }
-    
-    for (var a = 0; a < c.arrows.length; a++) {
-      var A = c.arrows[a];
-      if (!A || A.x < 0 || A.x >= c.cols || A.y < 0 || A.y >= c.rows) return false;
-      gameState.arrows.push({ 
-        x: A.x, 
-        y: A.y, 
-        dir: A.dir & 3, 
-        c: A.c % GameCore.PALETTE.length, 
-        step: A.step | 0, 
-        alive: !!c.alive[a] 
-      });
-    }
-    
+
     gameState.failed = gameState.hearts <= 0;
     rebuildOcc();
-    
+
     Render.setGameState(gameState);
     UI.setGameState(gameState);
-    
+
     return true;
   }
 
   // Game moves
   function tapArrow(i) {
     if (!gameState || gameState.over || gameState.failed) return;
-    
+
     var A = gameState.arrows[i];
+    if (!A || !A.alive || !gameState.occ) return;
     var blocker = GameCore.rayBlocker(gameState.occ, gameState.arrows, gameState.cols, gameState.rows, A.x, A.y, A.dir);
     
     if (blocker === -1) {
@@ -598,14 +648,17 @@ const Game = (function() {
 
   function removeArrow(i) {
     if (!gameState) return;
-    
-    gameState.arrows[i].alive = false;
-    gameState.occ[gameState.arrows[i].y * gameState.cols + gameState.arrows[i].x] = -1;
+
+    var A = gameState.arrows[i];
+    if (!A || !A.alive || !gameState.occ) return;
+
+    A.alive = false;
+    gameState.occ[A.y * gameState.cols + A.x] = -1;
     gameState.undoIds.push(i);
     if (gameState.undoIds.length > 100) gameState.undoIds.shift();
-    
+
     Render.spawnFly(i, gameState);
-    Audio.fly(gameState.arrows[i].dir);
+    Audio.fly(A.dir);
     
     var save = Storage.getSave();
     if (save.vibration) Haptics.lightTap();
@@ -631,10 +684,10 @@ const Game = (function() {
 
   function undo() {
     if (!gameState || gameState.over || gameState.failed || !gameState.undoIds.length) return;
-    
+
     var i = gameState.undoIds.pop();
     var A = gameState.arrows[i];
-    if (A.alive) return;
+    if (!A || A.alive || !gameState.occ) return;
     
     A.alive = true;
     gameState.occ[A.y * gameState.cols + A.x] = i;
@@ -799,3 +852,4 @@ const Game = (function() {
 document.addEventListener('DOMContentLoaded', function() {
   Game.init();
 });
+

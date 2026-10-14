@@ -18,32 +18,50 @@ const Audio = (function() {
     return ac;
   }
 
+  // Reusable numeric validation helpers (module boundary)
+  var MIN_FREQ = 20, MAX_FREQ = 20000;
+  function clampNum(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+  function toNum(v, dflt) { v = Number(v); return isFinite(v) ? v : dflt; }
+
   function tone(f0, f1, dur, type, vol, delay) {
     var c = getCtx();
     if (!c || c.state !== 'running') return;
-    
-    // Validate all numeric parameters are finite
-    f0 = Number(f0);
-    f1 = f1 !== undefined && f1 !== null ? Number(f1) : null;
-    dur = Number(dur);
-    vol = Number(vol);
-    delay = Number(delay || 0);
-    
-    // Reject non-finite values
-    if (!isFinite(f0) || !isFinite(dur) || !isFinite(vol) || !isFinite(delay)) return;
-    if (f0 <= 0) return; // Frequency must be positive
-    if (dur <= 0) return; // Duration must be positive
-    if (vol <= 0) return; // Volume must be positive
-    if (f1 !== null && !isFinite(f1) || f1 <= 0) return;
-    
+
+    // Coerce and validate all numeric parameters before touching AudioParams
+    f0 = toNum(f0, 0);
+    f1 = (f1 === undefined || f1 === null) ? null : toNum(f1, 0);
+    dur = toNum(dur, 0);
+    vol = toNum(vol, 0);
+    delay = toNum(delay || 0, 0);
+
+    // Reject unusable values (NaN, Infinity, non-positive where required)
+    if (!(f0 > 0) || !(dur > 0) || !(vol > 0) || delay < 0) return;
+    if (f1 !== null && !(f1 > 0)) return;
+
+    // Clamp into sensible, audible ranges so no AudioParam ever sees
+    // a non-finite or out-of-range value
+    f0 = clampNum(f0, MIN_FREQ, MAX_FREQ);
+    if (f1 !== null) f1 = clampNum(f1, MIN_FREQ, MAX_FREQ);
+    dur = clampNum(dur, 0.01, 10);
+    vol = clampNum(vol, 0.0001, 1);
+    delay = clampNum(delay, 0, 10);
+
     var t0 = c.currentTime + delay;
+    if (!isFinite(t0) || t0 < 0) return;
+
     var o = c.createOscillator(), g = c.createGain();
     o.type = type || 'sine';
-    o.frequency.setValueAtTime(f0, t0);
-    if (f1) o.frequency.exponentialRampToValueAtTime(f1, t0 + dur);
-    g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    try {
+      o.frequency.setValueAtTime(f0, t0);
+      if (f1 !== null) o.frequency.exponentialRampToValueAtTime(f1, t0 + dur);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    } catch (err) {
+      // A single bad sound must never take down gameplay
+      console.warn('Audio: skipped invalid tone', err && err.message);
+      return;
+    }
     o.connect(g);
     g.connect(c.destination);
     o.start(t0);
@@ -120,3 +138,4 @@ const Audio = (function() {
     star: function() { playSound('star'); }
   };
 })();
+

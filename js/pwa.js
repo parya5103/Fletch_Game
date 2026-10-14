@@ -12,7 +12,7 @@ const PWA = (function() {
   // Service worker source
   var SW_SRC = [
     "/* Arrow Out! service worker - save as sw.js next to index.html */",
-    "const CACHE = 'arrow-out-v7';",
+    "const CACHE = 'arrow-out-v8';",
     "const ASSETS = ['./', './index.html', './sw.js', './js/game.js', './js/render.js', './js/audio.js', './js/haptics.js', './js/storage.js', './js/pwa.js', './js/ui.js', './js/main.js', './css/styles.css'];",
     "self.addEventListener('install', (e) => {",
     "  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));",
@@ -25,7 +25,7 @@ const PWA = (function() {
     "  e.respondWith(",
     "    caches.match(e.request, { ignoreSearch: true }).then((hit) => hit || fetch(e.request).then((resp) => {",
     "      const copy = resp.clone();",
-    "      caches.open(CACHE).then((c) => c.put(e.request, copy));",
+    "      if (resp && resp.ok) caches.open(CACHE).then((c) => c.put(e.request, copy));",
     "      return resp;",
     "    }).catch(() => caches.match('./index.html')))",
     "  );",
@@ -291,3 +291,4 @@ const PWA = (function() {
     get SW_SRC() { return SW_SRC; }
   };
 })();
+

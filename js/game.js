@@ -107,7 +107,13 @@ const GameCore = (function() {
 
   // Generate a valid, solvable level
   function genLevel(n) {
+    // Sanitize input: NaN/undefined must never reach level configuration,
+    // otherwise config becomes NaN and recursion below never terminates.
+    n = Math.floor(Number(n));
+    if (!isFinite(n) || n < 1) n = 1;
     var cfg = levelConfig(n);
+    cfg.grid = Math.max(4, Math.min(12, cfg.grid | 0));
+    cfg.arrows = Math.max(1, Math.min(130, cfg.arrows | 0));
     var rng = mulberry32(cfg.seed);
     var W = cfg.grid, H = cfg.grid, N = W * H;
 
@@ -283,3 +289,4 @@ const GameCore = (function() {
     rayBlocker: rayBlocker
   };
 })();
+

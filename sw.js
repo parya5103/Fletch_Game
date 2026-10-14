@@ -1,10 +1,10 @@
 /**
  * Arrow Out! Service Worker
- * Version: v7
+ * Version: v8
  * Handles caching for offline gameplay
  */
 
-const CACHE = 'arrow-out-v7';
+const CACHE = 'arrow-out-v8';
 const ASSETS = [
   './',
   './index.html',
@@ -38,12 +38,19 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
-  
+
+  // Let cross-origin requests pass through untouched
+  const url = new URL(e.request.url);
+  if (url.origin !== self.location.origin) return;
+
   e.respondWith(
     caches.match(e.request, { ignoreSearch: true }).then((hit) => 
       hit || fetch(e.request).then((resp) => {
-        const copy = resp.clone();
-        caches.open(CACHE).then((c) => c.put(e.request, copy));
+        // Only cache successful responses; never cache errors or redirects
+        if (resp && resp.ok) {
+          const copy = resp.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, copy));
+        }
         return resp;
       }).catch(() => caches.match('./index.html'))
     )
