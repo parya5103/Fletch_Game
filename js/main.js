@@ -247,11 +247,43 @@ const Game = (function() {
       UI.openDlg('dlg-levels');
     });
     
-    // Stats button
+    // Stats button (menu dialog uses a different id than the home screen)
     on($('btn-stats-menu'), 'click', function() {
       Audio.ui();
       UI.updateStats();
       UI.openDlg('dlg-stats');
+    });
+    on($('btn-stats-menu-2'), 'click', function() {
+      Audio.ui();
+      UI.closeAll();
+      UI.updateStats();
+      UI.openDlg('dlg-stats');
+    });
+    
+    // Home screen buttons
+    on($('btn-levels'), 'click', function() {
+      Audio.ui();
+      UI.closeAll();
+      UI.buildLevelGrid();
+      UI.openDlg('dlg-levels');
+    });
+    on($('btn-achievements'), 'click', function() {
+      Audio.ui();
+      UI.closeAll();
+      UI.buildAchievementsGrid();
+      UI.openDlg('dlg-achievements');
+    });
+    on($('btn-settings'), 'click', function() {
+      Audio.ui();
+      UI.closeAll();
+      UI.updateSettingsStatus();
+      UI.openDlg('dlg-settings');
+    });
+    on($('btn-daily'), 'click', function() {
+      Audio.ui();
+      Audio.unlock();
+      UI.closeAll();
+      loadDailyChallenge();
     });
     
     // Achievements button
@@ -852,4 +884,5 @@ const Game = (function() {
 document.addEventListener('DOMContentLoaded', function() {
   Game.init();
 });
+
 

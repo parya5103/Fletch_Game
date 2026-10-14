@@ -105,7 +105,9 @@ const Audio = (function() {
     };
     
     if (sounds[name]) {
-      sounds[name]();
+      // Forward any extra arguments (e.g. fly's direction) to the sound handler.
+      // Without this, fly received dir===undefined -> 520 + undefined*60 = NaN.
+      sounds[name].apply(null, Array.prototype.slice.call(arguments, 1));
     }
   }
 
@@ -127,7 +129,12 @@ const Audio = (function() {
       if (enabled && ac && ac.state === 'suspended') ac.resume(); 
     },
     play: playSound,
-    fly: function(dir) { playSound('fly', dir); },
+    fly: function(dir) {
+      // Defensive default at the module boundary: dir must be a finite 0-3
+      dir = Math.floor(Number(dir));
+      if (!isFinite(dir) || dir < 0 || dir > 3) dir = 0;
+      playSound('fly', dir);
+    },
     blocked: function() { playSound('blocked'); },
     ui: function() { playSound('ui'); },
     undo: function() { playSound('undo'); },
@@ -138,4 +145,5 @@ const Audio = (function() {
     star: function() { playSound('star'); }
   };
 })();
+
 
