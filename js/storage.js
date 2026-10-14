@@ -240,6 +240,7 @@ const Storage = (function() {
   init();
 
   return {
+    init: init,
     getSave: getSave,
     updateSave: updateSave,
     updateLevelBest: updateLevelBest,
