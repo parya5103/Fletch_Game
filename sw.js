@@ -1,11 +1,11 @@
 /**
  * Arrow Out! Service Worker
- * Version: v8
+ * Version: v9
  * Handles caching for offline gameplay
  */
 
-const CACHE = 'arrow-out-v8';
-const ASSETS = [
+const CACHE = 'arrow-out-v9';
+const CORE_ASSETS = [
   './',
   './index.html',
   './sw.js',
@@ -17,12 +17,27 @@ const ASSETS = [
   './js/storage.js',
   './js/pwa.js',
   './js/ui.js',
-  './js/main.js'
+  './js/main.js',
+  './manifest.webmanifest',
+  './icons/favicon.svg'
+];
+
+// Real PNG icons are committed by the icon-generation workflow.
+// Cache them opportunistically, but never fail installation if they
+// are not on the server yet (the workflow may run after this deploy).
+const EXTRA_ASSETS = [
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-maskable-512.png'
 ];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE).then((c) =>
+      c.addAll(CORE_ASSETS).then(() =>
+        Promise.all(EXTRA_ASSETS.map((a) => c.add(a).catch(() => null)))
+      )
+    ).then(() => self.skipWaiting())
   );
 });
 
@@ -63,7 +78,7 @@ self.addEventListener('push', (e) => {
     const data = e.data.json();
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: data.icon || './icon.png',
+      icon: data.icon || './icons/icon-192.png',
       data: data.data
     });
   }

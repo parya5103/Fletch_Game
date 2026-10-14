@@ -12,7 +12,7 @@ const PWA = (function() {
   // Service worker source
   var SW_SRC = [
     "/* Arrow Out! service worker - save as sw.js next to index.html */",
-    "const CACHE = 'arrow-out-v8';",
+    "const CACHE = 'arrow-out-v9';",
     "const ASSETS = ['./', './index.html', './sw.js', './js/game.js', './js/render.js', './js/audio.js', './js/haptics.js', './js/storage.js', './js/pwa.js', './js/ui.js', './js/main.js', './css/styles.css'];",
     "self.addEventListener('install', (e) => {",
     "  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));",
@@ -109,13 +109,17 @@ const PWA = (function() {
         ]
       };
       
+      // A real, same-origin manifest file is required for Chrome installability.
+      // Fall back to the runtime data: URL only if no real manifest is linked.
       var link = document.querySelector('link[rel="manifest"]');
-      if (!link) { 
-        link = document.createElement('link'); 
-        link.rel = 'manifest'; 
-        document.head.appendChild(link); 
+      if (!link || !/^https?:/i.test(link.href)) {
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'manifest';
+          document.head.appendChild(link);
+        }
+        link.href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(man));
       }
-      link.href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(man));
       
       var apple = document.querySelector('link[rel="apple-touch-icon"]');
       if (!apple) { 
@@ -244,6 +248,19 @@ const PWA = (function() {
 
   // Set up event listeners
   function setupListeners() {
+    // One-time re-arm of the install banner for the v9 install fix:
+    // users who previously dismissed the banner get one more chance.
+    try {
+      if (!localStorage.getItem('ao-install-v9-reset')) {
+        localStorage.setItem('ao-install-v9-reset', '1');
+        var s = Storage.getSave();
+        if (s && s.installHidden) {
+          s.installHidden = false;
+          Storage.updateSave(s);
+        }
+      }
+    } catch (e2) { /* storage unavailable; banner logic still works via save */ }
+
     window.addEventListener('beforeinstallprompt', function(e) {
       e.preventDefault();
       deferredPrompt = e;
