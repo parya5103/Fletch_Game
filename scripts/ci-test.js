@@ -110,6 +110,64 @@ check('getDifficultyLevel returns valid tier keys', [1, 60, 300, 600, 900].every
   return ['easy', 'medium', 'hard', 'expert', 'master'].indexOf(GC.getDifficultyLevel(n)) !== -1;
 }));
 
+console.log('# layout families');
+check('FAMILIES exposes 8 unique layout families',
+  Array.isArray(GC.FAMILIES) && GC.FAMILIES.length === 8 &&
+  Array.from(new Set(GC.FAMILIES)).length === 8,
+  JSON.stringify(GC.FAMILIES));
+check('familyOf rotates families by level number',
+  typeof GC.familyOf === 'function' &&
+  GC.familyOf(1) === 'clusters' && GC.familyOf(2) === 'maze' &&
+  GC.familyOf(3) === 'spiral' && GC.familyOf(8) === 'blob');
+check('milestone levels use the ring family',
+  GC.familyOf(50) === 'ring' && GC.familyOf(100) === 'ring' &&
+  GC.genLevel(50).family === 'ring');
+let famSet = new Set();
+for (let n = 11; n <= 50; n++) famSet.add(GC.genLevel(n).family);
+check('all 8 layout families appear across levels 11-50',
+  GC.FAMILIES.every(function (f) { return famSet.has(f); }),
+  Array.from(famSet).sort().join(','));
+
+console.log('# level determinism');
+const r1 = GC.genLevel(37);
+const r2 = GC.genLevel(37);
+check('level 37 reproduces the identical board on replay',
+  r1.cols === r2.cols && r1.family === r2.family &&
+  r1.arrows.length === r2.arrows.length &&
+  r1.arrows.every(function (a, i) {
+    return a.x === r2.arrows[i].x && a.y === r2.arrows[i].y &&
+      a.dir === r2.arrows[i].dir && a.c === r2.arrows[i].c &&
+      a.step === r2.arrows[i].step;
+  }));
+
+console.log('# arrow directions');
+let dirSet = new Set();
+for (let n = 1; n <= 40; n++) GC.genLevel(n).arrows.forEach(function (a) { dirSet.add(a.dir); });
+check('all four directions appear across early levels',
+  [0, 1, 2, 3].every(function (d) { return dirSet.has(d); }),
+  Array.from(dirSet).sort().join(','));
+
+console.log('# full solvability (reverse-step removal)');
+// Reverse placement guarantees that removing arrows in DESCENDING step
+// order always clears the board: when arrow k is removed, exactly the
+// arrows placed before it (steps 0..k-1) are still on the board, and
+// arrow k's exit ray was verified clear against those at placement time.
+let solveFail = '';
+[1, 5, 10, 25, 50, 51, 60, 100, 200, 500, 1000].forEach(function (n) {
+  const lv = GC.genLevel(n);
+  const W = lv.cols, H = lv.rows;
+  const occ = occFrom(W, H, lv.arrows);
+  const order = lv.arrows.slice().sort(function (a, b) { return b.step - a.step; });
+  order.forEach(function (a) {
+    const bi = GC.rayBlocker(occ, lv.arrows, W, H, a.x, a.y, a.dir);
+    if (bi !== -1 && !solveFail) solveFail = 'level ' + n + ' arrow step ' + a.step + ' blocked by step ' + lv.arrows[bi].step;
+    a.alive = false;
+    occ[a.y * W + a.x] = -1;
+  });
+});
+check('every level fully clears by removing arrows in reverse placement order',
+  !solveFail, solveFail);
+
 if (failures) {
   console.error('\n' + failures + ' check(s) FAILED');
   process.exit(1);

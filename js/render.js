@@ -71,79 +71,62 @@ const Render = (function() {
     g.closePath();
   }
 
-  function arrowGlyph(g, a) {
+  // Thin outlined arrow: a closed polygon with a sharp pointed arrowhead
+  // connected to a straight shaft. Drawn pointing up; drawTile rotates it
+  // to the arrow's actual movement direction, so the glyph can never
+  // disagree with the exit logic.
+  function arrowPath(g, s) {
     g.beginPath();
-    g.moveTo(0, -1.05 * a);
-    g.lineTo(0.72 * a, -0.05 * a);
-    g.lineTo(0.26 * a, -0.05 * a);
-    g.lineTo(0.26 * a, 0.95 * a);
-    g.lineTo(-0.26 * a, 0.95 * a);
-    g.lineTo(-0.26 * a, -0.05 * a);
-    g.lineTo(-0.72 * a, -0.05 * a);
+    g.moveTo(0, -0.42 * s);            // tip of the arrowhead
+    g.lineTo(0.30 * s, -0.10 * s);     // head base, right
+    g.lineTo(0.12 * s, -0.10 * s);     // shaft top, right
+    g.lineTo(0.12 * s, 0.42 * s);      // shaft bottom, right
+    g.lineTo(-0.12 * s, 0.42 * s);     // shaft bottom, left
+    g.lineTo(-0.12 * s, -0.10 * s);    // shaft top, left
+    g.lineTo(-0.30 * s, -0.10 * s);    // head base, left
     g.closePath();
   }
 
   function drawTile(px, py, size, dir, color, alpha, scale, isHinted) {
-    var pad = Math.max(2, size * 0.06);
-    var s = size - 2 * pad;
+    var s = size * 0.86;
+    var lw = Math.max(2, size * 0.085);
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(px + size / 2, py + size / 2);
-    if (scale !== 1) ctx.scale(scale, scale);
-    
-    // Tile with premium styling
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
-    ctx.shadowBlur = Math.max(3, size * 0.06);
-    ctx.shadowOffsetY = Math.max(1, size * 0.03);
-    
-    // Gradient fill for premium look
-    var gradient = ctx.createLinearGradient(-s/2, -s/2, s/2, s/2);
-    gradient.addColorStop(0, color);
-    gradient.addColorStop(1, shadeColor(color, -20));
-    ctx.fillStyle = gradient;
-    
-    roundRect(ctx, -s / 2, -s / 2, s, s, Math.max(5, s * 0.22));
-    ctx.fill();
-    
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetY = 0;
-    
-    // Subtle top sheen
-    ctx.globalAlpha = alpha * 0.25;
-    ctx.fillStyle = '#ffffff';
-    roundRect(ctx, -s / 2 + s * 0.08, -s / 2 + s * 0.07, s * 0.84, s * 0.28, s * 0.14);
-    ctx.fill();
-    
-    // White arrow glyph with slight shadow
-    ctx.globalAlpha = alpha;
     ctx.rotate((dir * 90 * Math.PI) / 180);
-    
-    // Arrow shadow
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-    ctx.save();
-    ctx.translate(0, 1);
-    arrowGlyph(ctx, s * 0.30);
+    if (scale !== 1) ctx.scale(scale, scale);
+
+    // Crisp vector corners
+    ctx.lineJoin = 'miter';
+    ctx.miterLimit = 4;
+
+    arrowPath(ctx, s);
+
+    // Faint tinted fill so colorful arrow regions read across the board
+    ctx.fillStyle = color;
+    ctx.globalAlpha = alpha * 0.16;
     ctx.fill();
-    ctx.restore();
-    
-    // Arrow fill
-    arrowGlyph(ctx, s * 0.30);
-    ctx.fillStyle = '#ffffff';
-    ctx.fill();
-    
-    // Hint pulse effect
+
+    // Dark outline pass keeps thin arrows legible on any background
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = shadeColor(color, -40);
+    ctx.lineWidth = lw * 1.6;
+    ctx.stroke();
+
+    // Main colored stroke: the thin outlined arrow itself
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    ctx.stroke();
+
+    // Hint pulse: a white halo breathes around the hinted arrow
     if (isHinted) {
       var pulse = 0.5 + 0.5 * Math.sin(performance.now() / 160);
-      ctx.save();
-      ctx.globalAlpha = 0.45 + 0.5 * pulse;
+      ctx.globalAlpha = alpha * (0.35 + 0.55 * pulse);
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = Math.max(2, size * 0.05);
-      roundRect(ctx, -s / 2, -s / 2, s, s, Math.max(4, s * 0.16));
+      ctx.lineWidth = lw * (1.3 + 0.5 * pulse);
       ctx.stroke();
-      ctx.restore();
     }
-    
+
     ctx.restore();
   }
 
@@ -358,5 +341,3 @@ const Render = (function() {
     getCellSize: function() { return view ? view.cell : 0; }
   };
 })();
-
-
