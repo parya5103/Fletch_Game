@@ -49,6 +49,16 @@ async function main() {
     await page.goto('http://127.0.0.1:' + PORT + '/', { waitUntil: 'load', timeout: 30000 });
     await page.waitForSelector('#dlg-home.show', { timeout: 15000 });
 
+    // Claim the daily login reward if it auto-opened on top of the home screen
+    const rewardDlg = await page.$('#dlg-reward.show');
+    if (rewardDlg) {
+      const claimBtn = await page.$('#btn-reward-claim');
+      if (claimBtn) {
+        await claimBtn.click();
+        await sleep(600);
+      }
+    }
+
     // Dismiss the install banner if headless Chrome fired beforeinstallprompt
     const banner = await page.$('#install-banner');
     if (banner) {
@@ -70,7 +80,8 @@ async function main() {
       const d = document.getElementById('dlg-home');
       return !d || !d.classList.contains('show');
     }, { timeout: 15000 });
-    await sleep(1200);
+    // Let the level intro banner finish its animation
+    await sleep(1800);
     await page.screenshot({ path: path.join(DOC, 'screenshot-board.png') });
     console.log('wrote docs/screenshot-board.png');
   } finally {
