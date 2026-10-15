@@ -1,10 +1,10 @@
 /**
  * Arrow Out! Service Worker
- * Version: v14
+ * Version: v15
  * Handles caching for offline gameplay
  */
 
-const CACHE = 'arrow-out-v14';
+const CACHE = 'arrow-out-v15';
 // Only obsolete caches that belong to THIS game (arrow-out-*) are ever deleted,
 // so other apps served from the same origin keep their caches.
 const CACHE_PREFIX = 'arrow-out-';
@@ -34,10 +34,23 @@ const EXTRA_ASSETS = [
   './icons/icon-maskable-512.png'
 ];
 
+// Precache with cache:'reload' so the HTTP cache can never leak OLD bytes
+// into a fresh versioned cache. Static hosts (e.g. GitHub Pages) serve
+// assets with max-age=600: without this, a browser that loaded the
+// previous version less than ~10 minutes before an update check would
+// "precache" the OLD assets into the NEW cache, and the player would
+// stay on stale files until the next release (fetch is cache-first).
+function precacheFresh(cache, url) {
+  return fetch(new Request(url, { cache: 'reload' })).then((resp) => {
+    if (!resp.ok) throw new Error('precache failed: ' + url + ' (' + resp.status + ')');
+    return cache.put(url, resp);
+  });
+}
+
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE).then((c) =>
-      c.addAll(CORE_ASSETS).then(() =>
+      Promise.all(CORE_ASSETS.map((a) => precacheFresh(c, a))).then(() =>
         Promise.all(EXTRA_ASSETS.map((a) => c.add(a).catch(() => null)))
       )
     ).then(() => self.skipWaiting())

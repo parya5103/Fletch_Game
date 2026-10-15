@@ -11,6 +11,10 @@
  * Plus full navigation regression tests:
  *   home -> levels -> select level -> board -> pause -> resume
  *   -> pause -> main menu -> continue
+ * Plus PWA tests, ending with an update-cycle regression test that
+ * simulates a real deployment and verifies the whole auto-update flow:
+ *   detection -> update banner -> Refresh -> NEW html served from the
+ *   NEW cache, old cache deleted, save intact, no banner loop.
  */
 'use strict';
 const { spawn } = require('child_process');
@@ -199,7 +203,7 @@ async function runNavigationTests(page) {
 // --- PWA / service worker / offline regression tests ---
 async function runPwaTests(page) {
   PHASE = 'pwa-1-ui-hooks';
-  log('[PWA 1/5] checking update-flow UI hooks...');
+  log('[PWA 1/6] checking update-flow UI hooks...');
   // 1. Update-flow UI hooks must exist and expose the current version
   const uiHooks = await page.evaluate(() => ({
     hasBanner: !!document.getElementById('update-banner'),
@@ -216,7 +220,7 @@ async function runPwaTests(page) {
   log('[OK] PWA v' + uiHooks.version + ': update banner + version row + checkForUpdates present');
 
   PHASE = 'pwa-2-manifest';
-  log('[PWA 2/5] checking web app manifest...');
+  log('[PWA 2/6] checking web app manifest...');
   // 2. Manifest must be a real same-origin file with the fields Android needs
   const manifest = await page.evaluate(async () => {
     const link = document.querySelector('link[rel="manifest"]');
@@ -235,7 +239,7 @@ async function runPwaTests(page) {
   log('[OK] manifest valid: ' + manifest.name + ', display=' + manifest.display + ', icons=' + sizes);
 
   PHASE = 'pwa-3-sw-active';
-  log('[PWA 3/5] checking service worker activation...');
+  log('[PWA 3/6] checking service worker activation...');
   // 3. Service worker must register, activate and control the page
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.waitForFunction(() => !!navigator.serviceWorker.controller, { timeout: 15000 });
@@ -257,7 +261,7 @@ async function runPwaTests(page) {
   log('[OK] service worker active, game caches: ' + own.join(', '));
 
   PHASE = 'pwa-4-cache-scope';
-  log('[PWA 4/5] checking scoped cache cleanup (reinstall dance)...');
+  log('[PWA 4/6] checking scoped cache cleanup (reinstall dance)...');
   // 4. Cache cleanup must be SCOPED: caches of other apps on this origin
   //    must survive an Arrow Out! service worker (re)install.
   await page.evaluate(async () => {
@@ -283,7 +287,7 @@ async function runPwaTests(page) {
   log('[OK] cache cleanup is scoped: foreign cache survived Arrow Out! (re)install');
 
   PHASE = 'pwa-5-offline';
-  log('[PWA 5/5] checking offline boot from service worker cache...');
+  log('[PWA 5/6] checking offline boot from service worker cache...');
   // 5. Offline: reload with the network cut off - the game must still boot
   var offlineModeSet = false;
   try {
@@ -329,6 +333,101 @@ async function runPwaTests(page) {
     try { await page.setOfflineMode(false); } catch (e3) {
       try { await page.context().setOffline(false); } catch (e4) { /* CDP session dies with page */ }
     }
+  }
+}
+
+// --- PWA update-cycle regression test (simulated deployment) ---
+// Simulates a real deployment (changed index.html + bumped sw.js version
+// written to the test server's disk), then verifies the whole auto-update
+// flow end to end: detection, update banner, Refresh, fresh assets from
+// the new cache, old cache deleted, save intact, and no banner loop.
+async function runUpdateCycleTest(page) {
+  PHASE = 'pwa-6-update-cycle';
+  log('[PWA 6/6] simulating a new deployment (bumped sw.js + changed index.html)...');
+  const idxPath = path.join(ROOT, 'index.html');
+  const swPath = path.join(ROOT, 'sw.js');
+  const origIdx = fs.readFileSync(idxPath, 'utf8');
+  const origSw = fs.readFileSync(swPath, 'utf8');
+  const verMatch = origSw.match(/const CACHE = 'arrow-out-v(\d+)'/);
+  if (!verMatch) throw new Error('sw.js: CACHE version not found');
+  const oldV = parseInt(verMatch[1], 10);
+  const newV = oldV + 1;
+  const MARKER = 'DEPLOY-MARKER-V' + newV;
+  try {
+    // 1. Rewrite the checkout on disk the way a fresh deploy would
+    const newIdx = origIdx.replace('</body>',
+      '  <div id="deploy-marker" hidden>' + MARKER + '</div>\n</body>');
+    if (newIdx === origIdx) throw new Error('could not inject deploy marker into index.html');
+    const newSw = origSw
+      .replace("const CACHE = 'arrow-out-v" + oldV + "'", "const CACHE = 'arrow-out-v" + newV + "'")
+      .replace('Version: v' + oldV, 'Version: v' + newV);
+    fs.writeFileSync(idxPath, newIdx);
+    fs.writeFileSync(swPath, newSw);
+    log('simulated deployment: sw.js v' + oldV + ' -> v' + newV + ' (deploy marker in index.html)');
+
+    // 2. The running page is the OLD version, controlled, with progress saved
+    const before = await page.evaluate(() => ({
+      controlled: !!navigator.serviceWorker.controller,
+      save: localStorage.getItem('arrowOut.v2')
+    }));
+    if (!before.controlled) throw new Error('page is not controlled by a service worker before the update');
+    if (!before.save) throw new Error('no localStorage save found before the update');
+
+    // 3. Trigger the update check (HTTP cache off -> deterministic byte check)
+    await page.setCacheEnabled(false);
+    await page.evaluate(() =>
+      navigator.serviceWorker.getRegistration().then((r) => r.update()));
+
+    // 4. The update banner must appear (new worker detected and claimed)
+    await page.waitForSelector('#update-banner.show', { timeout: 25000 });
+    log('[OK] new deployment detected: update banner shown');
+
+    // 5. Player taps Refresh
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'load', timeout: 30000 }),
+      page.click('#btn-update-reload')
+    ]);
+    await page.waitForSelector('#dlg-home.show', { timeout: 15000 });
+    log('[OK] banner Refresh reloaded the game');
+
+    // 6. The reload must serve the NEW html from the NEW cache
+    const after = await page.evaluate((marker) => ({
+      hasMarker: document.documentElement.outerHTML.indexOf(marker) !== -1,
+      save: localStorage.getItem('arrowOut.v2'),
+      bannerShown: (() => {
+        const b = document.getElementById('update-banner');
+        return !!b && b.classList.contains('show');
+      })()
+    }), MARKER);
+    if (!after.hasMarker) {
+      throw new Error('reload served STALE html (deploy marker missing) - update flow broken');
+    }
+    if (after.save !== before.save) {
+      throw new Error('localStorage save changed across the update reload');
+    }
+    if (after.bannerShown) {
+      throw new Error('update banner reappeared after reload (reload-loop risk)');
+    }
+    log('[OK] reload served the NEW html (deploy marker present in DOM)');
+    log('[OK] localStorage progress identical before/after the update');
+    log('[OK] update banner did not reappear after reload (no reload loop)');
+
+    // 7. Cache swap: new cache present, old cache deleted
+    const keysAfter = await page.evaluate(async () => (await caches.keys()).sort().join(','));
+    if (keysAfter.indexOf('arrow-out-v' + newV) === -1) {
+      throw new Error('new cache missing after update: ' + keysAfter);
+    }
+    if (keysAfter.indexOf('arrow-out-v' + oldV) !== -1) {
+      throw new Error('old cache still present after update: ' + keysAfter);
+    }
+    log('[OK] cache swap verified: ' + keysAfter);
+  } finally {
+    // Restore the pristine checkout (only docs/ is ever committed)
+    try {
+      fs.writeFileSync(idxPath, origIdx);
+      fs.writeFileSync(swPath, origSw);
+    } catch (e) { /* best effort */ }
+    try { await page.setCacheEnabled(true); } catch (e) { /* best effort */ }
   }
 }
 
@@ -411,6 +510,7 @@ async function main() {
     await page.screenshot({ path: path.join(DOC, 'screenshot-board.png') });
     log('wrote docs/screenshot-board.png');
     await runPwaTests(page);
+    await runUpdateCycleTest(page);
     PHASE = 'final-console-check';
 
     if (pageErrors.length) {

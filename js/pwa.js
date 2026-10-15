@@ -12,10 +12,10 @@ const PWA = (function() {
   // Service worker source
   var SW_SRC = [
     "/* Arrow Out! service worker - save as sw.js next to index.html */",
-    "const CACHE = 'arrow-out-v14';",
+    "const CACHE = 'arrow-out-v15';",
     "const ASSETS = ['./', './index.html', './css/styles.css', './js/game.js', './js/render.js', './js/audio.js', './js/haptics.js', './js/storage.js', './js/bgfx.js', './js/pwa.js', './js/ui.js', './js/main.js', './manifest.webmanifest', './icons/favicon.svg'];",
     "self.addEventListener('install', (e) => {",
-    "  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));",
+    "  e.waitUntil(caches.open(CACHE).then((c) => Promise.all(ASSETS.map((a) => fetch(new Request(a, { cache: 'reload' })).then((r) => { if (!r.ok) throw new Error('precache failed: ' + a); return c.put(a, r); })))).then(() => self.skipWaiting()));",
     "});",
     "self.addEventListener('activate', (e) => {",
     "  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k.startsWith('arrow-out-') && k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));",
@@ -244,7 +244,7 @@ const PWA = (function() {
   }
 
   // Game version - kept in sync with sw.js CACHE version
-  var VERSION = 'v14';
+  var VERSION = 'v15';
 
   // --- Update flow ---
   // The page shows a small banner when a newer service worker (a new game
@@ -390,6 +390,3 @@ const PWA = (function() {
     checkForUpdates: checkForUpdates
   };
 })();
-
-
-
