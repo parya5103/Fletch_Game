@@ -17,6 +17,7 @@ const Storage = (function() {
       best: {},
       cur: null,
       sound: true,
+      music: false,
       vibration: true,
       theme: 'dark',
       installHidden: false,

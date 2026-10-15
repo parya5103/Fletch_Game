@@ -47,6 +47,8 @@ const Game = (function() {
     UI.updateSoundBtn();
     UI.updateVibrationBtn();
     UI.updateSettingsStatus();
+    UI.updateMusicBtn();
+    applyMusic();
     
     // Show home screen initially
     UI.showHomeScreen();
@@ -160,12 +162,14 @@ const Game = (function() {
     on($('btn-sound'), 'click', function() {
       Audio.enabled = !Audio.enabled;
       UI.updateSoundBtn();
+      applyMusic();
       if (Audio.enabled) Audio.ui();
     });
     
     on($('chk-sound'), 'change', function() {
       Audio.enabled = $('chk-sound').checked;
       UI.updateSoundBtn();
+      applyMusic();
     });
     
     // Vibration toggle
@@ -194,6 +198,32 @@ const Game = (function() {
     
     on($('chk-theme'), 'change', function() {
       UI.setTheme($('chk-theme').checked ? 'dark' : 'light');
+    });
+    
+    // Background music toggle
+    on($('chk-music'), 'change', function() {
+      var save = Storage.getSave();
+      save.music = !!$('chk-music').checked;
+      Storage.persist();
+      applyMusic();
+      if (save.music) UI.toast('Music on \u266a');
+    });
+    
+    // Share result (win dialog)
+    on($('btn-share-win'), 'click', function() {
+      Audio.ui();
+      if (!gameState) return;
+      var stars = GameCore.calcStars(gameState.wrong, gameState.hintsUsed);
+      var what = gameState.level === 'daily'
+        ? 'today\'s Daily Challenge'
+        : 'Level ' + gameState.level;
+      shareGame('I just cleared ' + what + ' in Arrow Out! ' + repeatStars(stars) + ' Think you can beat me?');
+    });
+    
+    // Share the game (menu)
+    on($('btn-share-menu'), 'click', function() {
+      Audio.ui();
+      shareGame('Arrow Out! \u2014 a free tap-away arrow puzzle with 1000 levels, daily challenges and achievements. Play it here:');
     });
     
     // Menu button
@@ -277,6 +307,7 @@ const Game = (function() {
       Audio.ui();
       UI.closeAll();
       UI.updateSettingsStatus();
+      UI.updateMusicBtn();
       UI.openDlg('dlg-settings');
     });
     on($('btn-daily'), 'click', function() {
@@ -309,6 +340,7 @@ const Game = (function() {
     on($('btn-settings-menu'), 'click', function() {
       Audio.ui();
       UI.updateSettingsStatus();
+      UI.updateMusicBtn();
       UI.openDlg('dlg-settings');
     });
     
@@ -841,6 +873,39 @@ const Game = (function() {
     setTimeout(function() {
       UI.showWinDialog();
     }, REDUCED ? 200 : 900);
+  }
+
+  // --- Share helpers (Web Share API with clipboard fallback) ---
+  function repeatStars(n) {
+    n = Math.max(0, Math.min(3, n | 0));
+    var s = '';
+    for (var i = 0; i < n; i++) s += '\u2605';
+    return s;
+  }
+
+  function shareGame(text) {
+    var url = 'https://parya5103.github.io/Fletch_Game/';
+    try { if (location && location.href) url = location.href; } catch (e) {}
+    if (navigator.share) {
+      navigator.share({ title: 'Arrow Out!', text: text, url: url }).then(function() {}, function() {});
+      return;
+    }
+    var full = text + ' ' + url;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(full).then(function() {
+        UI.toast('Copied \u2014 paste it anywhere \u2713');
+      }, function() {
+        UI.toast('Sharing not supported here');
+      });
+      return;
+    }
+    UI.toast('Sharing not supported here');
+  }
+
+  function applyMusic() {
+    var save = Storage.getSave();
+    if (save.music && Audio.enabled) Audio.startMusic();
+    else Audio.stopMusic();
   }
 
   // Advertising (placeholder)

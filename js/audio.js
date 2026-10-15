@@ -7,6 +7,11 @@
 const Audio = (function() {
   var ac = null;
   var enabled = true;
+  var musicOn = false;
+  var musicTimer = 0;
+  var musicStep = 0;
+  // Soft ambient loop (A-minor-ish pad), synthesized - no audio files
+  var MUSIC_LOOP = [220, 261.63, 329.63, 392, 329.63, 261.63, 220, 174.61];
 
   function getCtx() {
     if (!enabled) return null;
@@ -111,6 +116,32 @@ const Audio = (function() {
     }
   }
 
+  // --- Background music ---
+  function musicTick() {
+    if (!enabled || !musicOn) return;
+    var f = MUSIC_LOOP[musicStep % MUSIC_LOOP.length];
+    musicStep++;
+    // Long soft sine pads at low volume; skip silently while the
+    // AudioContext is suspended (before the first user gesture).
+    tone(f, null, 2.4, 'sine', 0.028);
+    if (musicStep % 4 === 1) tone(f * 1.5, null, 1.8, 'sine', 0.014, 0.45);
+  }
+
+  function startMusic() {
+    if (musicOn) return;
+    musicOn = true;
+    musicStep = 0;
+    musicTick();
+    musicTimer = setInterval(musicTick, 2000);
+  }
+
+  function stopMusic() {
+    musicOn = false;
+    if (musicTimer) { clearInterval(musicTimer); musicTimer = 0; }
+  }
+
+  function isMusicOn() { return musicOn; }
+
   return {
     get enabled() { return enabled; },
     set enabled(v) { 
@@ -142,7 +173,10 @@ const Audio = (function() {
     win: function() { playSound('win'); },
     success: function() { playSound('success'); },
     error: function() { playSound('error'); },
-    star: function() { playSound('star'); }
+    star: function() { playSound('star'); },
+    startMusic: startMusic,
+    stopMusic: stopMusic,
+    isMusicOn: isMusicOn
   };
 })();
 

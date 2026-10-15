@@ -1,10 +1,10 @@
 /**
  * Arrow Out! Service Worker
- * Version: v9
+ * Version: v10
  * Handles caching for offline gameplay
  */
 
-const CACHE = 'arrow-out-v9';
+const CACHE = 'arrow-out-v10';
 const CORE_ASSETS = [
   './',
   './index.html',

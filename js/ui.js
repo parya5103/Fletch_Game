@@ -316,6 +316,23 @@ const UI = (function() {
       progressText.textContent = levels + ' / ' + Storage.DESIGN_LEVELS + ' levels cleared';
     }
     
+    // Update home stat tiles (levels / stars / streak)
+    var statLevelsEl = $('home-stat-levels');
+    var statStarsEl = $('home-stat-stars');
+    var statStreakEl = $('home-stat-streak');
+    if (statLevelsEl || statStarsEl || statStreakEl) {
+      var cleared = 0, totalStars = 0;
+      for (var kk in save.best) {
+        if (save.best[kk] && save.best[kk].stars) {
+          cleared++;
+          totalStars += save.best[kk].stars;
+        }
+      }
+      if (statLevelsEl) statLevelsEl.textContent = cleared;
+      if (statStarsEl) statStarsEl.textContent = totalStars;
+      if (statStreakEl) statStreakEl.textContent = save.streaks.current;
+    }
+    
     // Update daily challenge
     var dailyText = $('home-daily');
     if (dailyText) {
@@ -402,6 +419,13 @@ const UI = (function() {
     if (chkVibrate) chkVibrate.checked = save.vibration;
   }
 
+  // Update music toggle (settings dialog)
+  function updateMusicBtn() {
+    var chkMusic = $('chk-music');
+    var save = Storage.getSave();
+    if (chkMusic) chkMusic.checked = !!save.music;
+  }
+
   // Update theme button
   function updateThemeBtn() {
     var btnTheme = $('btn-theme');
@@ -468,6 +492,7 @@ const UI = (function() {
     showFailDialog: showFailDialog,
     updateSoundBtn: updateSoundBtn,
     updateVibrationBtn: updateVibrationBtn,
+    updateMusicBtn: updateMusicBtn,
     updateThemeBtn: updateThemeBtn,
     toggleTheme: toggleTheme,
     setTheme: setTheme,
