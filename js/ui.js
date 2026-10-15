@@ -547,7 +547,7 @@ const UI = (function() {
     if (winStars) winStars.innerHTML = starsHTML(stars);
     if (winSub) {
       var coinsLine = gameState.coinsEarned
-        ? '<br><span class="coin-earn">+' + gameState.coinsEarned + ' coins \ud83e\ude99</span>'
+        ? '<br><span class="coin-earn">+' + gameState.coinsEarned + ' coins ' + ICON.coin + '</span>'
         : '';
       winSub.innerHTML = done
         ? 'You cleared all ' + Storage.DESIGN_LEVELS + ' levels. Legend! \ud83c\udfc6<br>' +
