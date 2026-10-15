@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Syntax check all JS
+        run: |
+          status=0
+          for f in js/*.js sw.js scripts/*.js; do
+            [ -f "$f" ] || continue
+            if node --check "$f"; then
+              echo "ok - $f"
+            else
+              echo "syntax error in $f"
+              status=1
+            fi
+          done
+          exit $status
+
+      - name: Game logic smoke tests
+        run: node scripts/ci-test.js
