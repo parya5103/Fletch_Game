@@ -95,6 +95,21 @@ for (let n = 1; n <= 1000; n += 7) {
 check('grid 4-12 / arrows 1-130 / integer seed for all levels', boundsOk, detail);
 check('DESIGN_LEVELS is 1000', GC.DESIGN_LEVELS === 1000);
 
+console.log('# difficulty tiers');
+check('levels 1-50 map to Easy',
+  GC.getDifficultyName(1) === 'Easy' && GC.getDifficultyName(50) === 'Easy');
+check('levels 51-200 map to Medium',
+  GC.getDifficultyName(51) === 'Medium' && GC.getDifficultyName(200) === 'Medium');
+check('levels 201-500 map to Hard',
+  GC.getDifficultyName(201) === 'Hard' && GC.getDifficultyName(500) === 'Hard');
+check('levels 501-800 map to Expert',
+  GC.getDifficultyName(501) === 'Expert' && GC.getDifficultyName(800) === 'Expert');
+check('levels 801-1000 map to Master',
+  GC.getDifficultyName(801) === 'Master' && GC.getDifficultyName(1000) === 'Master');
+check('getDifficultyLevel returns valid tier keys', [1, 60, 300, 600, 900].every(function (n) {
+  return ['easy', 'medium', 'hard', 'expert', 'master'].indexOf(GC.getDifficultyLevel(n)) !== -1;
+}));
+
 if (failures) {
   console.error('\n' + failures + ' check(s) FAILED');
   process.exit(1);

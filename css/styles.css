@@ -698,64 +698,148 @@ footer {
   }
 }
 
-/* ===== HOME SCREEN STYLES ===== */
-#dlg-home .card {
-  text-align: center;
+/* ===== HOME SCREEN (full-screen hub) ===== */
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: none;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background:
+    radial-gradient(120% 90% at 15% 0%, rgba(116, 143, 252, 0.14), transparent 55%),
+    radial-gradient(110% 80% at 90% 100%, rgba(192, 132, 252, 0.12), transparent 55%),
+    var(--bg-tertiary);
 }
 
-.home-title {
-  font-size: 24px;
-  font-weight: 800;
-  margin-bottom: 8px;
+.screen.show {
+  display: block;
+}
+
+/* While the home hub is up, the game board is hidden but keeps its layout. */
+body.at-home #app {
+  visibility: hidden;
+}
+
+#bgfx {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.home-inner {
+  position: relative;
+  z-index: 1;
+  min-height: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: calc(20px + env(safe-area-inset-top, 0px)) 18px calc(24px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Brand / logo */
+.brand {
+  text-align: center;
+  margin-top: 8px;
+}
+
+.brand-mark {
+  display: inline-block;
+  line-height: 0;
+  filter: drop-shadow(0 8px 24px rgba(116, 143, 252, 0.35));
+}
+
+.brand-name {
+  margin: 10px 0 0;
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  line-height: 1.1;
+  background: linear-gradient(92deg, #38bdf8 0%, #818cf8 55%, #c084fc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
   color: var(--accent-cyan);
 }
 
-.home-subtitle {
-  font-size: 14px;
+.brand-tag {
+  margin: 6px 0 0;
+  font-size: 13px;
   color: var(--text-tertiary);
-  margin-bottom: 20px;
 }
 
-.home-buttons {
+/* Progress chip */
+.home-chips {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  justify-content: center;
 }
 
-.home-buttons .btn {
-  min-height: 56px;
-  font-size: 16px;
-}
-
-.home-progress {
-  margin: 16px 0;
-  padding: 12px;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-md);
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  background: rgba(20, 27, 61, 0.85);
   border: 1px solid var(--btn-border);
-}
-
-.home-progress-text {
-  font-size: 14px;
+  font-size: 13.5px;
+  font-weight: 700;
   color: var(--text-secondary);
 }
 
+/* Primary actions */
+.home-primary {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 10px;
+}
+
+.btn-hero {
+  min-height: 58px;
+  font-size: 16.5px;
+  border-radius: var(--radius-lg);
+}
+
+/* Hub grid */
+.home-hub {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.home-hub .btn {
+  min-height: 56px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 8px;
+  font-size: 13.5px;
+}
+
+.home-hub .btn .ic {
+  flex: 0 0 auto;
+}
+
+/* Stat tiles */
 .home-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  margin-top: 16px;
 }
 
 .home-stat {
-  background: var(--bg-secondary);
+  background: rgba(27, 37, 80, 0.75);
   border-radius: var(--radius-sm);
-  padding: 8px;
+  padding: 10px 8px;
   border: 1px solid var(--btn-border);
+  text-align: center;
 }
 
 .home-stat-value {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 800;
   color: var(--accent-cyan);
 }
@@ -763,6 +847,57 @@ footer {
 .home-stat-label {
   font-size: 11px;
   color: var(--text-tertiary);
+}
+
+/* Daily challenge strip */
+.home-daily {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  min-height: 18px;
+}
+
+.home-progress {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+/* Light theme touch-ups for the hub */
+.theme-light .screen {
+  background:
+    radial-gradient(120% 90% at 15% 0%, rgba(116, 143, 252, 0.10), transparent 55%),
+    radial-gradient(110% 80% at 90% 100%, rgba(192, 132, 252, 0.10), transparent 55%),
+    var(--bg-tertiary);
+}
+
+.theme-light .chip,
+.theme-light .home-stat {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+@media (max-width: 354px) {
+  .brand-name { font-size: 27px; }
+  .btn-hero { min-height: 52px; font-size: 15px; }
+  .home-hub .btn { min-height: 52px; font-size: 12.5px; }
+  .home-inner { padding-left: 12px; padding-right: 12px; gap: 12px; }
+}
+
+/* Short landscape phones: tighten vertical rhythm so everything fits */
+@media (max-height: 480px) and (orientation: landscape) {
+  .home-inner { gap: 8px; padding-top: 8px; padding-bottom: 8px; }
+  .brand-mark svg { width: 44px; height: 44px; }
+  .brand-name { font-size: 22px; }
+  .btn-hero { min-height: 44px; }
+  .home-hub .btn { min-height: 40px; }
+  .home-stats { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen, .home-inner, .btn-hero, .home-hub .btn {
+    transition: none;
+    animation: none;
+  }
 }
 
 /* ===== ACHIEVEMENTS STYLES ===== */
@@ -1117,3 +1252,10 @@ h2 svg.ic { width: 24px; height: 24px; vertical-align: -4px; }
     transition: none;
   }
 }
+
+/* ===== DIFFICULTY TIER COLORS (level banner) ===== */
+#level-banner[data-diff="easy"]   { border-color: #2f9e77; color: #7ceec3; box-shadow: 0 18px 50px rgba(52, 211, 153, 0.25); }
+#level-banner[data-diff="medium"] { border-color: #3868a8; color: #91c8ff; box-shadow: 0 18px 50px rgba(56, 189, 248, 0.25); }
+#level-banner[data-diff="hard"]   { border-color: #a86a2f; color: #ffc791; box-shadow: 0 18px 50px rgba(255, 159, 67, 0.25); }
+#level-banner[data-diff="expert"] { border-color: #a83860; color: #ff9ab5; box-shadow: 0 18px 50px rgba(255, 93, 143, 0.25); }
+#level-banner[data-diff="master"] { border-color: #7c4dbd; color: #d8b4fe; box-shadow: 0 18px 50px rgba(192, 132, 252, 0.3); }

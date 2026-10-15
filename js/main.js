@@ -51,11 +51,28 @@ const Game = (function() {
     applyMusic();
     applySkin();
     
+    // Animated home-screen background (cosmetic - must never break boot)
+    try { Bgfx.init(); } catch (e) {}
+    
     // Show home screen initially
     UI.showHomeScreen();
     
     // Daily login reward (once per day)
     checkDailyReward();
+
+    // First-time onboarding: show the how-to-play card once, but never
+    // on top of the daily reward dialog (it stacks fine afterwards).
+    try {
+      var sv = Storage.getSave();
+      if (sv.settings && !sv.settings.seenOnboarding) {
+        sv.settings.seenOnboarding = true;
+        Storage.persist();
+        var rewardDlg = document.getElementById('dlg-reward');
+        if (!rewardDlg || !rewardDlg.classList.contains('show')) {
+          UI.openDlg('dlg-howto');
+        }
+      }
+    } catch (e) { /* onboarding is best-effort */ }
     
     // Ensure render loop is running
     Render.ensureLoop();
@@ -253,6 +270,9 @@ const Game = (function() {
         nextLevel();
       } else if (gameState && gameState.failed) {
         reloadLevel();
+      } else if (gameState && gameState.level) {
+        // Paused mid-level: restart the level the player is actually on
+        reloadLevel();
       } else {
         var save = Storage.getSave();
         loadLevel(Math.min(save.unlocked, Storage.DESIGN_LEVELS));
@@ -263,6 +283,7 @@ const Game = (function() {
     on($('btn-continue'), 'click', function() {
       UI.closeAll();
       Audio.ui();
+      UI.showScreen('game');
       var save = Storage.getSave();
       if (save.cur) {
         var restored = tryRestore();
@@ -395,6 +416,7 @@ const Game = (function() {
     });
     on($('btn-win-levels'), 'click', function() {
       Audio.ui();
+      UI.closeAll();
       UI.buildLevelGrid();
       UI.openDlg('dlg-levels');
     });
@@ -468,6 +490,27 @@ const Game = (function() {
       Audio.ui();
       UI.showHomeScreen();
     });
+
+    // Home screen: fresh "Play" (restarts the current level from scratch)
+    on($('btn-play-home'), 'click', function() {
+      UI.closeAll();
+      Audio.ui();
+      Audio.unlock();
+      var s = Storage.getSave();
+      loadLevel(s.cur ? s.cur.level : Math.min(s.unlocked, Storage.DESIGN_LEVELS));
+    });
+
+    // Home screen: install app (same flow as the menu entry)
+    on($('btn-install-home'), 'click', function() {
+      Audio.ui();
+      PWA.installAction();
+    });
+
+    // Pause menu: explicit resume button
+    on($('btn-resume'), 'click', function() {
+      Audio.ui();
+      UI.closeAll();
+    });
   }
 
   // Resize handler
@@ -493,6 +536,7 @@ const Game = (function() {
 
   // Game state management
   function loadLevel(n) {
+    UI.showScreen('game');
     // Sanitize level number so NaN/undefined can never reach level generation
     n = Math.floor(Number(n));
     if (!isFinite(n) || n < 1) n = 1;
@@ -541,6 +585,7 @@ const Game = (function() {
   }
 
   function loadDailyChallenge() {
+    UI.showScreen('game');
     var today = new Date();
     var L = GameCore.genDailyChallenge(today);
     

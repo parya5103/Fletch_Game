@@ -48,7 +48,8 @@ const Storage = (function() {
       },
       settings: {
         reducedMotion: false,
-        notifications: true
+        notifications: true,
+        seenOnboarding: false
       }
     };
   }

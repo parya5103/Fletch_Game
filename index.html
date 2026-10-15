@@ -17,6 +17,7 @@
   <link rel="preload" href="js/render.js" as="script" />
   <link rel="preload" href="js/audio.js" as="script" />
   <link rel="preload" href="js/haptics.js" as="script" />
+  <link rel="preload" href="js/bgfx.js" as="script" />
   <link rel="preload" href="js/storage.js" as="script" />
   <link rel="preload" href="js/pwa.js" as="script" />
   <link rel="preload" href="js/ui.js" as="script" />
@@ -223,25 +224,51 @@
     </div>
   </div>
   <!-- ===== HOME SCREEN ===== -->
-  <div class="overlay" id="dlg-home" role="dialog" aria-modal="true" aria-labelledby="home-title">
-    <div class="card">
-      <h2 id="home-title"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg> Arrow Out!</h2>
-      <p class="sub">Tap arrows away. Clear the board. Premium puzzle experience.</p>
-      
-      <div class="home-buttons">
-        <button class="btn primary" id="btn-continue" type="button">Continue Playing</button>
-        <button class="btn" id="btn-daily" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg> Daily Challenge</button>
-        <button class="btn" id="btn-levels" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Levels</button>
-        <button class="btn" id="btn-achievements" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg> Achievements</button>
-        <button class="btn" id="btn-stats-menu" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> Statistics</button>
-        <button class="btn" id="btn-settings" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Settings</button>
-        <button class="btn" id="btn-shop" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg> Shop</button>
+  <div id="dlg-home" class="screen" role="dialog" aria-modal="true" aria-labelledby="home-title">
+    <canvas id="bgfx" aria-hidden="true"></canvas>
+    <div class="home-inner">
+
+      <header class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 64 64" width="76" height="76" focusable="false">
+            <defs>
+              <linearGradient id="lg-brand" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#38bdf8"/>
+                <stop offset="0.55" stop-color="#818cf8"/>
+                <stop offset="1" stop-color="#c084fc"/>
+              </linearGradient>
+            </defs>
+            <rect x="4" y="4" width="56" height="56" rx="16" fill="rgba(129,140,248,0.10)" stroke="url(#lg-brand)" stroke-width="3"/>
+            <path d="M15 32h22" stroke="url(#lg-brand)" stroke-width="5" stroke-linecap="round"/>
+            <path d="m31 21 11 11-11 11" stroke="url(#lg-brand)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="15" cy="32" r="4.5" fill="#38bdf8"/>
+            <circle cx="50" cy="20" r="2" fill="#c084fc"/>
+            <circle cx="46" cy="46" r="1.5" fill="#2dd4bf"/>
+          </svg>
+        </div>
+        <h1 id="home-title" class="brand-name">ARROW OUT!</h1>
+        <p class="brand-tag">Tap arrows away &middot; clear the board &middot; 1000 levels</p>
+      </header>
+
+      <div class="home-chips">
+        <div class="chip" id="home-progress" aria-live="polite">Loading progress...</div>
       </div>
-      
-      <div class="home-progress">
-        <div class="home-progress-text" id="home-progress">Loading progress...</div>
+
+      <div class="home-primary">
+        <button class="btn primary btn-hero" id="btn-continue" type="button">Continue</button>
+        <button class="btn btn-hero" id="btn-play-home" type="button">Play</button>
       </div>
-      
+
+      <nav class="home-hub" aria-label="Game menu">
+        <button class="btn" id="btn-levels" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Levels</span></button>
+        <button class="btn" id="btn-daily" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>Daily Challenge</span></button>
+        <button class="btn" id="btn-shop" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Shop</span></button>
+        <button class="btn" id="btn-achievements" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg><span>Achievements</span></button>
+        <button class="btn" id="btn-stats-menu" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg><span>Statistics</span></button>
+        <button class="btn" id="btn-settings" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg><span>Settings</span></button>
+        <button class="btn" id="btn-install-home" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Install App</span></button>
+      </nav>
+
       <div class="home-stats">
         <div class="home-stat">
           <div class="home-stat-value" id="home-stat-levels">0</div>
@@ -256,18 +283,19 @@
           <div class="home-stat-label">Streak</div>
         </div>
       </div>
-      
-      <div class="home-daily" id="home-daily"></div>
+
+      <div class="home-daily" id="home-daily" aria-live="polite"></div>
     </div>
   </div>
-
   <!-- ===== MAIN MENU ===== -->
   <div class="overlay" id="dlg-menu" role="dialog" aria-modal="true" aria-labelledby="menu-title">
     <div class="card">
-      <h2 id="menu-title"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg> Arrow Out!</h2>
-      <p class="sub">Tap arrows away. Clear the whole board.</p>
+      <h2 id="menu-title"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg> Paused</h2>
+      <p class="sub">Take a breather. Your progress is saved.</p>
       <div class="stack">
-        <button class="btn primary" id="btn-play" type="button">Play &middot; Level 1</button>
+        <button class="btn primary" id="btn-resume" type="button">Resume</button>
+        <button class="btn" id="btn-home" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 21V12h6v9"/></svg> Main Menu</button>
+        <button class="btn" id="btn-play" type="button">Play &middot; Level 1</button>
         <button class="btn" id="btn-levels-menu" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Levels</button>
         <button class="btn" id="btn-stats-menu-2" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> Stats</button>
         <button class="btn" id="btn-achievements-menu" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg> Achievements</button>
@@ -526,6 +554,7 @@
   <script src="js/storage.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/haptics.js"></script>
+  <script src="js/bgfx.js"></script>
   <script src="js/pwa.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/render.js"></script>

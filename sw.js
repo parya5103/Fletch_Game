@@ -1,10 +1,10 @@
 /**
  * Arrow Out! Service Worker
- * Version: v13
+ * Version: v14
  * Handles caching for offline gameplay
  */
 
-const CACHE = 'arrow-out-v13';
+const CACHE = 'arrow-out-v14';
 // Only obsolete caches that belong to THIS game (arrow-out-*) are ever deleted,
 // so other apps served from the same origin keep their caches.
 const CACHE_PREFIX = 'arrow-out-';
@@ -16,6 +16,7 @@ const CORE_ASSETS = [
   './js/render.js',
   './js/audio.js',
   './js/haptics.js',
+  './js/bgfx.js',
   './js/storage.js',
   './js/pwa.js',
   './js/ui.js',

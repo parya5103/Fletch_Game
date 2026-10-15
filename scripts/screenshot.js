@@ -8,6 +8,9 @@
  *   - literal "\uXXXX" escape text or mojibake in rendered text
  *   - broken/too-small menu buttons, non-scrollable menus
  *   - console errors / uncaught page errors
+ * Plus full navigation regression tests:
+ *   home -> levels -> select level -> board -> pause -> resume
+ *   -> pause -> main menu -> continue
  */
 'use strict';
 const { spawn } = require('child_process');
@@ -95,6 +98,101 @@ async function auditPage(page, label) {
     throw new Error('[' + label + '] ' + problems.join('; '));
   }
   log('[OK] ' + label + ': no overflow, text clean, buttons ok');
+}
+
+// Is the game board (as opposed to the home hub) currently shown?
+async function boardVisible(page) {
+  return page.evaluate(() => {
+    const app = document.getElementById('app');
+    const home = document.getElementById('dlg-home');
+    return !!app &&
+      getComputedStyle(app).visibility !== 'hidden' &&
+      (!home || !home.classList.contains('show'));
+  });
+}
+
+// --- Navigation regression tests (home hub <-> game <-> dialogs) ---
+async function runNavigationTests(page) {
+  PHASE = 'nav-1-levels';
+  log('[NAV 1/6] home hub -> levels dialog...');
+  await page.click('#btn-levels');
+  await page.waitForSelector('#dlg-levels.show', { timeout: 10000 });
+  const homeUnderLevels = await page.evaluate(() => {
+    const h = document.getElementById('dlg-home');
+    return h && h.classList.contains('show');
+  });
+  if (!homeUnderLevels) {
+    throw new Error('home screen disappeared while the levels dialog is open (it must stay behind)');
+  }
+  log('[OK] levels dialog opened on top of the home hub');
+
+  PHASE = 'nav-2-select-level';
+  log('[NAV 2/6] selecting a level closes the dialog and starts the board...');
+  const levelBtn = await page.$('#lv-grid button:not([disabled])');
+  if (!levelBtn) throw new Error('no playable level button found in #lv-grid');
+  const levelLabel = await levelBtn.evaluate(el => el.textContent.trim().slice(0, 4));
+  await levelBtn.click();
+  await page.waitForFunction(() => {
+    const lv = document.getElementById('dlg-levels');
+    const home = document.getElementById('dlg-home');
+    return (!lv || !lv.classList.contains('show')) &&
+      (!home || !home.classList.contains('show'));
+  }, { timeout: 10000 });
+  if (!(await boardVisible(page))) {
+    throw new Error('board not visible after selecting a level');
+  }
+  log('[OK] level ' + levelLabel + ' selected: dialogs closed, board visible');
+
+  // Let the level intro banner finish its animation
+  await sleep(1800);
+
+  PHASE = 'nav-3-pause';
+  log('[NAV 3/6] pause menu opens over the board...');
+  await page.click('#btn-menu');
+  await page.waitForSelector('#dlg-menu.show', { timeout: 10000 });
+  if (!(await page.$('#btn-resume'))) {
+    throw new Error('pause menu has no Resume button');
+  }
+  log('[OK] pause menu open with Resume available');
+
+  PHASE = 'nav-4-resume';
+  log('[NAV 4/6] resume returns to the active game...');
+  await page.click('#btn-resume');
+  await page.waitForFunction(() => {
+    const m = document.getElementById('dlg-menu');
+    return !m || !m.classList.contains('show');
+  }, { timeout: 10000 });
+  if (!(await boardVisible(page))) {
+    throw new Error('board not visible after resume');
+  }
+  log('[OK] resume closes the pause menu and restores the board');
+
+  PHASE = 'nav-5-home';
+  log('[NAV 5/6] pause -> Main Menu returns to the home hub...');
+  await page.click('#btn-menu');
+  await page.waitForSelector('#dlg-menu.show', { timeout: 10000 });
+  await page.click('#btn-home');
+  await page.waitForSelector('#dlg-home.show', { timeout: 10000 });
+  const menuClosed = await page.evaluate(() => {
+    const m = document.getElementById('dlg-menu');
+    return !m || !m.classList.contains('show');
+  });
+  if (!menuClosed) {
+    throw new Error('pause menu still open after returning to the main menu (stale modal)');
+  }
+  log('[OK] Main Menu closes the pause menu and shows the home hub');
+
+  PHASE = 'nav-6-continue';
+  log('[NAV 6/6] Continue resumes gameplay from the home hub...');
+  await page.click('#btn-continue');
+  await page.waitForFunction(() => {
+    const h = document.getElementById('dlg-home');
+    return !h || !h.classList.contains('show');
+  }, { timeout: 10000 });
+  if (!(await boardVisible(page))) {
+    throw new Error('board not visible after Continue');
+  }
+  log('[OK] Continue returns to the board - full navigation loop verified');
 }
 
 
@@ -264,6 +362,18 @@ async function main() {
       }
     }
 
+    // Dismiss the first-launch onboarding card if it auto-opened on top of
+    // the home screen (only shows when the reward dialog did NOT open).
+    const howtoDlg = await page.$('#dlg-howto.show');
+    if (howtoDlg) {
+      const howtoClose = await page.$('#dlg-howto [data-close]');
+      if (howtoClose) {
+        await howtoClose.click();
+        await sleep(400);
+        log('onboarding card shown on first launch and dismissed');
+      }
+    }
+
     // Dismiss the install banner if headless Chrome fired beforeinstallprompt
     const banner = await page.$('#install-banner');
     if (banner) {
@@ -291,15 +401,12 @@ async function main() {
     await page.screenshot({ path: path.join(DOC, 'screenshot-home.png') });
     log('wrote docs/screenshot-home.png');
 
+    // Full navigation flow: levels -> select level -> board -> pause ->
+    // resume -> pause -> main menu -> continue (ends on the board)
+    await runNavigationTests(page);
+
     PHASE = 'board';
-    // Continue into the game board
-    await page.click('#btn-continue');
-    await page.waitForFunction(() => {
-      const d = document.getElementById('dlg-home');
-      return !d || !d.classList.contains('show');
-    }, { timeout: 15000 });
-    // Let the level intro banner finish its animation
-    await sleep(1800);
+    await sleep(300);
     await auditPage(page, 'board');
     await page.screenshot({ path: path.join(DOC, 'screenshot-board.png') });
     log('wrote docs/screenshot-board.png');

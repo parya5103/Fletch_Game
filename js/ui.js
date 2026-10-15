@@ -176,6 +176,9 @@ const UI = (function() {
     if (!gameState) return;
     var banner = $('level-banner');
     if (!banner) return;
+    // Boot sequence loads a level before the home hub appears - never float
+    // the level banner over the main menu.
+    if (document.body.classList.contains('at-home')) return;
     var label;
     if (gameState.level === 'daily') {
       label = 'Daily Challenge';
@@ -185,6 +188,7 @@ const UI = (function() {
         (isSpike ? ' \u00b7 Spike' : '');
     }
     banner.textContent = label;
+    banner.setAttribute('data-diff', gameState.level === 'daily' ? 'medium' : GameCore.getDifficultyLevel(gameState.level));
     banner.classList.remove('show');
     void banner.offsetWidth;
     banner.classList.add('show');
@@ -473,6 +477,27 @@ const UI = (function() {
   }
 
   // Home screen
+
+  // --- Central screen manager ---
+  // Two top-level screens exist: the home hub and the gameplay board.
+  // Overlays (levels, shop, settings, ...) stack above whichever
+  // screen is active; closeAll() only ever closes overlays.
+  function showScreen(name) {
+    var home = $('dlg-home');
+    if (name === 'home') {
+      if (home) home.classList.add('show');
+      document.body.classList.add('at-home');
+      // Cancel any in-flight level banner so it never floats over the hub
+      var lb = $('level-banner');
+      if (lb) lb.classList.remove('show');
+      try { Bgfx.resize(); Bgfx.start(); } catch (e) { /* bg is cosmetic */ }
+    } else {
+      if (home) home.classList.remove('show');
+      document.body.classList.remove('at-home');
+      try { Bgfx.stop(); } catch (e) { /* bg is cosmetic */ }
+    }
+  }
+
   function showHomeScreen() {
     closeAll();
     updateHUD();
@@ -529,7 +554,20 @@ const UI = (function() {
       dailyText.textContent = completed ? 'Daily Challenge: Completed \u2713' : 'Daily Challenge: Available!';
     }
     
-    openDlg('dlg-home');
+    // Install option only makes sense inside a browser tab
+    var btnInstallHome = $('btn-install-home');
+    if (btnInstallHome) {
+      btnInstallHome.style.display = PWA.isStandalone() ? 'none' : '';
+    }
+
+    // "Play" starts the current level fresh; "Continue" resumes mid-level
+    var btnPlayHome = $('btn-play-home');
+    if (btnPlayHome) {
+      var playLv = save.cur ? save.cur.level : Math.min(save.unlocked, Storage.DESIGN_LEVELS);
+      btnPlayHome.textContent = 'Play \u00b7 Level ' + playLv;
+    }
+
+    showScreen('home');
   }
 
   // Win dialog
@@ -582,7 +620,7 @@ const UI = (function() {
     for (var k = 0; k < cls.length; k++) {
       on(cls[k], 'click', function() { 
         closeAll(); 
-        Audio.ui(); 
+        Audio.back(); 
       });
     }
   }
@@ -685,6 +723,7 @@ const UI = (function() {
     updateSettingsStatus: updateSettingsStatus,
     buildAchievementsGrid: buildAchievementsGrid,
     showHomeScreen: showHomeScreen,
+    showScreen: showScreen,
     showWinDialog: showWinDialog,
     showFailDialog: showFailDialog,
     updateSoundBtn: updateSoundBtn,

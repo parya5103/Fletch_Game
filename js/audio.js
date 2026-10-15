@@ -109,6 +109,9 @@ const Audio = (function() {
       },
       star: function() {
         tone(1318.5, 1975.5, 0.15, 'sine', 0.12);
+      },
+      back: function() {
+        tone(400, 280, 0.09, 'sine', 0.07);
       }
     };
     
@@ -176,6 +179,7 @@ const Audio = (function() {
     win: function() { playSound('win'); },
     success: function() { playSound('success'); },
     error: function() { playSound('error'); },
+    back: function() { playSound('back'); },
     star: function() { playSound('star'); },
     startMusic: startMusic,
     stopMusic: stopMusic,
