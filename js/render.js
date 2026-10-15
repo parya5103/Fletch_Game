@@ -5,8 +5,18 @@
 'use strict';
 
 const Render = (function() {
-  const PALETTE = GameCore.PALETTE;
+  // Active skin palette (starts as the classic GameCore palette).
+  // Swapped at runtime by UI.setSkinPalette() when the player equips a skin.
+  var activePalette = (GameCore.PALETTE || []).slice();
   const DIRS = GameCore.DIRS;
+
+  function setPalette(colors) {
+    if (colors && colors.length) {
+      activePalette = colors.slice();
+      needsRender = true;
+      ensureLoop();
+    }
+  }
   
   var canvas, ctx, view, needsRender, loopOn, lastT;
   var gameState = null;
@@ -191,8 +201,31 @@ const Render = (function() {
         vy: Math.sin(ang) * sp,
         t: 0, 
         life: 0.9 + Math.random() * 0.4,
-        c: PALETTE[(Math.random() * PALETTE.length) | 0],
+        c: activePalette[(Math.random() * activePalette.length) | 0],
         r: view.cell * (0.06 + Math.random() * 0.08)
+      });
+    }
+  }
+
+  // Combo burst: small particle explosion at a launched arrow's cell
+  function spawnBurst(i, state) {
+    if (!gameState || !gameState.arrows[i]) return;
+    if (!view || !(view.cell > 0)) return;
+    var A = gameState.arrows[i];
+    var cell = view.cell;
+    var col = activePalette[A.c % activePalette.length];
+    for (var k = 0; k < 7; k++) {
+      var ang = (Math.PI * 2 * k) / 7 + Math.random() * 0.5;
+      var sp = cell * (0.8 + Math.random() * 1.2);
+      gameState.particles.push({
+        x: (A.x + 0.5) * cell,
+        y: (A.y + 0.5) * cell,
+        vx: Math.cos(ang) * sp,
+        vy: Math.sin(ang) * sp,
+        t: 0,
+        life: 0.35 + Math.random() * 0.25,
+        c: col,
+        r: cell * (0.05 + Math.random() * 0.06)
       });
     }
   }
@@ -288,14 +321,14 @@ const Render = (function() {
         px += Math.sin((now - gameState.shake[i]) / 26) * cell * 0.07 * (1 - sp);
       }
 
-      drawTile(px, py, cell, A.dir, PALETTE[A.c], alpha, scale, i === gameState.hintIdx);
+      drawTile(px, py, cell, A.dir, activePalette[A.c % activePalette.length], alpha, scale, i === gameState.hintIdx);
     }
 
     // flying arrows (on top)
     for (var k = 0; k < gameState.flying.length; k++) {
       var fl = gameState.flying[k];
       if (fl.px === undefined) continue;
-      drawTile(fl.px, fl.py, cell, fl.dir, PALETTE[fl.c], Math.max(0, fl.alpha), 1, false);
+      drawTile(fl.px, fl.py, cell, fl.dir, activePalette[fl.c % activePalette.length], Math.max(0, fl.alpha), 1, false);
     }
 
     // confetti
@@ -316,11 +349,14 @@ const Render = (function() {
     setGameState: setGameState,
     fitCanvas: fitCanvas,
     spawnFly: spawnFly,
+    spawnBurst: spawnBurst,
     spawnConfetti: spawnConfetti,
+    setPalette: setPalette,
     ensureLoop: ensureLoop,
     needsRender: function() { needsRender = true; },
     getCanvas: function() { return canvas; },
     getCellSize: function() { return view ? view.cell : 0; }
   };
 })();
+
 

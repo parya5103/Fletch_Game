@@ -81,6 +81,15 @@ const UI = (function() {
       hudLeft.textContent = left + (left === 1 ? ' arrow to clear' : ' arrows to clear');
     }
     
+    // Progress bar: % of arrows cleared this level
+    var progressFill = $('progress-fill');
+    if (progressFill && gameState.arrows.length) {
+      var cleared = gameState.arrows.length - left;
+      var pct = Math.round((cleared / gameState.arrows.length) * 100);
+      progressFill.style.width = pct + '%';
+      progressFill.setAttribute('aria-valuenow', pct);
+    }
+    
     if (hearts) {
       var h = '';
       for (var i = 0; i < GameCore.MAX_HEARTS; i++) {
@@ -124,6 +133,163 @@ const UI = (function() {
     var btnHint = $('btn-hint');
     if (btnHint) {
       btnHint.setAttribute('aria-label', 'Show a hint (' + left + ' free left)');
+    }
+  }
+
+  // Combo badge: shows from 3 consecutive clean launches
+  function updateCombo(combo) {
+    var badge = $('combo-badge');
+    if (!badge) return;
+    if (!(combo >= 3)) {
+      badge.classList.remove('show');
+      return;
+    }
+    badge.textContent = '\\u{1F525} x' + combo;
+    if (badge.classList.contains('show')) {
+      // re-trigger the pop animation
+      badge.classList.remove('pop');
+      void badge.offsetWidth;
+      badge.classList.add('pop');
+    } else {
+      badge.classList.add('show');
+    }
+  }
+
+  // Level intro banner ("Level 42 - Hard")
+  function showLevelBanner() {
+    if (!gameState) return;
+    var banner = $('level-banner');
+    if (!banner) return;
+    var label;
+    if (gameState.level === 'daily') {
+      label = '\\u{1F313} Daily Challenge';
+    } else {
+      var isSpike = gameState.level > 10 && gameState.level % 10 === 0;
+      label = 'Level ' + gameState.level + ' \\u00b7 ' + GameCore.getDifficultyName(gameState.level) +
+        (isSpike ? ' \\u{1F525} Spike' : '');
+    }
+    banner.textContent = label;
+    banner.classList.remove('show');
+    void banner.offsetWidth;
+    banner.classList.add('show');
+  }
+
+  // Stall offer: reuses the rewarded-hint dialog with a friendlier title
+  function showStallOffer() {
+    var t = $('adhint-title');
+    if (t) t.textContent = 'Stuck on this one?';
+    var sub = document.querySelector('#dlg-adhint .card p');
+    if (sub) sub.innerHTML = 'Stuck happens \\u2014 watch a short ad and we\\u2019ll point out a safe arrow for free.';
+    openDlg('dlg-adhint');
+  }
+
+  // Restore the default rewarded-hint dialog title (after a stall offer reused it)
+  function resetAdHint() {
+    var t = $('adhint-title');
+    if (t) t.textContent = 'Out of free hints';
+    var sub = document.querySelector('#dlg-adhint .card p');
+    if (sub) sub.innerHTML = 'You get <b>3 free hints</b> per level. Watch a short ad to reveal one more.';
+  }
+
+  // --- Shop (coins + cosmetic skins, all free - earned through play) ---
+  function buildShopGrid() {
+    var grid = $('shop-grid');
+    if (!grid) return;
+    grid.textContent = '';
+    
+    var save = Storage.getSave();
+    var coinsEl = $('shop-coins');
+    if (coinsEl) coinsEl.textContent = save.coins + ' coins \\ud83e\\ude99';
+    
+    var skins = GameCore.SKINS;
+    Object.keys(skins).forEach(function(id) {
+      var skin = skins[id];
+      var owned = !!save.owned[id];
+      var equipped = save.skin === id;
+      
+      var item = document.createElement('div');
+      item.className = 'skin-item' + (equipped ? ' equipped' : '');
+      
+      // Color dots preview
+      var dots = '';
+      for (var ci = 0; ci < skin.colors.length; ci++) {
+        dots += '<span class="skin-dot" style="background:' + skin.colors[ci] + '"></span>';
+      }
+      
+      item.innerHTML =
+        '<div class="skin-name">' + skin.name + '</div>' +
+        '<div class="skin-dots">' + dots + '</div>' +
+        '<div class="skin-status">' +
+          (equipped ? '\\u2713 Equipped' : owned ? 'Owned' : skin.price + ' coins') +
+        '</div>';
+      
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn small' + (equipped ? '' : owned ? ' primary' : '');
+      btn.textContent = equipped ? 'Equipped' : owned ? 'Equip' : (save.coins >= skin.price ? 'Buy' : 'Locked');
+      btn.disabled = equipped;
+      if (!equipped) {
+        (function(sid, price, isOwned) {
+          on(btn, 'click', function() {
+            var s = Storage.getSave();
+            if (isOwned) {
+              s.skin = sid;
+              Storage.updateSave(s);
+              applySkinToRenderer();
+              toast(skins[sid].name + ' equipped \\u2713');
+              Audio.ui();
+              buildShopGrid();
+              return;
+            }
+            if (Storage.spendCoins(price)) {
+              s = Storage.getSave();
+              s.owned[sid] = true;
+              s.skin = sid;
+              Storage.updateSave(s);
+              applySkinToRenderer();
+              toast(skins[sid].name + ' unlocked! \\ud83c\\udf89');
+              Audio.success();
+              buildShopGrid();
+            } else {
+              toast('Not enough coins \\u2014 win levels to earn more!');
+              Audio.error();
+            }
+          });
+        })(id, skin.price, owned);
+      }
+      item.appendChild(btn);
+      grid.appendChild(item);
+    });
+  }
+
+  function applySkinToRenderer() {
+    var save = Storage.getSave();
+    var skin = GameCore.SKINS[save.skin] || GameCore.SKINS.default;
+    Render.setPalette(skin.colors);
+  }
+
+  // --- Daily login reward calendar ---
+  function buildRewardCalendar(day) {
+    var rewards = [15, 20, 30, 40, 50, 75, 100];
+    var grid = $('reward-grid');
+    if (!grid) return;
+    grid.textContent = '';
+    
+    for (var d = 1; d <= 7; d++) {
+      var cell = document.createElement('div');
+      cell.className = 'reward-cell' +
+        (d === day ? ' today' : d < day ? ' past' : '');
+      cell.innerHTML =
+        '<div class="reward-day">Day ' + d + '</div>' +
+        '<div class="reward-amount">' + rewards[d - 1] + ' \\ud83e\\ude99</div>' +
+        (d === day ? '<div class="reward-claim">Tap claim!</div>' :
+          d < day ? '<div class="reward-done">\\u2713</div>' : '');
+      grid.appendChild(cell);
+    }
+    
+    var btn = $('btn-reward-claim');
+    if (btn) {
+      btn.textContent = 'Claim ' + rewards[day - 1] + ' coins';
     }
   }
 
@@ -224,6 +390,7 @@ const UI = (function() {
     var statPlays = $('stat-plays');
     var statHints = $('stat-hints');
     var statMistakes = $('stat-mistakes');
+    var statCoins = $('stat-coins');
     var statStreaks = $('stat-streaks');
     
     if (statCurrent) statCurrent.textContent = gameState ? gameState.level : '1';
@@ -232,6 +399,7 @@ const UI = (function() {
     if (statPlays) statPlays.textContent = plays;
     if (statHints) statHints.textContent = save.stats.hintsUsed;
     if (statMistakes) statMistakes.textContent = save.stats.mistakes;
+    if (statCoins) statCoins.textContent = save.coins;
     if (statStreaks) statStreaks.textContent = save.streaks.current + ' (best: ' + save.streaks.best + ')';
   }
 
@@ -313,7 +481,7 @@ const UI = (function() {
       for (var k in save.best) {
         if (save.best[k].stars) levels++;
       }
-      progressText.textContent = levels + ' / ' + Storage.DESIGN_LEVELS + ' levels cleared';
+      progressText.textContent = levels + ' / ' + Storage.DESIGN_LEVELS + ' levels cleared \\u00b7 ' + save.coins + ' coins \\ud83e\\ude99';
     }
     
     // Update home stat tiles (levels / stars / streak)
@@ -362,12 +530,16 @@ const UI = (function() {
     if (btnNext) btnNext.style.display = done ? 'none' : '';
     if (winStars) winStars.innerHTML = starsHTML(stars);
     if (winSub) {
+      var coinsLine = gameState.coinsEarned
+        ? '<br><span class="coin-earn">+' + gameState.coinsEarned + ' coins \ud83e\ude99</span>'
+        : '';
       winSub.innerHTML = done
         ? 'You cleared all ' + Storage.DESIGN_LEVELS + ' levels. Legend! \ud83c\udfc6<br>' +
-          gameState.wrong + ' wrong tap' + (gameState.wrong === 1 ? '' : 's') + ' this run.'
+          gameState.wrong + ' wrong tap' + (gameState.wrong === 1 ? '' : 's') + ' this run.' + coinsLine
         : gameState.wrong + ' wrong tap' + (gameState.wrong === 1 ? '' : 's') + ' \u00b7 ' +
           gameState.hintsUsed + ' hint' + (gameState.hintsUsed === 1 ? '' : 's') +
-          (stars === 3 ? ' \u00b7 <span class="perfect">Perfect!</span>' : '');
+          (stars === 3 ? ' \u00b7 <span class="perfect">Perfect!</span>' : '') +
+          coinsLine;
     }
     
     openDlg('dlg-win');
@@ -479,6 +651,12 @@ const UI = (function() {
     getGameState: getGameState,
     updateHUD: updateHUD,
     updateHintBtn: updateHintBtn,
+    updateCombo: updateCombo,
+    showLevelBanner: showLevelBanner,
+    showStallOffer: showStallOffer,
+    resetAdHint: resetAdHint,
+    buildShopGrid: buildShopGrid,
+    buildRewardCalendar: buildRewardCalendar,
     openDlg: openDlg,
     closeAll: closeAll,
     anyOpen: anyOpen,
@@ -499,4 +677,5 @@ const UI = (function() {
     REDUCED: REDUCED
   };
 })();
+
 

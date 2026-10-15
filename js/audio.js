@@ -77,8 +77,11 @@ const Audio = (function() {
     if (!enabled) return;
     
     const sounds = {
-      fly: function(dir) { 
-        tone(520 + dir * 60, 180, 0.22, 'sine', 0.15); 
+      fly: function(dir, combo) {
+        // Pitch rises one semitone per combo tap (capped) - the "juice" trend
+        var step = Math.pow(1.0595, Math.min(Math.max(combo | 0, 0), 12));
+        tone((520 + dir * 60) * step, 180 * step, 0.22, 'sine', 0.15);
+        if (combo >= 3) tone(880 * step, null, 0.08, 'triangle', 0.05, 0.03);
       },
       blocked: function() { 
         tone(160, 110, 0.14, 'square', 0.10); 
@@ -160,11 +163,11 @@ const Audio = (function() {
       if (enabled && ac && ac.state === 'suspended') ac.resume(); 
     },
     play: playSound,
-    fly: function(dir) {
+    fly: function(dir, combo) {
       // Defensive default at the module boundary: dir must be a finite 0-3
       dir = Math.floor(Number(dir));
       if (!isFinite(dir) || dir < 0 || dir > 3) dir = 0;
-      playSound('fly', dir);
+      playSound('fly', dir, combo || 0);
     },
     blocked: function() { playSound('blocked'); },
     ui: function() { playSound('ui'); },
@@ -179,5 +182,6 @@ const Audio = (function() {
     isMusicOn: isMusicOn
   };
 })();
+
 
 

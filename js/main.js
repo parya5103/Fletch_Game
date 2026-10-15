@@ -49,9 +49,13 @@ const Game = (function() {
     UI.updateSettingsStatus();
     UI.updateMusicBtn();
     applyMusic();
+    applySkin();
     
     // Show home screen initially
     UI.showHomeScreen();
+    
+    // Daily login reward (once per day)
+    checkDailyReward();
     
     // Ensure render loop is running
     Render.ensureLoop();
@@ -317,6 +321,24 @@ const Game = (function() {
       loadDailyChallenge();
     });
     
+    // Shop buttons (home + menu)
+    on($('btn-shop'), 'click', function() {
+      Audio.ui();
+      UI.closeAll();
+      UI.buildShopGrid();
+      UI.openDlg('dlg-shop');
+    });
+    on($('btn-shop-menu'), 'click', function() {
+      Audio.ui();
+      UI.buildShopGrid();
+      UI.openDlg('dlg-shop');
+    });
+    
+    // Daily login reward claim
+    on($('btn-reward-claim'), 'click', function() {
+      claimDailyReward();
+    });
+    
     // Achievements button
     on($('btn-achievements-menu'), 'click', function() {
       Audio.ui();
@@ -494,7 +516,9 @@ const Game = (function() {
       shake: [],
       pop: [],
       flying: [],
-      particles: []
+      particles: [],
+      combo: 0,
+      coinsEarned: 0
     };
     
     rebuildOcc();
@@ -507,6 +531,8 @@ const Game = (function() {
     Render.needsRender();
     Render.ensureLoop();
     UI.updateHUD();
+    UI.showLevelBanner();
+    resetStall();
     saveCur();
     
     // Track level start
@@ -535,7 +561,9 @@ const Game = (function() {
       shake: [],
       pop: [],
       flying: [],
-      particles: []
+      particles: [],
+      combo: 0,
+      coinsEarned: 0
     };
     
     rebuildOcc();
@@ -547,6 +575,8 @@ const Game = (function() {
     Render.needsRender();
     Render.ensureLoop();
     UI.updateHUD();
+    UI.showLevelBanner();
+    resetStall();
     
     UI.closeAll();
   }
@@ -650,7 +680,9 @@ const Game = (function() {
       shake: [],
       pop: [],
       flying: [],
-      particles: []
+      particles: [],
+      combo: 0,
+      coinsEarned: 0
     };
 
     for (var i = 0; i < c.shapeIdx.length; i++) {
@@ -661,11 +693,29 @@ const Game = (function() {
 
     gameState.failed = gameState.hearts <= 0;
     rebuildOcc();
+    resetStall();
 
     Render.setGameState(gameState);
     UI.setGameState(gameState);
 
     return true;
+  }
+
+  // --- Stall detection (trending pattern: offer a rewarded hint
+  // exactly when the player is stuck, not on a fixed schedule) ---
+  var stallTimer = 0;
+  var STALL_DELAY = 14000; // ms without progress before offering help
+  function resetStall() {
+    clearTimeout(stallTimer);
+    if (!gameState || gameState.over || gameState.failed) return;
+    stallTimer = setTimeout(function() {
+      if (!gameState || gameState.over || gameState.failed) return;
+      if (UI.anyOpen()) { resetStall(); return; }
+      UI.showStallOffer();
+    }, STALL_DELAY);
+  }
+  function clearStall() {
+    clearTimeout(stallTimer);
   }
 
   // Game moves
@@ -681,8 +731,11 @@ const Game = (function() {
     } else {
       gameState.hearts--;
       gameState.wrong++;
+      gameState.combo = 0;
+      UI.updateCombo(0);
       gameState.shake[i] = performance.now();
       gameState.shake[blocker] = performance.now();
+      resetStall();
       
       Audio.blocked();
       
@@ -694,6 +747,7 @@ const Game = (function() {
       
       if (gameState.hearts <= 0) {
         gameState.failed = true;
+        clearStall();
         var save = Storage.getSave();
         save.cur = null;
         Storage.updateSave(save);
@@ -721,8 +775,13 @@ const Game = (function() {
     gameState.undoIds.push(i);
     if (gameState.undoIds.length > 100) gameState.undoIds.shift();
 
+    // Combo juice: consecutive clean launches raise the pop pitch
+    gameState.combo++;
+    Render.spawnBurst(i, gameState);
     Render.spawnFly(i, gameState);
-    Audio.fly(A.dir);
+    Audio.fly(A.dir, gameState.combo);
+    UI.updateCombo(gameState.combo);
+    resetStall();
     
     var save = Storage.getSave();
     if (save.vibration) Haptics.lightTap();
@@ -756,6 +815,7 @@ const Game = (function() {
     A.alive = true;
     gameState.occ[A.y * gameState.cols + A.x] = i;
     gameState.pop[i] = performance.now();
+    resetStall();
     
     Audio.undo();
     var save = Storage.getSave();
@@ -772,6 +832,7 @@ const Game = (function() {
     
     if (gameState.hintsUsed >= GameCore.FREE_HINTS) {
       Audio.ui();
+      UI.resetAdHint();
       UI.openDlg('dlg-adhint');
       return;
     }
@@ -786,6 +847,7 @@ const Game = (function() {
     
     gameState.hintIdx = h;
     gameState.hintsUsed++;
+    resetStall();
     
     Audio.hint();
     var save = Storage.getSave();
@@ -837,6 +899,8 @@ const Game = (function() {
     
     gameState.over = true;
     gameState.hintIdx = -1;
+    clearStall();
+    UI.updateCombo(0);
     
     Audio.win();
     var save = Storage.getSave();
@@ -849,6 +913,11 @@ const Game = (function() {
     
     var stars = GameCore.calcStars(gameState.wrong, gameState.hintsUsed);
     var today = new Date();
+    
+    // Coins reward (free economy: earned through play, never purchased)
+    var coinsEarned = stars * 10 + (gameState.level === 'daily' ? 25 : 0);
+    gameState.coinsEarned = coinsEarned;
+    Storage.addCoins(coinsEarned);
     
     // Update progress
     if (gameState.level !== 'daily') {
@@ -908,6 +977,58 @@ const Game = (function() {
     else Audio.stopMusic();
   }
 
+  // Apply the equipped cosmetic skin to the renderer
+  function applySkin() {
+    var save = Storage.getSave();
+    var skin = GameCore.SKINS[save.skin] || GameCore.SKINS.default;
+    Render.setPalette(skin.colors);
+  }
+
+  // --- Daily login rewards (7-day coin calendar) ---
+  var LOGIN_REWARDS = [15, 20, 30, 40, 50, 75, 100];
+
+  function rewardDayFor(save, now) {
+    var today = now.toISOString().slice(0, 10);
+    var yest = new Date(now);
+    yest.setDate(yest.getDate() - 1);
+    var isConsecutive = save.loginRewards.lastClaim === yest.toISOString().slice(0, 10);
+    return isConsecutive ? (save.loginRewards.streak % 7) + 1 : 1;
+  }
+
+  function checkDailyReward() {
+    var save = Storage.getSave();
+    var now = new Date();
+    if (save.loginRewards.lastClaim === now.toISOString().slice(0, 10)) return;
+    UI.buildRewardCalendar(rewardDayFor(save, now));
+    UI.openDlg('dlg-reward');
+  }
+
+  function claimDailyReward() {
+    var save = Storage.getSave();
+    var now = new Date();
+    var today = now.toISOString().slice(0, 10);
+    if (save.loginRewards.lastClaim === today) { UI.closeAll(); UI.showHomeScreen(); return; }
+    
+    var yest = new Date(now);
+    yest.setDate(yest.getDate() - 1);
+    var streak = save.loginRewards.lastClaim === yest.toISOString().slice(0, 10)
+      ? save.loginRewards.streak + 1 : 1;
+    var day = ((streak - 1) % 7) + 1;
+    var coins = LOGIN_REWARDS[day - 1];
+    
+    save.loginRewards.lastClaim = today;
+    save.loginRewards.streak = streak;
+    Storage.updateSave(save);
+    Storage.addCoins(coins);
+    
+    Audio.success();
+    if (Storage.getSave().vibration) Haptics.win();
+    
+    UI.closeAll();
+    UI.toast('+' + coins + ' coins! Day ' + day + ' \\ud83e\\ude99');
+    UI.showHomeScreen();
+  }
+
   // Advertising (placeholder)
   var Ads = {
     enabled: false,
@@ -949,5 +1070,6 @@ const Game = (function() {
 document.addEventListener('DOMContentLoaded', function() {
   Game.init();
 });
+
 
 

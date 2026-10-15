@@ -10,6 +10,16 @@ const GameCore = (function() {
   const MAX_HEARTS = 3;
   const FREE_HINTS = 3;
   const PALETTE = ['#ff5d8f', '#ff9f43', '#ffd93d', '#4ade80', '#2dd4bf', '#38bdf8', '#818cf8', '#c084fc'];
+  // Cosmetic arrow skins (same 8 slots as PALETTE so any board maps 1:1)
+  const SKINS = {
+    default: { name: 'Classic Neon', price: 0, colors: PALETTE.slice() },
+    candy:   { name: 'Candy Pop',     price: 120, colors: ['#ff6b9d', '#ffb3c6', '#ffd93d', '#ff8fab', '#a2d2ff', '#bde0fe', '#cdb4db', '#ffafcc'] },
+    sunset:  { name: 'Sunset Heat',   price: 200, colors: ['#ff4d6d', '#ff7b54', '#ffa62b', '#ffd93d', '#ff9a8b', '#ff6b6b', '#f76b8a', '#f8961e'] },
+    ocean:   { name: 'Deep Ocean',    price: 200, colors: ['#00d4ff', '#00b4d8', '#48cae4', '#90e0ef', '#0077b6', '#0096c7', '#62d0ff', '#ade8f4'] },
+    forest:  { name: 'Forest Mint',  price: 300, colors: ['#4ade80', '#22c55e', '#86efac', '#16a34a', '#34d399', '#a7f3d0', '#10b981', '#6ee7b7'] },
+    royal:   { name: 'Royal Gold',    price: 400, colors: ['#ffd700', '#ffb300', '#ffe066', '#f59e0b', '#d4af37', '#fff3b0', '#eab308', '#fde047'] },
+    galaxy:  { name: 'Galaxy Vibes',  price: 500, colors: ['#c084fc', '#a855f7', '#8b5cf6', '#e879f9', '#7c3aed', '#d946ef', '#6366f1', '#f0abfc'] }
+  };
   const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]]; // up, right, down, left
   const DIFFICULTY_THRESHOLDS = {
     easy: 50,
@@ -30,13 +40,21 @@ const GameCore = (function() {
   }
 
   // Level configuration based on difficulty
+  // Uses a "roller-coaster" curve like trending tap-away games:
+  // a very easy 10-level onboarding, then a gradual ramp with a spike
+  // level every 10 (n % 10 === 0) followed by an easier breather level.
   function levelConfig(n) {
     let grid, arrows;
-    
+
+    // Onboarding (1-10): tiny boards, near-instant wins
+    if (n <= 10) {
+      grid = Math.min(6, 3 + Math.ceil(n / 3));
+      arrows = 3 + Math.round((n - 1) * 0.9);
+    }
     // Easy: 5x5 to 7x7 boards
-    if (n <= DIFFICULTY_THRESHOLDS.easy) {
-      grid = Math.min(7, 4 + Math.ceil(n / 10));
-      arrows = Math.min(30, 4 + Math.round(n * 0.6));
+    else if (n <= DIFFICULTY_THRESHOLDS.easy) {
+      grid = Math.min(7, 5 + Math.ceil((n - 10) / 14));
+      arrows = Math.min(30, 10 + Math.round((n - 10) * 0.55));
     }
     // Medium: 7x7 to 9x9 boards
     else if (n <= DIFFICULTY_THRESHOLDS.medium) {
@@ -58,7 +76,22 @@ const GameCore = (function() {
       grid = 12;
       arrows = Math.min(130, 100 + Math.round((n - DIFFICULTY_THRESHOLDS.expert) * 0.1));
     }
-    
+
+    // Roller-coaster overlay: spike every 10th level, breather right after
+    if (n > 10) {
+      var mod = n % 10;
+      if (mod === 0) {
+        // Spike level: denser board, one grid size up when possible
+        arrows = Math.min(130, Math.round(arrows * 1.18) + 2);
+        grid = Math.min(12, grid + 1);
+      } else if (mod === 1) {
+        // Breather level right after the spike
+        arrows = Math.max(4, Math.round(arrows * 0.75));
+      }
+    }
+
+    grid = Math.max(4, Math.min(12, grid | 0));
+    arrows = Math.max(1, Math.min(130, arrows | 0));
     return { grid: grid, arrows: arrows, seed: ((n * 2654435761) ^ 0x9E3779B9) >>> 0 };
   }
 
@@ -277,6 +310,7 @@ const GameCore = (function() {
     MAX_HEARTS: MAX_HEARTS,
     FREE_HINTS: FREE_HINTS,
     PALETTE: PALETTE,
+    SKINS: SKINS,
     DIRS: DIRS,
     genLevel: genLevel,
     validateBoardSolution: validateBoardSolution,
@@ -289,4 +323,5 @@ const GameCore = (function() {
     rayBlocker: rayBlocker
   };
 })();
+
 

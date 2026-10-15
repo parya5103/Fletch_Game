@@ -34,6 +34,13 @@ const Storage = (function() {
         completed: false,
         stars: 0
       },
+      coins: 0,
+      skin: 'default',
+      owned: { default: true },
+      loginRewards: {
+        lastClaim: null,
+        streak: 0
+      },
       streaks: {
         current: 0,
         best: 0,
@@ -57,7 +64,7 @@ const Storage = (function() {
       if (raw) {
         var d = JSON.parse(raw);
         if (d && d.v === 2) {
-          save = d;
+          save = normalizeSave(d);
           return;
         }
       }
@@ -122,6 +129,28 @@ const Storage = (function() {
     };
     
     return newSave;
+  }
+
+  // Fill in any fields missing from older saves so new features
+  // (coins, skins, login rewards) work for existing players too
+  function normalizeSave(d) {
+    var fresh = defaultSave();
+    if (!d) return fresh;
+    for (var key in fresh) {
+      if (typeof d[key] === 'undefined') {
+        d[key] = fresh[key];
+      } else if (fresh[key] && typeof fresh[key] === 'object' && !Array.isArray(fresh[key])) {
+        for (var sub in fresh[key]) {
+          if (typeof d[key][sub] === 'undefined') d[key][sub] = fresh[key][sub];
+        }
+      }
+    }
+    if (!d.owned || !d.owned.default) {
+      if (!d.owned) d.owned = {};
+      d.owned.default = true;
+    }
+    if (typeof GameCore === 'undefined' || !GameCore.SKINS || !GameCore.SKINS[d.skin]) d.skin = 'default';
+    return d;
   }
 
   // Persist save data
@@ -214,6 +243,22 @@ const Storage = (function() {
     persist();
   }
 
+  // Coins economy
+  function addCoins(n) {
+    n = Math.max(0, Math.floor(Number(n) || 0));
+    save.coins = (save.coins | 0) + n;
+    persist();
+    return save.coins;
+  }
+
+  function spendCoins(n) {
+    n = Math.max(0, Math.floor(Number(n) || 0));
+    if (save.coins < n) return false;
+    save.coins -= n;
+    persist();
+    return true;
+  }
+
   // Update hints used
   function updateHintsUsed(count) {
     save.stats.hintsUsed += count;
@@ -248,9 +293,12 @@ const Storage = (function() {
     updateDailyChallenge: updateDailyChallenge,
     updateHintsUsed: updateHintsUsed,
     updateMistakes: updateMistakes,
+    addCoins: addCoins,
+    spendCoins: spendCoins,
     resetAll: resetAll,
     isStorageOk: isStorageOk,
     persist: persist,
     DESIGN_LEVELS: DESIGN_LEVELS
   };
 })();
+

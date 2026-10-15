@@ -1,10 +1,10 @@
 /**
  * Arrow Out! Service Worker
- * Version: v10
+ * Version: v11
  * Handles caching for offline gameplay
  */
 
-const CACHE = 'arrow-out-v10';
+const CACHE = 'arrow-out-v11';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -91,3 +91,4 @@ self.addEventListener('notificationclick', (e) => {
     clients.openWindow(e.notification.data.url);
   }
 });
+
