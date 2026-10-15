@@ -70,7 +70,7 @@ function bends(a) {
 console.log('# genLevel sanity');
 [1, 2, 5, 7, 10, 15, 20, 25, 50, 51, 60, 100, 200, 500, 1000].forEach(function (n) {
   const lv = GC.genLevel(n);
-  const shapeOk = !!lv && !!lv.arrows && lv.arrows.length >= 3 &&
+  const shapeOk = !!lv && !!lv.arrows && lv.arrows.length >= 4 &&
     lv.cols >= 4 && lv.cols <= 12 && lv.rows === lv.cols;
   let detail = shapeOk ? JSON.stringify({ cols: lv.cols, pieces: lv.arrows.length }) : 'no board';
   const piecesOk = shapeOk && lv.arrows.every(function (a) { return pieceValid(a, lv.cols, lv.rows); });
@@ -132,7 +132,7 @@ for (let n = 1; n <= 1000; n += 7) {
     break;
   }
 }
-check('grid 4-12 / pieces 2-36 / integer seed for all levels', boundsOk, detail);
+check('grid 4-12 / pieces 4-36 / integer seed for all levels', boundsOk, detail);
 check('DESIGN_LEVELS is 1000', GC.DESIGN_LEVELS === 1000);
 
 console.log('# difficulty tiers');
@@ -181,19 +181,25 @@ check('level 37 reproduces the identical board on replay',
   }));
 
 console.log('# winding path quality (levels 1-20)');
-// The winding design must be visible from level 1: no single-cell pieces,
-// every early level carries at least one piece with a 90-degree bend,
-// and a healthy number of paths to clear.
+// The maze look must be visible from level 1: no single-cell pieces,
+// long snaking paths (avg 4+ cells), real board coverage, and multiple
+// pieces with 2+ turns at 90-degree corners.
 let windingFail = '';
 for (let n = 1; n <= 20; n++) {
   const lv = GC.genLevel(n);
+  const N = lv.cols * lv.rows;
+  let occ = 0;
+  lv.arrows.forEach(function (a) { occ += a.cells.length; });
   const minLen = Math.min.apply(null, lv.arrows.map(function (a) { return a.cells.length; }));
-  const bendPieces = lv.arrows.filter(function (a) { return bends(a) > 0; }).length;
+  const avgLen = occ / lv.arrows.length;
+  const bendPieces = lv.arrows.filter(function (a) { return bends(a) >= 2; }).length;
   if (minLen < 2) { windingFail = 'level ' + n + ' has a single-cell piece'; break; }
-  if (bendPieces < 1) { windingFail = 'level ' + n + ' has no winding (bent) piece'; break; }
-  if (lv.arrows.length < 3) { windingFail = 'level ' + n + ' has only ' + lv.arrows.length + ' pieces'; break; }
+  if (lv.arrows.length < 5) { windingFail = 'level ' + n + ' has only ' + lv.arrows.length + ' pieces'; break; }
+  if (avgLen < 4) { windingFail = 'level ' + n + ' avg piece length ' + avgLen.toFixed(1); break; }
+  if (occ / N < 0.55) { windingFail = 'level ' + n + ' fills only ' + Math.round(occ / N * 100) + '% of the board'; break; }
+  if (bendPieces < 2) { windingFail = 'level ' + n + ' has only ' + bendPieces + ' multi-turn pieces'; break; }
 }
-check('every level 1-20 uses multi-cell winding paths with bends', !windingFail, windingFail);
+check('levels 1-20 are dense boards of long multi-turn winding paths', !windingFail, windingFail);
 
 console.log('# arrow directions');
 let dirSet = new Set();
@@ -223,16 +229,15 @@ console.log('# timed bonus objective');
 check('level 7 carries no bonus objective', GC.genLevel(7).bonus === null);
 check('daily challenge carries no bonus objective', GC.genDailyChallenge(new Date('2026-10-15T00:00:00.000Z')).bonus === null);
 
-console.log('# full solvability (reverse-step removal)');
+console.log('# full solvability (reverse-step removal, all 1000 levels)');
 // Reverse placement guarantees that removing pieces in DESCENDING step
 // order always clears the board: when piece k is removed, exactly the
 // pieces placed before it (steps 0..k-1) are still on the board, and
 // piece k's exit corridor was verified clear against those at placement
-// time. Swept over every level 1-120 plus late samples.
+// time. Swept over EVERY designed level 1-1000.
 let solveFail = '';
 const sweepList = [];
-for (let n = 1; n <= 120; n++) sweepList.push(n);
-[200, 500, 501, 777, 999, 1000].forEach(function (n) { sweepList.push(n); });
+for (let n = 1; n <= 1000; n++) sweepList.push(n);
 sweepList.forEach(function (n) {
   const lv = GC.genLevel(n);
   if (!GC.validateBoardSolution(lv.cols, lv.rows, lv.arrows.slice())) {

@@ -100,9 +100,9 @@ const Render = (function() {
     return "#"+RR+GG+BB;
   }
 
-  // Build the piece path: the winding polyline through the cell centers
-  // (tail to head), extended into the arrowhead base, plus a small closed
-  // arrowhead triangle at the head cell pointing in the exit direction.
+  // Build the shaft path: the winding polyline through the cell centers
+  // (tail to head), extended to the arrowhead base so shaft and head form
+  // one visually coherent arrow with no gap.
   function piecePath(P, cell) {
     var cells = P.cells;
     var n = cells.length;
@@ -111,20 +111,38 @@ const Render = (function() {
     for (var i = 1; i < n; i++) {
       ctx.lineTo((cells[i].x + 0.5) * cell, (cells[i].y + 0.5) * cell);
     }
-    // Head cell + exit direction -> arrowhead
+    // neck: stroke runs into the arrowhead base so the body reads connected
     var hx = (cells[n - 1].x + 0.5) * cell, hy = (cells[n - 1].y + 0.5) * cell;
     var dxu = DIRS[P.dir][0], dyu = DIRS[P.dir][1];
-    // neck: stroke runs into the arrowhead base so the body reads connected
     ctx.lineTo(hx + dxu * cell * 0.10, hy + dyu * cell * 0.10);
-    // small outlined arrowhead
-    var tipX = hx + dxu * cell * 0.46, tipY = hy + dyu * cell * 0.46;
-    var bx = hx + dxu * cell * 0.10, by = hy + dyu * cell * 0.10;
+  }
+
+  // Closed arrowhead triangle at the head cell pointing in the exit
+  // direction. Large enough to read instantly at any board size.
+  function headAppend(P, cell) {
+    var cells = P.cells;
+    var n = cells.length;
+    var hx = (cells[n - 1].x + 0.5) * cell, hy = (cells[n - 1].y + 0.5) * cell;
+    var dxu = DIRS[P.dir][0], dyu = DIRS[P.dir][1];
+    var tipX = hx + dxu * cell * 0.48, tipY = hy + dyu * cell * 0.48;
+    var bx = hx + dxu * cell * 0.04, by = hy + dyu * cell * 0.04;
     var px = -dyu, py = dxu; // perpendicular unit
-    var hw = cell * 0.20;    // head half-width
+    var hw = cell * 0.26;    // head half-width
     ctx.moveTo(tipX, tipY);
     ctx.lineTo(bx + px * hw, by + py * hw);
     ctx.lineTo(bx - px * hw, by - py * hw);
     ctx.closePath();
+  }
+
+  function headPath(P, cell) {
+    ctx.beginPath();
+    headAppend(P, cell);
+  }
+
+  // Shaft + head together (for glow / halo passes).
+  function fullPath(P, cell) {
+    piecePath(P, cell);
+    headAppend(P, cell);
   }
 
   // Draw one winding arrow piece. Thin colored outline with a light
@@ -134,7 +152,7 @@ const Render = (function() {
     if (!P || !P.cells || !P.cells.length) return;
     var cells = P.cells;
     var color = activePalette[P.c % activePalette.length];
-    var lw = Math.max(2, cell * 0.16);
+    var lw = Math.max(2, cell * 0.15);
 
     ctx.save();
     ctx.globalAlpha = alpha;
@@ -158,7 +176,7 @@ const Render = (function() {
 
     piecePath(P, cell);
 
-    // Special piece: breathing golden glow under the path
+    // Special piece: breathing golden glow under the whole arrow
     if (isSpecial) {
       var gp = 0.5 + 0.5 * Math.sin(performance.now() / 220);
       ctx.save();
@@ -166,7 +184,10 @@ const Render = (function() {
       ctx.strokeStyle = '#ffd166';
       ctx.lineWidth = lw * (2.6 + 1.4 * gp);
       ctx.stroke();
+      headPath(P, cell);
+      ctx.stroke();
       ctx.restore();
+      piecePath(P, cell);
     }
 
     // Dark outline pass: keeps thin arrows readable on any background
@@ -181,15 +202,25 @@ const Render = (function() {
 
     // Light interior core: outlined-pipe look, light/transparent interior
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
-    ctx.lineWidth = Math.max(1, lw * 0.32);
+    ctx.lineWidth = Math.max(1, lw * 0.34);
     ctx.stroke();
 
-    // Hint halo: white pulse around the hinted piece
+    // Arrowhead: solid filled triangle in the path color with a dark
+    // outline, drawn on top so it always reads instantly
+    headPath(P, cell);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = shadeColor(color, -45);
+    ctx.lineWidth = Math.max(1.5, lw * 0.9);
+    ctx.stroke();
+
+    // Hint halo: white pulse around the whole hinted arrow
     if (isHinted) {
       var hp = 0.5 + 0.5 * Math.sin(performance.now() / 160);
       ctx.globalAlpha = alpha * (0.35 + 0.5 * hp);
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = lw * (1.5 + 0.7 * hp);
+      fullPath(P, cell);
       ctx.stroke();
     }
 

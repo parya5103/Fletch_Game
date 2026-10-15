@@ -58,40 +58,42 @@ const GameCore = (function() {
   }
 
   // Level configuration based on difficulty
-  // Roller-coaster curve: easy onboarding, gradual ramp, a spike level
-  // every 10th level followed by an easier breather.
+  // Boards are sized for the dense maze look from level 1: bigger grids
+  // than v2, high mask fill, and long winding paths everywhere. Difficulty
+  // ramps through board size, path length and piece count; a spike level
+  // every 10th level is followed by an easier breather.
   function levelConfig(n) {
     let grid, pieces;
 
-    // Onboarding (1-10): small boards, a handful of short winding paths
+    // Onboarding (1-10): 7x7 to 8x8 boards, dense maze fill from level 1
     if (n <= 10) {
-      grid = Math.min(6, 4 + Math.ceil(n / 4));
-      pieces = 4 + Math.round((n - 1) * 0.6);
+      grid = Math.min(8, 6 + Math.ceil(n / 3));
+      pieces = 7 + Math.round((n - 1) * 0.7);
     }
-    // Easy: 6x6 to 7x7 boards
+    // Easy: 8x8 to 9x9 boards
     else if (n <= DIFFICULTY_THRESHOLDS.easy) {
-      grid = Math.min(7, 6 + Math.ceil((n - 10) / 14));
-      pieces = Math.min(16, 9 + Math.round((n - 10) * 0.25));
+      grid = Math.min(9, 8 + Math.ceil((n - 10) / 21));
+      pieces = Math.min(20, 13 + Math.round((n - 10) * 0.23));
     }
-    // Medium: 7x7 to 9x9 boards
+    // Medium: 9x9 to 10x10 boards
     else if (n <= DIFFICULTY_THRESHOLDS.medium) {
-      grid = Math.min(9, 7 + Math.ceil((n - DIFFICULTY_THRESHOLDS.easy) / 38));
-      pieces = Math.min(22, 14 + Math.round((n - DIFFICULTY_THRESHOLDS.easy) * 0.05));
+      grid = Math.min(10, 9 + Math.ceil((n - DIFFICULTY_THRESHOLDS.easy) / 76));
+      pieces = Math.min(26, 18 + Math.round((n - DIFFICULTY_THRESHOLDS.easy) * 0.053));
     }
-    // Hard: 9x9 to 11x11 boards
+    // Hard: 10x10 to 11x11 boards
     else if (n <= DIFFICULTY_THRESHOLDS.hard) {
-      grid = Math.min(11, 9 + Math.ceil((n - DIFFICULTY_THRESHOLDS.medium) / 50));
-      pieces = Math.min(26, 18 + Math.round((n - DIFFICULTY_THRESHOLDS.medium) * 0.027));
+      grid = Math.min(11, 10 + Math.ceil((n - DIFFICULTY_THRESHOLDS.medium) / 101));
+      pieces = Math.min(30, 22 + Math.round((n - DIFFICULTY_THRESHOLDS.medium) * 0.027));
     }
     // Expert: 11x11 to 12x12 boards
     else if (n <= DIFFICULTY_THRESHOLDS.expert) {
-      grid = Math.min(12, 11 + Math.ceil((n - DIFFICULTY_THRESHOLDS.hard) / 100));
-      pieces = Math.min(30, 22 + Math.round((n - DIFFICULTY_THRESHOLDS.hard) * 0.027));
+      grid = Math.min(12, 11 + Math.ceil((n - DIFFICULTY_THRESHOLDS.hard) / 101));
+      pieces = Math.min(34, 26 + Math.round((n - DIFFICULTY_THRESHOLDS.hard) * 0.027));
     }
     // Master: full 12x12 boards, dense maze fill
     else {
       grid = 12;
-      pieces = Math.min(34, 26 + Math.round((n - DIFFICULTY_THRESHOLDS.expert) * 0.04));
+      pieces = Math.min(36, 30 + Math.round((n - DIFFICULTY_THRESHOLDS.expert) * 0.03));
     }
 
     // Roller-coaster overlay: spike every 10th level, breather right after
@@ -103,22 +105,31 @@ const GameCore = (function() {
         grid = Math.min(12, grid + 1);
       } else if (mod === 1) {
         // Breather level right after the spike
-        pieces = Math.max(3, Math.round(pieces * 0.8));
+        pieces = Math.max(5, Math.round(pieces * 0.8));
       }
     }
 
     grid = Math.max(4, Math.min(12, grid | 0));
-    pieces = Math.max(2, Math.min(36, pieces | 0));
+    pieces = Math.max(4, Math.min(36, pieces | 0));
     return { grid: grid, pieces: pieces, seed: ((n * 2654435761) ^ 0x9E3779B9) >>> 0 };
   }
 
-  // Target winding-path length (cells per arrow) per difficulty tier
+  // Target winding-path length (cells per arrow) per difficulty tier.
+  // Long, snaking corridors with multiple 90-degree turns are the core
+  // visual identity of the game - even level 1 paths run 6+ cells.
   function targetLenFor(n) {
-    if (n <= DIFFICULTY_THRESHOLDS.easy) return 3;
-    if (n <= DIFFICULTY_THRESHOLDS.medium) return 4;
-    if (n <= DIFFICULTY_THRESHOLDS.hard) return 5;
-    if (n <= DIFFICULTY_THRESHOLDS.expert) return 5;
-    return 6;
+    if (n <= DIFFICULTY_THRESHOLDS.easy) return 7;
+    if (n <= DIFFICULTY_THRESHOLDS.medium) return 8;
+    if (n <= DIFFICULTY_THRESHOLDS.hard) return 9;
+    if (n <= DIFFICULTY_THRESHOLDS.expert) return 10;
+    return 11;
+  }
+
+  // Board mask fill fraction: how much of the grid the puzzle silhouette
+  // covers. Dense from level 1 (reference look), slightly fuller later.
+  function fillFracFor(n) {
+    var lvl = Math.max(1, Math.floor(Number(n)) || 1);
+    return 0.72 + Math.min(0.16, (lvl - 1) * 0.0002);
   }
 
   function getDifficultyLevel(n) {
@@ -351,9 +362,13 @@ const GameCore = (function() {
         return (bucket + (rng() < 0.2 ? 1 : 0)) % 8;
       };
     }
-    // blob / clusters / dense: coarse spatial color blocks
+    // blob / clusters / dense: broad diagonal gradient bands sweeping the
+    // board corner to corner (red -> orange -> ... -> purple like the
+    // reference), so each region reads as one color zone, not confetti
     return function(x, y, rng) {
-      return (((x >> 1) + (y >> 1) * 3 + (rng() < 0.2 ? 1 : 0)) % 8);
+      var span = Math.max(1, (W + H - 2) / 8);
+      var bucket = Math.min(7, Math.floor((x + y) / span));
+      return (bucket + (rng() < 0.12 ? 1 : 0)) % 8;
     };
   }
 
@@ -378,7 +393,7 @@ const GameCore = (function() {
     var cs = [{ x: sx, y: sy }];
     var len = 1;
     var guard = 0;
-    while (len < targetLen && guard++ < 80) {
+    while (len < targetLen && guard++ < 300) {
       var cands = [];
       for (var e = 0; e < 2; e++) {
         var end = cs[e === 0 ? 0 : len - 1];
@@ -458,17 +473,34 @@ const GameCore = (function() {
     while (arrows.length < maxPieces && attempts++ < maxPieces * 30) {
       if (arrows.length >= cfgPieces && freeCount < 2) break;
       if (freeCount < 1) break;
-      var seed = -1, tries = 0;
-      while (tries++ < 50) {
+      // Seed bias: sample free cells and pick the one closest to the board
+      // center. Carving center-out keeps later pieces near the edges where
+      // their exit rays stay clear, so far fewer mask cells end up in
+      // uncarvable pockets (denser boards, reference look).
+      var seed = -1, tries = 0, bestD = Infinity;
+      var cxx = (W - 1) / 2, cyy = (H - 1) / 2;
+      while (tries++ < 24) {
         var r = (rng() * N) | 0;
-        if (mask[r] && !occS[r]) { seed = r; break; }
+        if (!mask[r] || occS[r]) continue;
+        var ddx = (r % W) - cxx, ddy = ((r / W) | 0) - cyy;
+        var dd = ddx * ddx + ddy * ddy + rng() * 2;
+        if (dd < bestD) { bestD = dd; seed = r; }
+      }
+      if (seed === -1) {
+        for (var s2 = 0; s2 < N; s2++) {
+          if (mask[s2] && !occS[s2]) { seed = s2; break; }
+        }
       }
       if (seed === -1) break;
       var sx = seed % W, sy = (seed / W) | 0;
       var tl = baseLen;
       var jitter = rng();
-      if (jitter < 0.25) tl += 1; else if (jitter > 0.8) tl -= 1;
-      tl = Math.max(2, Math.min(8, tl));
+      // bias long: most pieces at or above the tier target so the board
+      // reads as long snaking corridors, not scattered short stubs
+      if (jitter < 0.20) tl += 2;
+      else if (jitter < 0.45) tl += 1;
+      else if (jitter > 0.88) tl -= 1;
+      tl = Math.max(3, Math.min(16, tl));
       var g = growPiece(W, H, mask, occS, rng, sx, sy, tl);
       if (!g || g.cells.length < 2) continue; // never place single-cell pieces
       var c = colorFn(g.cells[0].x, g.cells[0].y, rng);
@@ -495,8 +527,9 @@ const GameCore = (function() {
     var family = familyOf(n);
     var baseLen = targetLenFor(n);
 
-    // 1. Paint the board silhouette, sized for the winding paths
-    var targetCells = Math.min(N, Math.max(cfg.pieces * 2 + 2, Math.round(cfg.pieces * baseLen * 1.15) + 2));
+    // 1. Paint the board silhouette: dense fill so the carved maze of
+    // winding paths covers most of the grid (reference look)
+    var targetCells = Math.min(N, Math.max(24, Math.round(N * fillFracFor(n))));
     var inShape = buildShape(family, W, H, rng, targetCells);
 
     // 2. Carve the winding arrow paths (reverse placement order)
@@ -609,12 +642,13 @@ const GameCore = (function() {
     var seed = parseInt(dateStr) || Date.now();
     var rng = mulberry32(seed);
 
-    // Daily challenge: medium difficulty, 8x8 board, rotating family
+    // Daily challenge: medium difficulty, 8x8 board, rotating family,
+    // same dense maze look as the main levels
     var W = 8, H = 8, N = W * H;
     var family = FAMILIES[seed % FAMILIES.length];
     var piecesCount = 12 + (seed % 5);
-    var baseLen = 4;
-    var targetCells = Math.min(N, Math.max(piecesCount * 2 + 2, Math.round(piecesCount * baseLen * 1.15) + 2));
+    var baseLen = 6;
+    var targetCells = Math.min(N, Math.max(36, Math.round(N * 0.75)));
     var inShape = buildShape(family, W, H, rng, targetCells);
     var arrows = carve(W, H, inShape, rng, piecesCount, baseLen, makeColorFn(family, W, H));
 
