@@ -1047,3 +1047,13 @@ footer {
 @media (prefers-reduced-motion: reduce) {
   #combo-badge, #level-banner, #progress-fill { transition: none; animation: none; }
 }
+
+
+/* --- Inline SVG icon sizing (emoji-free UI) --- */
+svg.ic { width: 20px; height: 20px; flex: 0 0 auto; }
+h2 svg.ic { width: 24px; height: 24px; vertical-align: -4px; }
+.big-emoji svg.ic { width: 44px; height: 44px; }
+.ach-icon svg.ic { width: 24px; height: 24px; }
+#combo-badge svg.ic { width: 16px; height: 16px; vertical-align: -3px; }
+.reward-amount svg.ic { width: 14px; height: 14px; vertical-align: -2px; }
+.shop-coins svg.ic { width: 16px; height: 16px; vertical-align: -3px; }

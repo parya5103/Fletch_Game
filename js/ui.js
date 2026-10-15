@@ -6,6 +6,22 @@
 
 const UI = (function() {
   var gameState = null;
+
+  // Inline SVG icons (emoji-free - render on every device, no emoji font needed)
+  function svgIcon(inner, size) {
+    size = size || 16;
+    return '<svg class="ic" width="' + size + '" height="' + size +
+      '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      inner + '</svg>';
+  }
+  var ICON = {
+    coin: svgIcon('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/>'),
+    flame: svgIcon('<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5Z"/>'),
+    star: svgIcon('<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>'),
+    trophy: svgIcon('<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>'),
+    bulb: svgIcon('<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5a6 6 0 0 0-12 0c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>'),
+    award: svgIcon('<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>')
+  };
   var REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   function init() {
@@ -144,7 +160,7 @@ const UI = (function() {
       badge.classList.remove('show');
       return;
     }
-    badge.textContent = '\\u{1F525} x' + combo;
+    badge.innerHTML = ICON.flame + ' x' + combo;
     if (badge.classList.contains('show')) {
       // re-trigger the pop animation
       badge.classList.remove('pop');
@@ -162,11 +178,11 @@ const UI = (function() {
     if (!banner) return;
     var label;
     if (gameState.level === 'daily') {
-      label = '\\u{1F313} Daily Challenge';
+      label = 'Daily Challenge';
     } else {
       var isSpike = gameState.level > 10 && gameState.level % 10 === 0;
-      label = 'Level ' + gameState.level + ' \\u00b7 ' + GameCore.getDifficultyName(gameState.level) +
-        (isSpike ? ' \\u{1F525} Spike' : '');
+      label = 'Level ' + gameState.level + ' \u00b7 ' + GameCore.getDifficultyName(gameState.level) +
+        (isSpike ? ' \u00b7 Spike' : '');
     }
     banner.textContent = label;
     banner.classList.remove('show');
@@ -179,7 +195,7 @@ const UI = (function() {
     var t = $('adhint-title');
     if (t) t.textContent = 'Stuck on this one?';
     var sub = document.querySelector('#dlg-adhint .card p');
-    if (sub) sub.innerHTML = 'Stuck happens \\u2014 watch a short ad and we\\u2019ll point out a safe arrow for free.';
+    if (sub) sub.innerHTML = 'Stuck happens \u2014 watch a short ad and we\u2019ll point out a safe arrow for free.';
     openDlg('dlg-adhint');
   }
 
@@ -199,7 +215,7 @@ const UI = (function() {
     
     var save = Storage.getSave();
     var coinsEl = $('shop-coins');
-    if (coinsEl) coinsEl.textContent = save.coins + ' coins \\ud83e\\ude99';
+    if (coinsEl) coinsEl.innerHTML = ICON.coin + ' ' + save.coins + ' coins';
     
     var skins = GameCore.SKINS;
     Object.keys(skins).forEach(function(id) {
@@ -220,7 +236,7 @@ const UI = (function() {
         '<div class="skin-name">' + skin.name + '</div>' +
         '<div class="skin-dots">' + dots + '</div>' +
         '<div class="skin-status">' +
-          (equipped ? '\\u2713 Equipped' : owned ? 'Owned' : skin.price + ' coins') +
+          (equipped ? '\u2713 Equipped' : owned ? 'Owned' : skin.price + ' coins') +
         '</div>';
       
       var btn = document.createElement('button');
@@ -236,7 +252,7 @@ const UI = (function() {
               s.skin = sid;
               Storage.updateSave(s);
               applySkinToRenderer();
-              toast(skins[sid].name + ' equipped \\u2713');
+              toast(skins[sid].name + ' equipped \u2713');
               Audio.ui();
               buildShopGrid();
               return;
@@ -247,11 +263,11 @@ const UI = (function() {
               s.skin = sid;
               Storage.updateSave(s);
               applySkinToRenderer();
-              toast(skins[sid].name + ' unlocked! \\ud83c\\udf89');
+              toast(skins[sid].name + ' unlocked!');
               Audio.success();
               buildShopGrid();
             } else {
-              toast('Not enough coins \\u2014 win levels to earn more!');
+              toast('Not enough coins \u2014 win levels to earn more!');
               Audio.error();
             }
           });
@@ -281,9 +297,9 @@ const UI = (function() {
         (d === day ? ' today' : d < day ? ' past' : '');
       cell.innerHTML =
         '<div class="reward-day">Day ' + d + '</div>' +
-        '<div class="reward-amount">' + rewards[d - 1] + ' \\ud83e\\ude99</div>' +
+        '<div class="reward-amount">' + rewards[d - 1] + ' ' + ICON.coin + '</div>' +
         (d === day ? '<div class="reward-claim">Tap claim!</div>' :
-          d < day ? '<div class="reward-done">\\u2713</div>' : '');
+          d < day ? '<div class="reward-done">\u2713</div>' : '');
       grid.appendChild(cell);
     }
     
@@ -430,16 +446,16 @@ const UI = (function() {
     var save = Storage.getSave();
     
     var achievements = [
-      { id: 'first-win', name: 'First Blood', desc: 'Complete your first level', icon: '\ud83c\udf89', completed: save.stats.totalWins >= 1 },
-      { id: 'ten-wins', name: 'Getting Good', desc: 'Complete 10 levels', icon: '\ud83c\udf89', completed: save.stats.totalWins >= 10 },
-      { id: 'fifty-wins', name: 'Arrow Master', desc: 'Complete 50 levels', icon: '\ud83c\udf89', completed: save.stats.totalWins >= 50 },
-      { id: 'hundred-wins', name: 'Arrow Legend', desc: 'Complete 100 levels', icon: '\ud83c\udfc6', completed: save.stats.totalWins >= 100 },
-      { id: 'perfect-level', name: 'Flawless', desc: 'Get 3 stars on a level', icon: '\u2605\u2605\u2605', completed: Object.values(save.best).some(function(b) { return b.stars === 3; }) },
-      { id: 'all-perfect', name: 'Perfectionist', desc: 'Get 3 stars on 10 levels', icon: '\u2605\u2605\u2605', completed: Object.values(save.best).filter(function(b) { return b.stars === 3; }).length >= 10 },
-      { id: 'streak-5', name: 'Daily Habit', desc: '5-day streak', icon: '\ud83d\udca6', completed: save.streaks.best >= 5 },
-      { id: 'streak-10', name: 'Dedicated', desc: '10-day streak', icon: '\ud83d\udca6', completed: save.streaks.best >= 10 },
-      { id: 'no-hints', name: 'No Help Needed', desc: 'Complete 5 levels without hints', icon: '\ud83d\udca1', completed: save.stats.totalWins >= 5 && save.stats.hintsUsed === 0 },
-      { id: 'daily-complete', name: 'Daily Champion', desc: 'Complete a daily challenge', icon: '\ud83c\udf96', completed: save.daily.completed }
+      { id: 'first-win', name: 'First Blood', desc: 'Complete your first level', icon: ICON.trophy, completed: save.stats.totalWins >= 1 },
+      { id: 'ten-wins', name: 'Getting Good', desc: 'Complete 10 levels', icon: ICON.trophy, completed: save.stats.totalWins >= 10 },
+      { id: 'fifty-wins', name: 'Arrow Master', desc: 'Complete 50 levels', icon: ICON.trophy, completed: save.stats.totalWins >= 50 },
+      { id: 'hundred-wins', name: 'Arrow Legend', desc: 'Complete 100 levels', icon: ICON.trophy, completed: save.stats.totalWins >= 100 },
+      { id: 'perfect-level', name: 'Flawless', desc: 'Get 3 stars on a level', icon: ICON.star, completed: Object.values(save.best).some(function(b) { return b.stars === 3; }) },
+      { id: 'all-perfect', name: 'Perfectionist', desc: 'Get 3 stars on 10 levels', icon: ICON.star, completed: Object.values(save.best).filter(function(b) { return b.stars === 3; }).length >= 10 },
+      { id: 'streak-5', name: 'Daily Habit', desc: '5-day streak', icon: ICON.flame, completed: save.streaks.best >= 5 },
+      { id: 'streak-10', name: 'Dedicated', desc: '10-day streak', icon: ICON.flame, completed: save.streaks.best >= 10 },
+      { id: 'no-hints', name: 'No Help Needed', desc: 'Complete 5 levels without hints', icon: ICON.bulb, completed: save.stats.totalWins >= 5 && save.stats.hintsUsed === 0 },
+      { id: 'daily-complete', name: 'Daily Champion', desc: 'Complete a daily challenge', icon: ICON.award, completed: save.daily.completed }
     ];
     
     achievements.forEach(function(ach) {
@@ -481,7 +497,7 @@ const UI = (function() {
       for (var k in save.best) {
         if (save.best[k].stars) levels++;
       }
-      progressText.textContent = levels + ' / ' + Storage.DESIGN_LEVELS + ' levels cleared \\u00b7 ' + save.coins + ' coins \\ud83e\\ude99';
+      progressText.textContent = levels + ' / ' + Storage.DESIGN_LEVELS + ' levels cleared \u00b7 ' + save.coins + ' coins';
     }
     
     // Update home stat tiles (levels / stars / streak)
@@ -677,5 +693,6 @@ const UI = (function() {
     REDUCED: REDUCED
   };
 })();
+
 
 

@@ -1025,7 +1025,7 @@ const Game = (function() {
     if (Storage.getSave().vibration) Haptics.win();
     
     UI.closeAll();
-    UI.toast('+' + coins + ' coins! Day ' + day + ' \\ud83e\\ude99');
+    UI.toast('+' + coins + ' coins claimed! Day ' + day);
     UI.showHomeScreen();
   }
 
@@ -1070,6 +1070,7 @@ const Game = (function() {
 document.addEventListener('DOMContentLoaded', function() {
   Game.init();
 });
+
 
 
 
