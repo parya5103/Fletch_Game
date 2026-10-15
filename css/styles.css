@@ -1259,3 +1259,50 @@ h2 svg.ic { width: 24px; height: 24px; vertical-align: -4px; }
 #level-banner[data-diff="hard"]   { border-color: #a86a2f; color: #ffc791; box-shadow: 0 18px 50px rgba(255, 159, 67, 0.25); }
 #level-banner[data-diff="expert"] { border-color: #a83860; color: #ff9ab5; box-shadow: 0 18px 50px rgba(255, 93, 143, 0.25); }
 #level-banner[data-diff="master"] { border-color: #7c4dbd; color: #d8b4fe; box-shadow: 0 18px 50px rgba(192, 132, 252, 0.3); }
+
+/* ===== TIMED BONUS OBJECTIVE BANNER ===== */
+#bonus-banner {
+  position: fixed;
+  left: 50%;
+  top: 76px;
+  transform: translate(-50%, -8px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #141b3d;
+  border: 1px solid #ffd166;
+  color: #e8ecff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 14px;
+  border-radius: 999px;
+  box-shadow: 0 8px 26px rgba(255, 209, 102, 0.25);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 35;
+  white-space: nowrap;
+  transition: opacity .3s ease, transform .3s ease;
+}
+#bonus-banner.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+#bonus-banner .bb-coin {
+  color: #ffd166;
+  font-variant-numeric: tabular-nums;
+}
+#bonus-banner .bb-label {
+  color: #93a0c8;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-size: 11px;
+}
+#bonus-banner .bb-time {
+  color: #ffd166;
+  font-variant-numeric: tabular-nums;
+  min-width: 34px;
+  text-align: right;
+}
+@media (prefers-reduced-motion: reduce) {
+  #bonus-banner { transition: none; }
+}

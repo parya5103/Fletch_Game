@@ -1,6 +1,10 @@
 /**
  * Arrow Out! - Render Module
  * Handles all canvas rendering, animations, and visual effects
+ *
+ * v3: every arrow is drawn as a LONG, THIN, WINDING, OUTLINED PATH -
+ * a connected orthogonal corridor with crisp 90-degree corners and one
+ * small arrowhead at the actual exit end (the direction the piece moves).
  */
 'use strict';
 
@@ -71,65 +75,6 @@ const Render = (function() {
     g.closePath();
   }
 
-  // Thin outlined arrow: a closed polygon with a sharp pointed arrowhead
-  // connected to a straight shaft. Drawn pointing up; drawTile rotates it
-  // to the arrow's actual movement direction, so the glyph can never
-  // disagree with the exit logic.
-  function arrowPath(g, s) {
-    g.beginPath();
-    g.moveTo(0, -0.42 * s);            // tip of the arrowhead
-    g.lineTo(0.30 * s, -0.10 * s);     // head base, right
-    g.lineTo(0.12 * s, -0.10 * s);     // shaft top, right
-    g.lineTo(0.12 * s, 0.42 * s);      // shaft bottom, right
-    g.lineTo(-0.12 * s, 0.42 * s);     // shaft bottom, left
-    g.lineTo(-0.12 * s, -0.10 * s);    // shaft top, left
-    g.lineTo(-0.30 * s, -0.10 * s);    // head base, left
-    g.closePath();
-  }
-
-  function drawTile(px, py, size, dir, color, alpha, scale, isHinted) {
-    var s = size * 0.86;
-    var lw = Math.max(2, size * 0.085);
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.translate(px + size / 2, py + size / 2);
-    ctx.rotate((dir * 90 * Math.PI) / 180);
-    if (scale !== 1) ctx.scale(scale, scale);
-
-    // Crisp vector corners
-    ctx.lineJoin = 'miter';
-    ctx.miterLimit = 4;
-
-    arrowPath(ctx, s);
-
-    // Faint tinted fill so colorful arrow regions read across the board
-    ctx.fillStyle = color;
-    ctx.globalAlpha = alpha * 0.16;
-    ctx.fill();
-
-    // Dark outline pass keeps thin arrows legible on any background
-    ctx.globalAlpha = alpha;
-    ctx.strokeStyle = shadeColor(color, -40);
-    ctx.lineWidth = lw * 1.6;
-    ctx.stroke();
-
-    // Main colored stroke: the thin outlined arrow itself
-    ctx.strokeStyle = color;
-    ctx.lineWidth = lw;
-    ctx.stroke();
-
-    // Hint pulse: a white halo breathes around the hinted arrow
-    if (isHinted) {
-      var pulse = 0.5 + 0.5 * Math.sin(performance.now() / 160);
-      ctx.globalAlpha = alpha * (0.35 + 0.55 * pulse);
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = lw * (1.3 + 0.5 * pulse);
-      ctx.stroke();
-    }
-
-    ctx.restore();
-  }
-
   // Helper to shade colors
   function shadeColor(color, percent) {
     var R = parseInt(color.substring(1,3), 16);
@@ -155,19 +100,113 @@ const Render = (function() {
     return "#"+RR+GG+BB;
   }
 
+  // Build the piece path: the winding polyline through the cell centers
+  // (tail to head), extended into the arrowhead base, plus a small closed
+  // arrowhead triangle at the head cell pointing in the exit direction.
+  function piecePath(P, cell) {
+    var cells = P.cells;
+    var n = cells.length;
+    ctx.beginPath();
+    ctx.moveTo((cells[0].x + 0.5) * cell, (cells[0].y + 0.5) * cell);
+    for (var i = 1; i < n; i++) {
+      ctx.lineTo((cells[i].x + 0.5) * cell, (cells[i].y + 0.5) * cell);
+    }
+    // Head cell + exit direction -> arrowhead
+    var hx = (cells[n - 1].x + 0.5) * cell, hy = (cells[n - 1].y + 0.5) * cell;
+    var dxu = DIRS[P.dir][0], dyu = DIRS[P.dir][1];
+    // neck: stroke runs into the arrowhead base so the body reads connected
+    ctx.lineTo(hx + dxu * cell * 0.10, hy + dyu * cell * 0.10);
+    // small outlined arrowhead
+    var tipX = hx + dxu * cell * 0.46, tipY = hy + dyu * cell * 0.46;
+    var bx = hx + dxu * cell * 0.10, by = hy + dyu * cell * 0.10;
+    var px = -dyu, py = dxu; // perpendicular unit
+    var hw = cell * 0.20;    // head half-width
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(bx + px * hw, by + py * hw);
+    ctx.lineTo(bx - px * hw, by - py * hw);
+    ctx.closePath();
+  }
+
+  // Draw one winding arrow piece. Thin colored outline with a light
+  // interior core; dark outer outline keeps pieces legible against any
+  // background and against each other. isSpecial draws a golden glow.
+  function drawPiece(P, cell, alpha, scale, isHinted, isSpecial, ox, oy) {
+    if (!P || !P.cells || !P.cells.length) return;
+    var cells = P.cells;
+    var color = activePalette[P.c % activePalette.length];
+    var lw = Math.max(2, cell * 0.16);
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(ox || 0, oy || 0);
+
+    // Pop-in (undo) scales around the piece centroid
+    if (scale !== 1) {
+      var cx = 0, cy = 0;
+      for (var i = 0; i < cells.length; i++) { cx += cells[i].x; cy += cells[i].y; }
+      cx = (cx / cells.length + 0.5) * cell;
+      cy = (cy / cells.length + 0.5) * cell;
+      ctx.translate(cx, cy);
+      ctx.scale(scale, scale);
+      ctx.translate(-cx, -cy);
+    }
+
+    // Crisp 90-degree corners on the winding corridors
+    ctx.lineJoin = 'miter';
+    ctx.miterLimit = 4;
+    ctx.lineCap = 'round';
+
+    piecePath(P, cell);
+
+    // Special piece: breathing golden glow under the path
+    if (isSpecial) {
+      var gp = 0.5 + 0.5 * Math.sin(performance.now() / 220);
+      ctx.save();
+      ctx.globalAlpha = alpha * (0.30 + 0.30 * gp);
+      ctx.strokeStyle = '#ffd166';
+      ctx.lineWidth = lw * (2.6 + 1.4 * gp);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Dark outline pass: keeps thin arrows readable on any background
+    ctx.strokeStyle = shadeColor(color, -45);
+    ctx.lineWidth = lw * 1.9;
+    ctx.stroke();
+
+    // Thin colored body
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    ctx.stroke();
+
+    // Light interior core: outlined-pipe look, light/transparent interior
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+    ctx.lineWidth = Math.max(1, lw * 0.32);
+    ctx.stroke();
+
+    // Hint halo: white pulse around the hinted piece
+    if (isHinted) {
+      var hp = 0.5 + 0.5 * Math.sin(performance.now() / 160);
+      ctx.globalAlpha = alpha * (0.35 + 0.5 * hp);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = lw * (1.5 + 0.7 * hp);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
   function spawnFly(i, state) {
     if (!gameState || !gameState.arrows[i]) return;
     if (!view || !(view.cell > 0)) return; // canvas not laid out yet
     var A = gameState.arrows[i];
-    var cell = view.cell;
     gameState.flying.push({
-      x: A.x * cell, 
-      y: A.y * cell, 
-      dir: A.dir, 
+      cells: A.cells,
+      dir: A.dir,
       c: A.c,
-      t0: performance.now(), 
-      dur: window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 340,
-      dist: view.side + cell * 2.5
+      t0: performance.now(),
+      dur: window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 360,
+      dist: view.side + view.cell * 3
     });
   }
 
@@ -190,19 +229,23 @@ const Render = (function() {
     }
   }
 
-  // Combo burst: small particle explosion at a launched arrow's cell
+  // Combo burst: small particle explosion at a launched piece's centroid
   function spawnBurst(i, state) {
     if (!gameState || !gameState.arrows[i]) return;
     if (!view || !(view.cell > 0)) return;
     var A = gameState.arrows[i];
     var cell = view.cell;
     var col = activePalette[A.c % activePalette.length];
+    var cx = 0, cy = 0;
+    for (var q = 0; q < A.cells.length; q++) { cx += A.cells[q].x; cy += A.cells[q].y; }
+    cx = (cx / A.cells.length + 0.5) * cell;
+    cy = (cy / A.cells.length + 0.5) * cell;
     for (var k = 0; k < 7; k++) {
       var ang = (Math.PI * 2 * k) / 7 + Math.random() * 0.5;
       var sp = cell * (0.8 + Math.random() * 1.2);
       gameState.particles.push({
-        x: (A.x + 0.5) * cell,
-        y: (A.y + 0.5) * cell,
+        x: cx,
+        y: cy,
         vx: Math.cos(ang) * sp,
         vy: Math.sin(ang) * sp,
         t: 0,
@@ -232,15 +275,15 @@ const Render = (function() {
 
     tick(dt);
 
-    // flying arrows
+    // flying pieces
     if (gameState) {
       for (var f = gameState.flying.length - 1; f >= 0; f--) {
         var fl = gameState.flying[f];
         var p = (now - fl.t0) / fl.dur;
         if (p >= 1) { gameState.flying.splice(f, 1); continue; }
         busy = true;
-        fl.px = fl.x + DIRS[fl.dir][0] * fl.dist * p * p;
-        fl.py = fl.y + DIRS[fl.dir][1] * fl.dist * p * p;
+        fl.px = DIRS[fl.dir][0] * fl.dist * p * p;
+        fl.py = DIRS[fl.dir][1] * fl.dist * p * p;
         fl.alpha = p < 0.6 ? 1 : 1 - (p - 0.6) / 0.4;
       }
 
@@ -249,6 +292,7 @@ const Render = (function() {
         if (gameState.shake[i] && now - gameState.shake[i] < 320) busy = true;
       }
       if (gameState.hintIdx >= 0) busy = true;
+      if (gameState.bonus && gameState.bonus.active) busy = true;
       if (gameState.particles.length) busy = true;
       for (var q = 0; q < gameState.pop.length; q++) {
         if (gameState.pop[q] && now - gameState.pop[q] < 200) busy = true;
@@ -273,9 +317,9 @@ const Render = (function() {
     
     var side = view.side, cell = view.cell;
     ctx.clearRect(0, 0, side, side);
-    var cols = gameState.cols, rows = gameState.rows;
+    var cols = gameState.cols;
 
-    // Draw background cells for the board shape
+    // Draw faint background cells for the board silhouette
     var pad = Math.max(2, cell * 0.06);
     ctx.fillStyle = 'rgba(129, 140, 248, 0.12)';
     for (var s = 0; s < gameState.shape.length; s++) {
@@ -285,12 +329,12 @@ const Render = (function() {
       ctx.fill();
     }
 
-    // Draw arrows
+    // Draw the winding arrow pieces
+    var bonusIdx = (gameState.bonus && gameState.bonus.active) ? gameState.bonus.idx : -1;
     for (var i = 0; i < gameState.arrows.length; i++) {
       var A = gameState.arrows[i];
       if (!A.alive) continue;
-      var px = A.x * cell, py = A.y * cell;
-      var alpha = 1, scale = 1;
+      var alpha = 1, scale = 1, ox = 0, oy = 0;
 
       // undo pop-in
       if (gameState.pop[i] && now - gameState.pop[i] < 200) {
@@ -301,17 +345,17 @@ const Render = (function() {
       // blocked shake
       if (gameState.shake[i] && now - gameState.shake[i] < 320) {
         var sp = (now - gameState.shake[i]) / 320;
-        px += Math.sin((now - gameState.shake[i]) / 26) * cell * 0.07 * (1 - sp);
+        ox = Math.sin((now - gameState.shake[i]) / 26) * cell * 0.07 * (1 - sp);
       }
 
-      drawTile(px, py, cell, A.dir, activePalette[A.c % activePalette.length], alpha, scale, i === gameState.hintIdx);
+      drawPiece(A, cell, alpha, scale, i === gameState.hintIdx, i === bonusIdx, ox, oy);
     }
 
-    // flying arrows (on top)
+    // flying pieces (on top)
     for (var k = 0; k < gameState.flying.length; k++) {
       var fl = gameState.flying[k];
       if (fl.px === undefined) continue;
-      drawTile(fl.px, fl.py, cell, fl.dir, activePalette[fl.c % activePalette.length], Math.max(0, fl.alpha), 1, false);
+      drawPiece(fl, cell, Math.max(0, fl.alpha), 1, false, false, fl.px, fl.py);
     }
 
     // confetti

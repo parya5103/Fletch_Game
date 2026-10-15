@@ -1,6 +1,11 @@
 /**
  * Arrow Out! - Game Core Module
  * Handles game state, board logic, level generation, and validation
+ *
+ * Piece model (v3): every arrow is a WINDING PATH of grid cells
+ * (cells = connected orthogonal corridor, tail -> head). The piece exits
+ * the board along `dir` with its whole body; the arrowhead is drawn at
+ * the head cell pointing `dir`, so visuals always match movement.
  */
 'use strict';
 
@@ -30,10 +35,10 @@ const GameCore = (function() {
   };
 
   // ===== Layout families =====
-  // Every level paints its active-cell mask with one of these families so
-  // boards differ in SHAPE, not just colors. Family choice is a pure
-  // function of the level number; everything else is driven by the level
-  // seed, so each level reproduces the exact same puzzle on every replay.
+  // Every level paints its active-cell mask (the board silhouette) with
+  // one of these families; winding arrow paths then fill the mask.
+  // Family choice is a pure function of the level number, so each level
+  // reproduces the exact same puzzle on every replay.
   const FAMILIES = ['blob', 'clusters', 'maze', 'spiral', 'branch', 'bands', 'dense', 'ring'];
 
   function familyOf(n) {
@@ -53,59 +58,67 @@ const GameCore = (function() {
   }
 
   // Level configuration based on difficulty
-  // Uses a "roller-coaster" curve like trending tap-away games:
-  // a very easy 10-level onboarding, then a gradual ramp with a spike
-  // level every 10 (n % 10 === 0) followed by an easier breather level.
+  // Roller-coaster curve: easy onboarding, gradual ramp, a spike level
+  // every 10th level followed by an easier breather.
   function levelConfig(n) {
-    let grid, arrows;
+    let grid, pieces;
 
-    // Onboarding (1-10): tiny boards, near-instant wins
+    // Onboarding (1-10): small boards, a handful of short winding paths
     if (n <= 10) {
-      grid = Math.min(6, 3 + Math.ceil(n / 3));
-      arrows = 3 + Math.round((n - 1) * 0.9);
+      grid = Math.min(6, 4 + Math.ceil(n / 4));
+      pieces = 4 + Math.round((n - 1) * 0.6);
     }
-    // Easy: 5x5 to 7x7 boards
+    // Easy: 6x6 to 7x7 boards
     else if (n <= DIFFICULTY_THRESHOLDS.easy) {
-      grid = Math.min(7, 5 + Math.ceil((n - 10) / 14));
-      arrows = Math.min(30, 10 + Math.round((n - 10) * 0.55));
+      grid = Math.min(7, 6 + Math.ceil((n - 10) / 14));
+      pieces = Math.min(16, 9 + Math.round((n - 10) * 0.25));
     }
     // Medium: 7x7 to 9x9 boards
     else if (n <= DIFFICULTY_THRESHOLDS.medium) {
-      grid = Math.min(9, 6 + Math.ceil((n - DIFFICULTY_THRESHOLDS.easy) / 30));
-      arrows = Math.min(50, 20 + Math.round((n - DIFFICULTY_THRESHOLDS.easy) * 0.4));
+      grid = Math.min(9, 7 + Math.ceil((n - DIFFICULTY_THRESHOLDS.easy) / 38));
+      pieces = Math.min(22, 14 + Math.round((n - DIFFICULTY_THRESHOLDS.easy) * 0.05));
     }
     // Hard: 9x9 to 11x11 boards
     else if (n <= DIFFICULTY_THRESHOLDS.hard) {
-      grid = Math.min(11, 8 + Math.ceil((n - DIFFICULTY_THRESHOLDS.medium) / 50));
-      arrows = Math.min(80, 40 + Math.round((n - DIFFICULTY_THRESHOLDS.medium) * 0.3));
+      grid = Math.min(11, 9 + Math.ceil((n - DIFFICULTY_THRESHOLDS.medium) / 50));
+      pieces = Math.min(26, 18 + Math.round((n - DIFFICULTY_THRESHOLDS.medium) * 0.027));
     }
     // Expert: 11x11 to 12x12 boards
     else if (n <= DIFFICULTY_THRESHOLDS.expert) {
-      grid = Math.min(12, 10 + Math.ceil((n - DIFFICULTY_THRESHOLDS.hard) / 100));
-      arrows = Math.min(100, 60 + Math.round((n - DIFFICULTY_THRESHOLDS.hard) * 0.25));
+      grid = Math.min(12, 11 + Math.ceil((n - DIFFICULTY_THRESHOLDS.hard) / 100));
+      pieces = Math.min(30, 22 + Math.round((n - DIFFICULTY_THRESHOLDS.hard) * 0.027));
     }
-    // Master: Full 12x12 boards with 100-130 arrows
+    // Master: full 12x12 boards, dense maze fill
     else {
       grid = 12;
-      arrows = Math.min(130, 100 + Math.round((n - DIFFICULTY_THRESHOLDS.expert) * 0.1));
+      pieces = Math.min(34, 26 + Math.round((n - DIFFICULTY_THRESHOLDS.expert) * 0.04));
     }
 
     // Roller-coaster overlay: spike every 10th level, breather right after
     if (n > 10) {
       var mod = n % 10;
       if (mod === 0) {
-        // Spike level: denser board, one grid size up when possible
-        arrows = Math.min(130, Math.round(arrows * 1.18) + 2);
+        // Spike level: more paths, one grid size up when possible
+        pieces = Math.min(36, Math.round(pieces * 1.15) + 1);
         grid = Math.min(12, grid + 1);
       } else if (mod === 1) {
         // Breather level right after the spike
-        arrows = Math.max(4, Math.round(arrows * 0.75));
+        pieces = Math.max(3, Math.round(pieces * 0.8));
       }
     }
 
     grid = Math.max(4, Math.min(12, grid | 0));
-    arrows = Math.max(1, Math.min(130, arrows | 0));
-    return { grid: grid, arrows: arrows, seed: ((n * 2654435761) ^ 0x9E3779B9) >>> 0 };
+    pieces = Math.max(2, Math.min(36, pieces | 0));
+    return { grid: grid, pieces: pieces, seed: ((n * 2654435761) ^ 0x9E3779B9) >>> 0 };
+  }
+
+  // Target winding-path length (cells per arrow) per difficulty tier
+  function targetLenFor(n) {
+    if (n <= DIFFICULTY_THRESHOLDS.easy) return 3;
+    if (n <= DIFFICULTY_THRESHOLDS.medium) return 4;
+    if (n <= DIFFICULTY_THRESHOLDS.hard) return 5;
+    if (n <= DIFFICULTY_THRESHOLDS.expert) return 5;
+    return 6;
   }
 
   function getDifficultyLevel(n) {
@@ -128,33 +141,47 @@ const GameCore = (function() {
     return names[difficulty] || 'Master';
   }
 
-  // Check if ray from (x,y) in direction d is clear
-  function rayClear(occ, W, H, x, y, d) {
-    var dx = DIRS[d][0], dy = DIRS[d][1];
-    var cx = x + dx, cy = y + dy;
-    while (cx >= 0 && cx < W && cy >= 0 && cy < H) {
-      if (occ[cy * W + cx] !== -1) return false;
-      cx += dx; cy += dy;
+  // ===== Movement rules (multi-cell pieces) =====
+  // A piece exits by sliding its WHOLE body along its arrowhead direction.
+  // It is blocked if any OTHER alive piece has a cell strictly ahead of
+  // any of this piece's cells along that direction (the swept corridor).
+
+  // Which exit directions are open for a cell during generation,
+  // considering only cells already taken by earlier pieces (occS > 0).
+  function cellDirs(occS, W, H, x, y) {
+    var good = [];
+    for (var d = 0; d < 4; d++) {
+      var dx = DIRS[d][0], dy = DIRS[d][1];
+      var cx = x + dx, cy = y + dy, ok = true;
+      while (cx >= 0 && cx < W && cy >= 0 && cy < H) {
+        if (occS[cy * W + cx]) { ok = false; break; }
+        cx += dx; cy += dy;
+      }
+      if (ok) good.push(d);
     }
-    return true;
+    return good;
   }
 
-  // Find first blocking arrow
-  function rayBlocker(occ, arrows, W, H, x, y, d) {
-    var dx = DIRS[d][0], dy = DIRS[d][1];
-    var cx = x + dx, cy = y + dy;
-    while (cx >= 0 && cx < W && cy >= 0 && cy < H) {
-      var ai = occ[cy * W + cx];
-      if (ai !== -1 && arrows[ai].alive) return ai;
-      cx += dx; cy += dy;
+  // First blocking piece id for piece index pi, or -1 when it can exit.
+  function pieceBlocker(occ, pieces, W, H, pi) {
+    var P = pieces[pi];
+    if (!P || !P.alive) return -1;
+    var d = P.dir, dx = DIRS[d][0], dy = DIRS[d][1];
+    for (var k = 0; k < P.cells.length; k++) {
+      var cx = P.cells[k].x + dx, cy = P.cells[k].y + dy;
+      while (cx >= 0 && cx < W && cy >= 0 && cy < H) {
+        var bi = occ[cy * W + cx];
+        if (bi !== -1 && bi !== pi && pieces[bi] && pieces[bi].alive) return bi;
+        cx += dx; cy += dy;
+      }
     }
     return -1;
   }
 
-  // ===== Layout-family shape builders =====
+  // ===== Layout-family shape builders (board silhouettes) =====
   // Each builder paints a distinctive mask of active cells on the W x H
   // grid. Every builder ends with a shared "top-up" that grows the mask
-  // blob-style so the level can always fit its target arrow count.
+  // blob-style so the level can always fit its target cell count.
   function buildShape(family, W, H, rng, targetCells) {
     var N = W * H;
     var inShape = new Uint8Array(N);
@@ -181,7 +208,7 @@ const GameCore = (function() {
         if (inShape[hi]) { inShape[hi] = 0; cells--; holes--; }
       }
     } else if (family === 'bands') {
-      // 2-4 separated full-row / full-column color regions
+      // 2-4 separated full-row / full-column regions
       var horizontal = rng() < 0.5;
       var bandCount = 2 + ((rng() * 3) | 0);
       var axis = horizontal ? H : W;
@@ -291,8 +318,8 @@ const GameCore = (function() {
       }
     }
 
-    // Shared top-up: grow blob-style from existing cells until the mask can
-    // fit the target arrow count (no-op when a family already filled it).
+    // Shared top-up: grow blob-style from existing cells until the mask
+    // reaches the target size (no-op when a family already filled it).
     var tguard = 0;
     while (cells < targetCells && tguard++ < 3000) {
       var ti = (rng() * N) | 0;
@@ -307,7 +334,8 @@ const GameCore = (function() {
 
   // Deterministic per-family color assignment so boards read as colorful
   // regions instead of confetti noise. Purely cosmetic: colors never
-  // affect movement, collision, or validation.
+  // affect movement, collision, or validation. Applied per piece via its
+  // seed cell, so neighboring paths share a region color.
   function makeColorFn(family, W, H) {
     if (family === 'bands') {
       return function(x, y, rng) {
@@ -329,111 +357,249 @@ const GameCore = (function() {
     };
   }
 
-  // Reverse placement: each arrow's exit ray is clear at the moment it is
-  // placed, so removing arrows in REVERSE placement order always solves
-  // the board. Cells with the fewest clear exits are placed first, which
-  // packs exit-lane constraints into the puzzle.
-  function placeArrows(W, H, inShape, count, rng, colorFn) {
-    var shapeCells = [];
-    for (var s = 0; s < W * H; s++) if (inShape[s]) shapeCells.push(s);
-    var arrows = [];
-    var occ = new Int32Array(W * H).fill(-1);
-    for (var step = 0; step < count; step++) {
-      var best = -1, bestOpts = null, bestCount = 99;
-      for (var sc = 0; sc < shapeCells.length; sc++) {
-        var pick = shapeCells[sc];
-        if (occ[pick] !== -1) continue;
-        var px = pick % W, py = (pick / W) | 0;
-        var good = [];
-        for (var d = 0; d < 4; d++) if (rayClear(occ, W, H, px, py, d)) good.push(d);
-        if (!good.length) continue;
-        if (good.length < bestCount) { bestCount = good.length; best = pick; bestOpts = good; }
+  // Direction from cell a to orthogonal neighbor b, or -1
+  function dirFrom(a, b) {
+    if (b.x === a.x + 1 && b.y === a.y) return 1;
+    if (b.x === a.x - 1 && b.y === a.y) return 3;
+    if (b.x === a.x && b.y === a.y + 1) return 2;
+    if (b.x === a.x && b.y === a.y - 1) return 0;
+    return -1;
+  }
+
+  // Grow one winding orthogonal path from (sx, sy). Every added cell keeps
+  // at least one exit direction valid for the WHOLE piece (intersection
+  // of per-cell open directions), so the finished piece can always leave
+  // the board cleanly against the pieces placed before it.
+  function growPiece(W, H, mask, occS, rng, sx, sy, targetLen) {
+    var dirsOK = cellDirs(occS, W, H, sx, sy);
+    if (!dirsOK.length) return null;
+    var used = new Uint8Array(W * H);
+    used[sy * W + sx] = 1;
+    var cs = [{ x: sx, y: sy }];
+    var len = 1;
+    var guard = 0;
+    while (len < targetLen && guard++ < 80) {
+      var cands = [];
+      for (var e = 0; e < 2; e++) {
+        var end = cs[e === 0 ? 0 : len - 1];
+        var out = -1;
+        if (e === 0 && len >= 2) out = dirFrom(cs[1], cs[0]);
+        if (e === 1 && len >= 2) out = dirFrom(cs[len - 2], cs[len - 1]);
+        for (var d = 0; d < 4; d++) {
+          var nx = end.x + DIRS[d][0], ny = end.y + DIRS[d][1];
+          if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+          var ni = ny * W + nx;
+          if (!mask[ni] || occS[ni] || used[ni]) continue;
+          var inter = [];
+          var cd = cellDirs(occS, W, H, nx, ny);
+          for (var q = 0; q < cd.length; q++) {
+            if (dirsOK.indexOf(cd[q]) !== -1) inter.push(cd[q]);
+          }
+          if (!inter.length) continue;
+          cands.push({ e: e, x: nx, y: ny, inter: inter, straight: out !== -1 && d === out });
+        }
       }
-      if (best === -1) break;
-      var dir = bestOpts[(rng() * bestOpts.length) | 0];
-      var ax = best % W, ay = (best / W) | 0;
-      occ[best] = arrows.length;
-      arrows.push({ 
-        x: ax, 
-        y: ay, 
-        dir: dir, 
-        c: colorFn(ax, ay, rng), 
-        step: step, 
-        alive: true 
-      });
+      if (!cands.length) break;
+      var pick = null;
+      if (rng() < 0.45) {
+        // prefer continuing the current run (long corridors with bends)
+        var straightCands = [];
+        for (var sc = 0; sc < cands.length; sc++) {
+          if (cands[sc].straight) straightCands.push(cands[sc]);
+        }
+        if (straightCands.length) pick = straightCands[(rng() * straightCands.length) | 0];
+      }
+      if (!pick) pick = cands[(rng() * cands.length) | 0];
+      if (pick.e === 0) cs.unshift({ x: pick.x, y: pick.y });
+      else cs.push({ x: pick.x, y: pick.y });
+      used[pick.y * W + pick.x] = 1;
+      dirsOK = pick.inter;
+      len++;
+    }
+    return { cells: cs, dirsOK: dirsOK };
+  }
+
+  // Pick the piece's exit direction and orient the path so the head end
+  // leads naturally into the arrowhead.
+  function chooseDir(cells, dirsOK, W, H, rng) {
+    if (dirsOK.length === 1) return dirsOK[0];
+    var n = cells.length;
+    var headOut = n >= 2 ? dirFrom(cells[n - 2], cells[n - 1]) : -1;
+    var tailOut = n >= 2 ? dirFrom(cells[1], cells[0]) : -1;
+    if (headOut !== -1 && dirsOK.indexOf(headOut) !== -1 && rng() < 0.8) return headOut;
+    if (tailOut !== -1 && dirsOK.indexOf(tailOut) !== -1) {
+      cells.reverse(); // tail becomes the arrowhead end
+      return tailOut;
+    }
+    // Otherwise pick the direction that leaves the board soonest from
+    // the head cell (clean exits look better than deep slides).
+    var hx = cells[n - 1].x, hy = cells[n - 1].y;
+    var best = dirsOK[0], bestD = 99;
+    for (var k = 0; k < dirsOK.length; k++) {
+      var d = dirsOK[k];
+      var dist = d === 0 ? hy : d === 1 ? (W - 1 - hx) : d === 2 ? (H - 1 - hy) : hx;
+      if (dist < bestD || (dist === bestD && rng() < 0.5)) { bestD = dist; best = d; }
+    }
+    return best;
+  }
+
+  // Carve winding pieces into the mask. Pieces are placed one by one;
+  // each new piece can always exit cleanly against the pieces placed
+  // BEFORE it, so removing pieces in REVERSE placement order always
+  // solves the board (the solvability invariant).
+  function carve(W, H, mask, rng, cfgPieces, baseLen, colorFn) {
+    var N = W * H;
+    var occS = new Uint8Array(N);
+    var freeCount = 0;
+    for (var s = 0; s < N; s++) if (mask[s]) freeCount++;
+    var arrows = [];
+    var maxPieces = cfgPieces + Math.max(4, Math.ceil(cfgPieces * 0.5));
+    var attempts = 0;
+    while (arrows.length < maxPieces && attempts++ < maxPieces * 30) {
+      if (arrows.length >= cfgPieces && freeCount < 2) break;
+      if (freeCount < 1) break;
+      var seed = -1, tries = 0;
+      while (tries++ < 50) {
+        var r = (rng() * N) | 0;
+        if (mask[r] && !occS[r]) { seed = r; break; }
+      }
+      if (seed === -1) break;
+      var sx = seed % W, sy = (seed / W) | 0;
+      var tl = baseLen;
+      var jitter = rng();
+      if (jitter < 0.25) tl += 1; else if (jitter > 0.8) tl -= 1;
+      tl = Math.max(2, Math.min(8, tl));
+      var g = growPiece(W, H, mask, occS, rng, sx, sy, tl);
+      if (!g || g.cells.length < 2) continue; // never place single-cell pieces
+      var c = colorFn(g.cells[0].x, g.cells[0].y, rng);
+      var d = chooseDir(g.cells, g.dirsOK, W, H, rng);
+      for (var q = 0; q < g.cells.length; q++) {
+        occS[g.cells[q].y * W + g.cells[q].x] = 1;
+        freeCount--;
+      }
+      arrows.push({ cells: g.cells, dir: d, c: c, step: arrows.length, alive: true });
     }
     return arrows;
   }
 
   // Generate a valid, solvable level
   function genLevel(n) {
-    // Sanitize input: NaN/undefined must never reach level configuration,
-    // otherwise config becomes NaN and recursion below never terminates.
+    // Sanitize input: NaN/undefined must never reach level configuration.
     n = Math.floor(Number(n));
     if (!isFinite(n) || n < 1) n = 1;
     var cfg = levelConfig(n);
     cfg.grid = Math.max(4, Math.min(12, cfg.grid | 0));
-    cfg.arrows = Math.max(1, Math.min(130, cfg.arrows | 0));
+    cfg.pieces = Math.max(2, Math.min(36, cfg.pieces | 0));
     var rng = mulberry32(cfg.seed);
     var W = cfg.grid, H = cfg.grid, N = W * H;
     var family = familyOf(n);
+    var baseLen = targetLenFor(n);
 
-    // 1. Paint the layout-family shape mask
-    var targetCells = Math.min(N, Math.max(5, Math.round(cfg.arrows * 1.5)));
+    // 1. Paint the board silhouette, sized for the winding paths
+    var targetCells = Math.min(N, Math.max(cfg.pieces * 2 + 2, Math.round(cfg.pieces * baseLen * 1.15) + 2));
     var inShape = buildShape(family, W, H, rng, targetCells);
 
-    // 2. Reverse placement: each arrow's exit ray must be clear
-    var arrows = placeArrows(W, H, inShape, cfg.arrows, rng, makeColorFn(family, W, H));
+    // 2. Carve the winding arrow paths (reverse placement order)
+    var arrows = carve(W, H, inShape, rng, cfg.pieces, baseLen, makeColorFn(family, W, H));
 
     // Defense in depth: if a family ever yields an empty board, fall back
     // to the classic blob shape once (never triggers in practice).
     if (!arrows.length) {
       rng = mulberry32(cfg.seed ^ 0xBEEF);
-      inShape = buildShape('blob', W, H, rng, targetCells);
-      arrows = placeArrows(W, H, inShape, cfg.arrows, rng, makeColorFn('blob', W, H));
+      inShape = buildShape('blob', W, H, rng, Math.max(8, cfg.pieces * baseLen));
+      arrows = carve(W, H, inShape, rng, cfg.pieces, baseLen, makeColorFn('blob', W, H));
     }
-    
-    // 3. Validate the board has a solution
-    if (!validateBoardSolution(W, H, arrows.slice())) {
-      // If validation fails (should be rare with reverse placement), regenerate
-      return genLevel(n);
+
+    // 3. Validate: disjoint cells + guaranteed full solution
+    if (!validateBoardSolution(W, H, arrows)) {
+      // Should be impossible with reverse placement; rebuild defensively.
+      rng = mulberry32((cfg.seed ^ 0xBEEF) >>> 0);
+      inShape = buildShape('blob', W, H, rng, Math.min(N, cfg.pieces * baseLen + 4));
+      arrows = carve(W, H, inShape, rng, cfg.pieces, baseLen, makeColorFn('blob', W, H));
     }
-    
-    return { level: n, cols: W, rows: H, shape: inShape, arrows: arrows, difficulty: getDifficultyLevel(n), family: family };
+
+    return {
+      level: n,
+      cols: W,
+      rows: H,
+      shape: inShape,
+      arrows: arrows,
+      difficulty: getDifficultyLevel(n),
+      family: family,
+      bonus: levelBonus(n, arrows)
+    };
   }
 
-  // Validate that a board has at least one valid solution
+  // Validate that a board has a valid solution: pieces must not overlap,
+  // and removing them in DESCENDING placement (step) order must clear
+  // every piece without ever being blocked.
   function validateBoardSolution(W, H, arrows) {
-    // Create occupancy map
+    if (!arrows || !arrows.length) return false;
     var N = W * H;
     var occ = new Int32Array(N).fill(-1);
     for (var i = 0; i < arrows.length; i++) {
-      if (arrows[i].alive) {
-        occ[arrows[i].y * W + arrows[i].x] = i;
+      var cs = arrows[i].cells;
+      if (!cs || !cs.length) return false;
+      for (var k = 0; k < cs.length; k++) {
+        var x = cs[k].x, y = cs[k].y;
+        if (x < 0 || y < 0 || x >= W || y >= H) return false;
+        var idx = y * W + x;
+        if (occ[idx] !== -1) return false; // overlapping pieces = invalid
+        occ[idx] = i;
       }
     }
-    
-    // Try to find at least one removable arrow
-    // If we can't find any, the board might be unsolvable
-    // With reverse placement, this should always find at least one
-    for (var i = 0; i < arrows.length; i++) {
-      if (!arrows[i].alive) continue;
-      var blocker = rayBlocker(occ, arrows, W, H, arrows[i].x, arrows[i].y, arrows[i].dir);
-      if (blocker === -1) return true; // Found a removable arrow
+    // Removal in descending step order: when piece k leaves, exactly the
+    // pieces placed before it (lower steps) are still on the board, which
+    // is the set its exit was verified against at placement time. A piece
+    // never blocks ITSELF (its own cells travel with it), so its own
+    // entries in occ are ignored while sweeping the exit corridor.
+    var order = [];
+    for (var j = 0; j < arrows.length; j++) order.push(j);
+    order.sort(function (a, b) { return arrows[b].step - arrows[a].step; });
+    for (var o = 0; o < order.length; o++) {
+      var pi = order[o];
+      var P = arrows[pi];
+      var d = P.dir, dx = DIRS[d][0], dy = DIRS[d][1];
+      var blocked = false;
+      for (var c2 = 0; c2 < P.cells.length && !blocked; c2++) {
+        var cx = P.cells[c2].x + dx, cy = P.cells[c2].y + dy;
+        while (cx >= 0 && cx < W && cy >= 0 && cy < H) {
+          if (occ[cy * W + cx] !== -1 && occ[cy * W + cx] !== pi) { blocked = true; break; }
+          cx += dx; cy += dy;
+        }
+      }
+      if (blocked) return false;
+      for (var c3 = 0; c3 < P.cells.length; c3++) {
+        occ[P.cells[c3].y * W + P.cells[c3].x] = -1;
+      }
     }
-    
-    return false; // No removable arrows found
+    return true;
   }
 
-  // Find a guaranteed removable arrow (for hints)
+  // Find a guaranteed removable piece (for hints): the highest-step alive
+  // piece that can exit right now.
   function hintArrow(arrows, occ, W, H) {
     for (var i = arrows.length - 1; i >= 0; i--) {
-      if (arrows[i].alive) {
-        var blocker = rayBlocker(occ, arrows, W, H, arrows[i].x, arrows[i].y, arrows[i].dir);
-        if (blocker === -1) return i;
-      }
+      var P = arrows[i];
+      if (!P || !P.alive) continue;
+      if (pieceBlocker(occ, arrows, W, H, i) === -1) return i;
     }
     return -1;
+  }
+
+  // Timed bonus objective (Candy Crush-style): appears on occasional
+  // levels. The special piece is the LAST placed one, which is always
+  // removable immediately - achievable but the player must act fast.
+  function levelBonus(n, arrows) {
+    n = Math.floor(Number(n));
+    if (!isFinite(n) || n < 1 || n % 10 !== 5 || !arrows || arrows.length < 3) return null;
+    var coins = n <= 100 ? 25 : (n <= 500 ? 40 : 60);
+    var seconds = n <= 50 ? 30 : (n <= 200 ? 40 : 50);
+    var idx = 0, bestStep = -1;
+    for (var i = 0; i < arrows.length; i++) {
+      if (arrows[i].step > bestStep) { bestStep = arrows[i].step; idx = i; }
+    }
+    return { idx: idx, coins: coins, seconds: seconds };
   }
 
   // Generate daily challenge level
@@ -442,23 +608,31 @@ const GameCore = (function() {
     var dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
     var seed = parseInt(dateStr) || Date.now();
     var rng = mulberry32(seed);
-    
+
     // Daily challenge: medium difficulty, 8x8 board, rotating family
     var W = 8, H = 8, N = W * H;
-    var arrowsCount = 30 + ((seed % 20) | 0);
     var family = FAMILIES[seed % FAMILIES.length];
-    var targetCells = Math.min(N, Math.max(5, Math.round(arrowsCount * 1.5)));
+    var piecesCount = 12 + (seed % 5);
+    var baseLen = 4;
+    var targetCells = Math.min(N, Math.max(piecesCount * 2 + 2, Math.round(piecesCount * baseLen * 1.15) + 2));
     var inShape = buildShape(family, W, H, rng, targetCells);
-    var arrows = placeArrows(W, H, inShape, arrowsCount, rng, makeColorFn(family, W, H));
-    
-    return { 
-      level: 'daily', 
-      cols: W, 
-      rows: H, 
-      shape: inShape, 
+    var arrows = carve(W, H, inShape, rng, piecesCount, baseLen, makeColorFn(family, W, H));
+
+    if (!arrows.length) {
+      rng = mulberry32(seed ^ 0xBEEF);
+      inShape = buildShape('blob', W, H, rng, 40);
+      arrows = carve(W, H, inShape, rng, piecesCount, baseLen, makeColorFn('blob', W, H));
+    }
+
+    return {
+      level: 'daily',
+      cols: W,
+      rows: H,
+      shape: inShape,
       arrows: arrows,
       difficulty: 'medium',
       family: family,
+      bonus: null,
       date: dateStr
     };
   }
@@ -479,14 +653,15 @@ const GameCore = (function() {
     DIRS: DIRS,
     FAMILIES: FAMILIES.slice(),
     familyOf: familyOf,
-    genLevel: genLevel,
-    validateBoardSolution: validateBoardSolution,
-    hintArrow: hintArrow,
-    genDailyChallenge: genDailyChallenge,
     levelConfig: levelConfig,
     getDifficultyLevel: getDifficultyLevel,
     getDifficultyName: getDifficultyName,
-    calcStars: calcStars,
-    rayBlocker: rayBlocker
+    genLevel: genLevel,
+    genDailyChallenge: genDailyChallenge,
+    validateBoardSolution: validateBoardSolution,
+    hintArrow: hintArrow,
+    pieceBlocker: pieceBlocker,
+    levelBonus: levelBonus,
+    calcStars: calcStars
   };
 })();

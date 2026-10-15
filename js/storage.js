@@ -35,6 +35,7 @@ const Storage = (function() {
         stars: 0
       },
       coins: 0,
+      bonusClaimed: {},
       skin: 'default',
       owned: { default: true },
       loginRewards: {

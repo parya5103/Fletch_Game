@@ -94,10 +94,10 @@ const UI = (function() {
     
     var left = aliveCount();
     if (hudLeft) {
-      hudLeft.textContent = left + (left === 1 ? ' arrow to clear' : ' arrows to clear');
+      hudLeft.textContent = left + (left === 1 ? ' path to clear' : ' paths to clear');
     }
     
-    // Progress bar: % of arrows cleared this level
+    // Progress bar: % of paths cleared this level
     var progressFill = $('progress-fill');
     if (progressFill && gameState.arrows.length) {
       var cleared = gameState.arrows.length - left;

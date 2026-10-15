@@ -76,6 +76,9 @@ const Game = (function() {
     
     // Ensure render loop is running
     Render.ensureLoop();
+
+    // Timed bonus objective countdown (cheap 250ms tick, no-op without a bonus)
+    setInterval(bonusTick, 250);
   }
 
   // Set up event listeners
@@ -564,21 +567,23 @@ const Game = (function() {
       combo: 0,
       coinsEarned: 0
     };
-    
+    gameState.bonus = makeBonus(L.bonus, n);
+
     rebuildOcc();
-    
+
     // Update modules with new state
     Render.setGameState(gameState);
     UI.setGameState(gameState);
-    
+
     Render.fitCanvas();
     Render.needsRender();
     Render.ensureLoop();
     UI.updateHUD();
     UI.showLevelBanner();
     resetStall();
+    updateBonusBanner();
     saveCur();
-    
+
     // Track level start
     Storage.getSave().stats.totalPlays++;
     Storage.persist();
@@ -610,7 +615,8 @@ const Game = (function() {
       combo: 0,
       coinsEarned: 0
     };
-    
+    gameState.bonus = null;
+
     rebuildOcc();
     
     Render.setGameState(gameState);
@@ -622,6 +628,7 @@ const Game = (function() {
     UI.updateHUD();
     UI.showLevelBanner();
     resetStall();
+    updateBonusBanner();
     
     UI.closeAll();
   }
@@ -631,8 +638,10 @@ const Game = (function() {
     var N = gameState.cols * gameState.rows;
     gameState.occ = new Int32Array(N).fill(-1);
     for (var i = 0; i < gameState.arrows.length; i++) {
-      if (gameState.arrows[i].alive) {
-        gameState.occ[gameState.arrows[i].y * gameState.cols + gameState.arrows[i].x] = i;
+      var A = gameState.arrows[i];
+      if (!A.alive || !A.cells) continue;
+      for (var k = 0; k < A.cells.length; k++) {
+        gameState.occ[A.cells[k].y * gameState.cols + A.cells[k].x] = i;
       }
     }
   }
@@ -663,7 +672,13 @@ const Game = (function() {
         hearts: gameState.hearts,
         wrong: gameState.wrong,
         hintsUsed: gameState.hintsUsed,
-        undoIds: gameState.undoIds.slice(-40)
+        undoIds: gameState.undoIds.slice(-40),
+        bonus: gameState.bonus ? {
+          idx: gameState.bonus.idx,
+          coins: gameState.bonus.coins,
+          seconds: gameState.bonus.seconds,
+          granted: gameState.bonus.granted
+        } : null
       };
     }
     
@@ -691,16 +706,32 @@ const Game = (function() {
     var N = c.cols * c.rows;
     if (!isFinite(N) || N <= 0 || N > 400) return false;
 
-    // Validate arrows fully before committing any state
+    // Validate pieces fully before committing any state. Old single-cell
+    // saves (pre-winding-paths format) fail here and are simply reloaded
+    // as a fresh level - all other progress stays untouched.
     var restored = [];
+    var seen = new Int32Array(c.cols * c.rows).fill(-1);
     for (var a = 0; a < c.arrows.length; a++) {
       var A = c.arrows[a];
-      if (!A || typeof A.x !== 'number' || typeof A.y !== 'number' ||
-          A.x < 0 || A.x >= c.cols || A.y < 0 || A.y >= c.rows) return false;
+      if (!A || !Array.isArray(A.cells) || !A.cells.length) return false;
+      var cs = [];
+      for (var q = 0; q < A.cells.length; q++) {
+        var cc = A.cells[q];
+        if (!cc || typeof cc.x !== 'number' || typeof cc.y !== 'number' ||
+            cc.x < 0 || cc.x >= c.cols || cc.y < 0 || cc.y >= c.rows) return false;
+        var ci2 = cc.y * c.cols + cc.x;
+        if (seen[ci2] !== -1) return false; // overlapping cells = corrupt
+        seen[ci2] = a;
+        // Consecutive path cells must be orthogonal neighbours
+        if (q > 0) {
+          var pv = cs[q - 1];
+          if (Math.abs(cc.x - pv.x) + Math.abs(cc.y - pv.y) !== 1) return false;
+        }
+        cs.push({ x: cc.x, y: cc.y });
+      }
       var ci = (typeof A.c === 'number' && A.c >= 0) ? A.c : 0;
       restored.push({
-        x: A.x,
-        y: A.y,
+        cells: cs,
         dir: (A.dir | 0) & 3,
         c: ci % GameCore.PALETTE.length,
         step: A.step | 0,
@@ -740,10 +771,117 @@ const Game = (function() {
     rebuildOcc();
     resetStall();
 
+    // Restore the timed bonus objective (timer restarts fresh; the
+    // claimed/granted flags prevent any duplicate reward).
+    gameState.bonus = null;
+    if (c.bonus && !c.bonus.granted &&
+        typeof c.bonus.idx === 'number' && c.bonus.idx >= 0 && c.bonus.idx < restored.length &&
+        typeof c.bonus.coins === 'number' && typeof c.bonus.seconds === 'number' &&
+        restored[c.bonus.idx].alive) {
+      var bKey = (c.level === 'daily') ? 'daily' : c.level;
+      var bSave = Storage.getSave();
+      if (!bSave.bonusClaimed || !bSave.bonusClaimed[bKey]) {
+        gameState.bonus = {
+          idx: c.bonus.idx,
+          coins: Math.max(1, c.bonus.coins | 0),
+          seconds: Math.min(120, Math.max(10, c.bonus.seconds | 0)),
+          active: true,
+          granted: false,
+          deadline: performance.now() + Math.min(120, Math.max(10, c.bonus.seconds | 0)) * 1000
+        };
+      }
+    }
+    updateBonusBanner();
+
     Render.setGameState(gameState);
     UI.setGameState(gameState);
 
     return true;
+  }
+
+  // --- Timed bonus objective (Candy Crush-style reward arrow) ---
+  // Selected levels carry a golden bonus piece. Clear it before the
+  // countdown ends to win bonus coins. The bonus NEVER changes puzzle
+  // rules: the piece is an ordinary arrow, its status is cosmetic, and
+  // an expired timer never costs hearts - only the bonus is lost.
+  function makeBonus(spec, level) {
+    if (!spec) return null;
+    var save = Storage.getSave();
+    var key = (level === 'daily') ? 'daily' : level;
+    if (save.bonusClaimed && save.bonusClaimed[key]) return null; // already rewarded once
+    return {
+      idx: spec.idx,
+      coins: spec.coins,
+      seconds: spec.seconds,
+      active: true,
+      granted: false,
+      deadline: performance.now() + spec.seconds * 1000
+    };
+  }
+
+  function updateBonusBanner() {
+    var el = $('bonus-banner');
+    var b = gameState && gameState.bonus;
+    if (!el) return;
+    if (!b || !b.active) {
+      el.classList.remove('show');
+      el.setAttribute('aria-hidden', 'true');
+      return;
+    }
+    var coinsEl = $('bonus-coins');
+    var timeEl = $('bonus-time');
+    if (coinsEl) coinsEl.textContent = '+' + b.coins;
+    if (timeEl) {
+      var s = Math.max(0, Math.ceil((b.deadline - performance.now()) / 1000));
+      timeEl.textContent = Math.floor(s / 60) + ':' + (s % 60 < 10 ? '0' : '') + (s % 60);
+    }
+    el.classList.add('show');
+    el.setAttribute('aria-hidden', 'false');
+  }
+
+  // Bonus tick: freezes while any dialog is open (pause) or the page is
+  // hidden, so the countdown only runs during active play.
+  function bonusTick() {
+    var b = gameState && gameState.bonus;
+    if (!b || !b.active || gameState.over || gameState.failed) return;
+    var now = performance.now();
+    if (b.last) {
+      var elapsed = now - b.last;
+      if (UI.anyOpen() || document.hidden) b.deadline += elapsed;
+    }
+    b.last = now;
+    if (now >= b.deadline) {
+      b.active = false;
+      updateBonusBanner();
+      UI.toast('Bonus time up \u2014 the golden arrow reward is gone');
+    } else {
+      updateBonusBanner();
+    }
+  }
+
+  function maybeGrantBonus(i) {
+    var b = gameState && gameState.bonus;
+    if (!b || !b.active || b.granted || i !== b.idx) return;
+    if (performance.now() > b.deadline) {
+      b.active = false;
+      updateBonusBanner();
+      return;
+    }
+    b.granted = true;
+    b.active = false;
+
+    // Persist immediately: never grant the same level bonus twice,
+    // even across refresh, replay or undo/redo.
+    var save = Storage.getSave();
+    if (!save.bonusClaimed) save.bonusClaimed = {};
+    save.bonusClaimed[gameState.level === 'daily' ? 'daily' : gameState.level] = true;
+    Storage.updateSave(save);
+    Storage.addCoins(b.coins);
+
+    Audio.success();
+    if (!REDUCED) Render.spawnConfetti();
+    UI.toast('Bonus +' + b.coins + ' coins claimed!');
+    updateBonusBanner();
   }
 
   // --- Stall detection (trending pattern: offer a rewarded hint
@@ -769,7 +907,7 @@ const Game = (function() {
 
     var A = gameState.arrows[i];
     if (!A || !A.alive || !gameState.occ) return;
-    var blocker = GameCore.rayBlocker(gameState.occ, gameState.arrows, gameState.cols, gameState.rows, A.x, A.y, A.dir);
+    var blocker = GameCore.pieceBlocker(gameState.occ, gameState.arrows, gameState.cols, gameState.rows, i);
     
     if (blocker === -1) {
       removeArrow(i);
@@ -792,6 +930,8 @@ const Game = (function() {
       
       if (gameState.hearts <= 0) {
         gameState.failed = true;
+        if (gameState.bonus) gameState.bonus.active = false;
+        updateBonusBanner();
         clearStall();
         var save = Storage.getSave();
         save.cur = null;
@@ -816,7 +956,9 @@ const Game = (function() {
     if (!A || !A.alive || !gameState.occ) return;
 
     A.alive = false;
-    gameState.occ[A.y * gameState.cols + A.x] = -1;
+    for (var k = 0; k < A.cells.length; k++) {
+      gameState.occ[A.cells[k].y * gameState.cols + A.cells[k].x] = -1;
+    }
     gameState.undoIds.push(i);
     if (gameState.undoIds.length > 100) gameState.undoIds.shift();
 
@@ -827,6 +969,9 @@ const Game = (function() {
     Audio.fly(A.dir, gameState.combo);
     UI.updateCombo(gameState.combo);
     resetStall();
+
+    // Timed bonus: removing the special piece in time grants coins
+    maybeGrantBonus(i);
     
     var save = Storage.getSave();
     if (save.vibration) Haptics.lightTap();
@@ -858,7 +1003,9 @@ const Game = (function() {
     if (!A || A.alive || !gameState.occ) return;
     
     A.alive = true;
-    gameState.occ[A.y * gameState.cols + A.x] = i;
+    for (var k = 0; k < A.cells.length; k++) {
+      gameState.occ[A.cells[k].y * gameState.cols + A.cells[k].x] = i;
+    }
     gameState.pop[i] = performance.now();
     resetStall();
     
@@ -944,6 +1091,8 @@ const Game = (function() {
     
     gameState.over = true;
     gameState.hintIdx = -1;
+    if (gameState.bonus) gameState.bonus.active = false;
+    updateBonusBanner();
     clearStall();
     UI.updateCombo(0);
     

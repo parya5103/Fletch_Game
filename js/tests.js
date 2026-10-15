@@ -100,15 +100,16 @@ const Tests = (function() {
       var N = level.cols * level.rows;
       var occ = new Int32Array(N).fill(-1);
       for (var i = 0; i < level.arrows.length; i++) {
-        occ[level.arrows[i].y * level.cols + level.arrows[i].x] = i;
+        var cells = level.arrows[i].cells || [];
+        for (var k = 0; k < cells.length; k++) {
+          occ[cells[k].y * level.cols + cells[k].x] = i;
+        }
       }
       var hint = GameCore.hintArrow(level.arrows, occ, level.cols, level.rows);
       var isValid = hint >= 0 && hint < level.arrows.length;
       var isRemovable = false;
       if (isValid) {
-        var blocker = GameCore.rayBlocker(occ, level.arrows, level.cols, level.rows,
-          level.arrows[hint].x, level.arrows[hint].y, level.arrows[hint].dir);
-        isRemovable = blocker === -1;
+        isRemovable = GameCore.pieceBlocker(occ, level.arrows, level.cols, level.rows, hint) === -1;
       }
       addResult('GameCore.hintArrow finds valid removable arrow',
         isValid && isRemovable,
