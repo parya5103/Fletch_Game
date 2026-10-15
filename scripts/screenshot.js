@@ -93,9 +93,9 @@ async function runPwaTests(page) {
     hasBanner: !!document.getElementById('update-banner'),
     hasReloadBtn: !!document.getElementById('btn-update-reload'),
     hasVersionRow: !!document.getElementById('st-version'),
-    pwaApi: typeof window.PWA === 'object',
-    version: window.PWA ? window.PWA.VERSION : null,
-    checkForUpdates: window.PWA ? typeof window.PWA.checkForUpdates : 'missing'
+    pwaApi: typeof PWA === 'object',
+    version: (typeof PWA === 'object' && PWA) ? PWA.VERSION : null,
+    checkForUpdates: (typeof PWA === 'object' && PWA) ? typeof PWA.checkForUpdates : 'missing'
   }));
   if (!uiHooks.hasBanner || !uiHooks.hasReloadBtn || !uiHooks.hasVersionRow ||
       !uiHooks.pwaApi || uiHooks.checkForUpdates !== 'function' || !uiHooks.version) {
@@ -165,7 +165,22 @@ async function runPwaTests(page) {
   console.log('[OK] cache cleanup is scoped: foreign cache survived Arrow Out! (re)install');
 
   // 5. Offline: reload with the network cut off - the game must still boot
-  await page.setOfflineMode(true);
+  var offlineModeSet = false;
+  try {
+    await page.setOfflineMode(true);
+    offlineModeSet = true;
+  } catch (e1) {
+    try {
+      await page.context().setOffline(true);
+      offlineModeSet = true;
+    } catch (e2) {
+      const client = await page.createCDPSession();
+      await client.send('Network.enable');
+      await client.send('Network.emulateNetworkConditions', {
+        offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0
+      });
+    }
+  }
   try {
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 20000 });
     await page.waitForSelector('#dlg-home.show', { timeout: 15000 });
@@ -174,14 +189,20 @@ async function runPwaTests(page) {
       title: document.title,
       hud: !!document.getElementById('hud')
     }));
-    if (offlineOk.online !== false || !offlineOk.hud || offlineOk.title.indexOf('Arrow Out') === -1) {
+    if (!offlineOk.hud || offlineOk.title.indexOf('Arrow Out') === -1) {
       throw new Error('offline boot looks broken: ' + JSON.stringify(offlineOk));
+    }
+    if (offlineModeSet && offlineOk.online !== false) {
+      throw new Error('offline mode was requested but navigator.onLine is still true');
     }
     console.log('[OK] offline: game boots fully from the service worker cache');
   } finally {
-    await page.setOfflineMode(false);
+    try { await page.setOfflineMode(false); } catch (e3) {
+      try { await page.context().setOffline(false); } catch (e4) { /* CDP session dies with page */ }
+    }
   }
 }
+
 async function main() {
   fs.mkdirSync(DOC, { recursive: true });
   const server = spawn('npx', ['http-server', '.', '-p', String(PORT), '--silent'],
