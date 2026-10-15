@@ -111,23 +111,26 @@ const Render = (function() {
     for (var i = 1; i < n; i++) {
       ctx.lineTo((cells[i].x + 0.5) * cell, (cells[i].y + 0.5) * cell);
     }
-    // neck: stroke runs into the arrowhead base so the body reads connected
+    // neck: stroke runs exactly into the arrowhead base center so the
+    // body reads connected with zero gap
     var hx = (cells[n - 1].x + 0.5) * cell, hy = (cells[n - 1].y + 0.5) * cell;
     var dxu = DIRS[P.dir][0], dyu = DIRS[P.dir][1];
     ctx.lineTo(hx + dxu * cell * 0.10, hy + dyu * cell * 0.10);
   }
 
-  // Closed arrowhead triangle at the head cell pointing in the exit
-  // direction. Large enough to read instantly at any board size.
+  // Closed arrowhead triangle at the head cell pointing exactly in the
+  // exit direction P.dir. The base sits exactly where the shaft neck
+  // ends (0.10 * cell ahead of the head center), so the head joins the
+  // shaft cleanly; the slim half-width matches the thin shaft.
   function headAppend(P, cell) {
     var cells = P.cells;
     var n = cells.length;
     var hx = (cells[n - 1].x + 0.5) * cell, hy = (cells[n - 1].y + 0.5) * cell;
     var dxu = DIRS[P.dir][0], dyu = DIRS[P.dir][1];
-    var tipX = hx + dxu * cell * 0.48, tipY = hy + dyu * cell * 0.48;
-    var bx = hx + dxu * cell * 0.04, by = hy + dyu * cell * 0.04;
+    var tipX = hx + dxu * cell * 0.46, tipY = hy + dyu * cell * 0.46;
+    var bx = hx + dxu * cell * 0.10, by = hy + dyu * cell * 0.10;
     var px = -dyu, py = dxu; // perpendicular unit
-    var hw = cell * 0.26;    // head half-width
+    var hw = cell * 0.20;    // head half-width (slim, reads as one arrow)
     ctx.moveTo(tipX, tipY);
     ctx.lineTo(bx + px * hw, by + py * hw);
     ctx.lineTo(bx - px * hw, by - py * hw);
@@ -139,6 +142,24 @@ const Render = (function() {
     headAppend(P, cell);
   }
 
+  // Only the two slanted head edges (open path, no base edge). Outlining
+  // these instead of the full closed triangle avoids drawing a dark seam
+  // across the shaft where head and neck join.
+  function headSidesAppend(P, cell) {
+    var cells = P.cells;
+    var n = cells.length;
+    var hx = (cells[n - 1].x + 0.5) * cell, hy = (cells[n - 1].y + 0.5) * cell;
+    var dxu = DIRS[P.dir][0], dyu = DIRS[P.dir][1];
+    var tipX = hx + dxu * cell * 0.46, tipY = hy + dyu * cell * 0.46;
+    var bx = hx + dxu * cell * 0.10, by = hy + dyu * cell * 0.10;
+    var px = -dyu, py = dxu;
+    var hw = cell * 0.20;
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(bx + px * hw, by + py * hw);
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(bx - px * hw, by - py * hw);
+  }
+
   // Shaft + head together (for glow / halo passes).
   function fullPath(P, cell) {
     piecePath(P, cell);
@@ -146,13 +167,19 @@ const Render = (function() {
   }
 
   // Draw one winding arrow piece. Thin colored outline with a light
-  // interior core; dark outer outline keeps pieces legible against any
-  // background and against each other. isSpecial draws a golden glow.
+  // interior core; a subtle dark outline keeps pieces legible against
+  // any background and against each other. isSpecial repaints the whole
+  // arrow in gold (body + head + breathing glow).
   function drawPiece(P, cell, alpha, scale, isHinted, isSpecial, ox, oy) {
     if (!P || !P.cells || !P.cells.length) return;
     var cells = P.cells;
     var color = activePalette[P.c % activePalette.length];
-    var lw = Math.max(2, cell * 0.15);
+    // Bonus piece: solid gold body and head so it reads as THE golden
+    // arrow from the first frame of the countdown - clearly distinct
+    // from every normal palette color (the glow underneath reinforces it).
+    if (isSpecial) color = '#fbbf24';
+    // Thin responsive shaft: visible on phones, reads as a path not a pipe
+    var lw = Math.max(2.5, cell * 0.11);
 
     ctx.save();
     ctx.globalAlpha = alpha;
@@ -190,9 +217,9 @@ const Render = (function() {
       piecePath(P, cell);
     }
 
-    // Dark outline pass: keeps thin arrows readable on any background
+    // Subtle dark outline pass: keeps thin arrows readable, stays slim
     ctx.strokeStyle = shadeColor(color, -45);
-    ctx.lineWidth = lw * 1.9;
+    ctx.lineWidth = lw * 1.5;
     ctx.stroke();
 
     // Thin colored body
@@ -200,16 +227,20 @@ const Render = (function() {
     ctx.lineWidth = lw;
     ctx.stroke();
 
-    // Light interior core: outlined-pipe look, light/transparent interior
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
-    ctx.lineWidth = Math.max(1, lw * 0.34);
+    // Light interior core: outlined-path look, delicate white line
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = Math.max(1, lw * 0.28);
     ctx.stroke();
 
-    // Arrowhead: solid filled triangle in the path color with a dark
-    // outline, drawn on top so it always reads instantly
+    // Arrowhead: solid filled triangle in the path color. Only the two
+    // slanted edges get the dark outline, so the head joins the shaft
+    // with no seam, gap or doubled edge, and the tip points exactly in
+    // P.dir.
     headPath(P, cell);
     ctx.fillStyle = color;
     ctx.fill();
+    ctx.beginPath();
+    headSidesAppend(P, cell);
     ctx.strokeStyle = shadeColor(color, -45);
     ctx.lineWidth = Math.max(1.5, lw * 0.9);
     ctx.stroke();
@@ -277,9 +308,9 @@ const Render = (function() {
       gameState.particles.push({
         x: cx,
         y: cy,
-        vx: Math.cos(ang) * sp,
+        vx: Math.cos(ang) * sp, 
         vy: Math.sin(ang) * sp,
-        t: 0,
+        t: 0, 
         life: 0.35 + Math.random() * 0.25,
         c: col,
         r: cell * (0.05 + Math.random() * 0.06)
@@ -350,13 +381,24 @@ const Render = (function() {
     ctx.clearRect(0, 0, side, side);
     var cols = gameState.cols;
 
-    // Draw faint background cells for the board silhouette
-    var pad = Math.max(2, cell * 0.06);
-    ctx.fillStyle = 'rgba(129, 140, 248, 0.12)';
+    // Board backdrop: ONE clean, subtle rounded panel behind the puzzle
+    // silhouette - no per-cell tiles. The quiet background lets the thin
+    // winding paths carry the board's visual identity.
+    var pad = Math.max(1, cell * 0.03);
+    var minX = cols, minY = gameState.rows, maxX = -1, maxY = -1;
     for (var s = 0; s < gameState.shape.length; s++) {
       if (!gameState.shape[s]) continue;
-      var sx = (s % cols) * cell, sy = ((s / cols) | 0) * cell;
-      roundRect(ctx, sx + pad, sy + pad, cell - 2 * pad, cell - 2 * pad, Math.max(4, cell * 0.16));
+      var gx = s % cols, gy = (s / cols) | 0;
+      if (gx < minX) minX = gx;
+      if (gx > maxX) maxX = gx;
+      if (gy < minY) minY = gy;
+      if (gy > maxY) maxY = gy;
+    }
+    if (maxX >= 0) {
+      ctx.fillStyle = 'rgba(129, 140, 248, 0.07)';
+      roundRect(ctx, minX * cell + pad, minY * cell + pad,
+        (maxX - minX + 1) * cell - 2 * pad, (maxY - minY + 1) * cell - 2 * pad,
+        Math.max(6, cell * 0.28));
       ctx.fill();
     }
 

@@ -806,6 +806,9 @@ const Game = (function() {
   // an expired timer never costs hearts - only the bonus is lost.
   function makeBonus(spec, level) {
     if (!spec) return null;
+    // The bonus index must always point at a real arrow of this board.
+    if (typeof spec.idx !== 'number' || !isFinite(spec.idx) ||
+        spec.idx < 0 || Math.floor(spec.idx) !== spec.idx) return null;
     var save = Storage.getSave();
     var key = (level === 'daily') ? 'daily' : level;
     if (save.bonusClaimed && save.bonusClaimed[key]) return null; // already rewarded once
@@ -1264,7 +1267,3 @@ const Game = (function() {
 document.addEventListener('DOMContentLoaded', function() {
   Game.init();
 });
-
-
-
-
