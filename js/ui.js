@@ -423,6 +423,7 @@ const UI = (function() {
   function updateSettingsStatus() {
     var standalone = PWA.isStandalone();
     var swActive = PWA.swActive;
+    var controlled = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
     var canPrompt = PWA.canPrompt();
     var storageOk = Storage.isStorageOk();
     
@@ -430,11 +431,13 @@ const UI = (function() {
     var stSw = $('st-sw');
     var stInstall = $('st-install');
     var stStorage = $('st-storage');
+    var stVersion = $('st-version');
     
     if (stMode) stMode.innerHTML = standalone ? '<span class="ok">Installed app \u2713</span>' : 'Browser tab';
-    if (stSw) stSw.innerHTML = swActive ? '<span class="ok">Active \u2713</span>' : '<span class="no">Not active</span>';
+    if (stSw) stSw.innerHTML = controlled ? '<span class="ok">Active \u2713</span>' : (swActive ? 'Starting...' : '<span class="no">Not active</span>');
     if (stInstall) stInstall.innerHTML = canPrompt ? '<span class="ok">Available \u2713</span>' : 'Not available';
     if (stStorage) stStorage.innerHTML = storageOk ? '<span class="ok">Saving \u2713</span>' : '<span class="no">Unavailable</span>';
+    if (stVersion) stVersion.textContent = PWA.VERSION || '--';
   }
 
   // Achievements

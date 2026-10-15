@@ -12,13 +12,13 @@ const PWA = (function() {
   // Service worker source
   var SW_SRC = [
     "/* Arrow Out! service worker - save as sw.js next to index.html */",
-    "const CACHE = 'arrow-out-v12';",
-    "const ASSETS = ['./', './index.html', './sw.js', './js/game.js', './js/render.js', './js/audio.js', './js/haptics.js', './js/storage.js', './js/pwa.js', './js/ui.js', './js/main.js', './css/styles.css'];",
+    "const CACHE = 'arrow-out-v13';",
+    "const ASSETS = ['./', './index.html', './css/styles.css', './js/game.js', './js/render.js', './js/audio.js', './js/haptics.js', './js/storage.js', './js/pwa.js', './js/ui.js', './js/main.js', './manifest.webmanifest', './icons/favicon.svg'];",
     "self.addEventListener('install', (e) => {",
     "  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));",
     "});",
     "self.addEventListener('activate', (e) => {",
-    "  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));",
+    "  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k.startsWith('arrow-out-') && k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));",
     "});",
     "self.addEventListener('fetch', (e) => {",
     "  if (e.request.method !== 'GET') return;",
@@ -235,11 +235,81 @@ const PWA = (function() {
       return;
     }
     
-    navigator.serviceWorker.register('sw.js').then(function() {
+    navigator.serviceWorker.register('sw.js').then(function(reg) {
       swActive = true;
+      watchForUpdates(reg);
     }).catch(function() { 
       swActive = false; 
     });
+  }
+
+  // Game version - kept in sync with sw.js CACHE version
+  var VERSION = 'v13';
+
+  // --- Update flow ---
+  // The page shows a small banner when a newer service worker (a new game
+  // version) has been downloaded. The player taps Refresh to load it;
+  // progress lives in localStorage and is never touched by updates.
+  var updateBannerShown = false;
+
+  function showUpdateBanner() {
+    if (updateBannerShown) return;
+    updateBannerShown = true;
+    var b = document.getElementById('update-banner');
+    if (b) b.classList.add('show');
+  }
+
+  function hideUpdateBanner() {
+    var b = document.getElementById('update-banner');
+    if (b) b.classList.remove('show');
+  }
+
+  // Manual update check - safe to call any time
+  function checkForUpdates() {
+    if (!('serviceWorker' in navigator)) return Promise.resolve(false);
+    return navigator.serviceWorker.getRegistration().then(function(reg) {
+      if (!reg) return false;
+      return reg.update().then(function() { return true; }).catch(function() { return false; });
+    }).catch(function() { return false; });
+  }
+
+  function watchForUpdates(reg) {
+    try {
+      // A newer worker is already installed and waiting -> update is ready
+      if (reg.waiting && navigator.serviceWorker.controller) {
+        showUpdateBanner();
+      }
+
+      reg.addEventListener('updatefound', function() {
+        var installing = reg.installing;
+        if (!installing) return;
+        installing.addEventListener('statechange', function() {
+          if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+            // New version downloaded and ready - ask the player to refresh
+            showUpdateBanner();
+          }
+        });
+      });
+
+      // A new worker took control while this page is open (skipWaiting).
+      // Ignore the very first install (no previous controller).
+      var hadController = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        if (hadController) showUpdateBanner();
+        hadController = true;
+      });
+
+      // Check for updates when the player returns to the game,
+      // at most once per hour (faster than the browser's 24h check).
+      var lastCheck = 0;
+      document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState !== 'visible') return;
+        var now = Date.now();
+        if (now - lastCheck < 3600000) return;
+        lastCheck = now;
+        reg.update().catch(function() {});
+      });
+    } catch (e) { /* update watching is best-effort */ }
   }
 
   function canPrompt() {
@@ -289,6 +359,16 @@ const PWA = (function() {
     if (closeBtn) {
       closeBtn.onclick = function() { hideBanner(); };
     }
+    
+    // Update banner: Refresh loads the new version (progress stays in localStorage)
+    var updReload = document.getElementById('btn-update-reload');
+    if (updReload) {
+      updReload.onclick = function() { location.reload(); };
+    }
+    var updClose = document.getElementById('btn-update-close');
+    if (updClose) {
+      updClose.onclick = function() { hideUpdateBanner(); };
+    }
   }
 
   // Initialize
@@ -305,7 +385,9 @@ const PWA = (function() {
     maybeIOSBanner: maybeIOSBanner,
     installAction: installAction,
     get swActive() { return swActive; },
-    get SW_SRC() { return SW_SRC; }
+    get SW_SRC() { return SW_SRC; },
+    get VERSION() { return VERSION; },
+    checkForUpdates: checkForUpdates
   };
 })();
 

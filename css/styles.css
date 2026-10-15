@@ -1058,3 +1058,62 @@ h2 svg.ic { width: 24px; height: 24px; vertical-align: -4px; }
 .reward-amount svg.ic { width: 14px; height: 14px; vertical-align: -2px; }
 .shop-coins svg.ic { width: 16px; height: 16px; vertical-align: -3px; }
 .coin-earn svg.ic { width: 14px; height: 14px; vertical-align: -2px; }
+
+/* --- Update banner (new game version ready) --- */
+#update-banner {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 55;
+  display: none;
+  background: var(--bg-card);
+  border: 1px solid #748ffc;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 10px 12px;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  transform: translateY(8px);
+  opacity: 0;
+  transition: transform var(--transition-slow), opacity var(--transition-slow);
+}
+
+#update-banner.show {
+  display: flex;
+  transform: translateY(0);
+  opacity: 1;
+}
+
+#update-banner .ub-text {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  min-width: 0;
+}
+
+#update-banner .ub-actions {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+#update-banner .btn {
+  min-height: 40px;
+}
+
+#update-banner .btn.iconx {
+  min-width: 36px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #update-banner {
+    transition: none;
+  }
+}

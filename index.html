@@ -213,6 +213,15 @@
     </div>
   </div>
 
+
+  <!-- UPDATE BANNER: shown when a newer version of the game is ready -->
+  <div id="update-banner" role="region" aria-label="Game update available">
+    <div class="ub-text" id="ub-text">Game update ready &mdash; refresh to get the latest version.</div>
+    <div class="ub-actions">
+      <button class="btn small primary" id="btn-update-reload" type="button">Refresh</button>
+      <button class="btn iconx" id="btn-update-close" type="button" aria-label="Dismiss update notification">&times;</button>
+    </div>
+  </div>
   <!-- ===== HOME SCREEN ===== -->
   <div class="overlay" id="dlg-home" role="dialog" aria-modal="true" aria-labelledby="home-title">
     <div class="card">
@@ -352,11 +361,13 @@
         <div><span>Offline caching</span><span id="st-sw">&mdash;</span></div>
         <div><span>Install prompt</span><span id="st-install">&mdash;</span></div>
         <div><span>Saved progress</span><span id="st-storage">&mdash;</span></div>
+        <div><span>Game version</span><span id="st-version">&mdash;</span></div>
       </div>
       
       <p style="font-size:12.5px; color:#8a97b8; margin-bottom:10px;">
-        For full offline install: host this file over HTTPS, save the service worker as <b>sw.js</b> next to it, then open it in Chrome on Android.
+        Arrow Out! works fully offline once installed. When a game update is ready, tap <b>Refresh</b> on the update banner &mdash; your progress, coins and streaks are saved automatically and never deleted.
       </p>
+      
       
       <div class="stack">
         <button class="btn small" id="btn-copy-sw" type="button">Copy service worker code</button>

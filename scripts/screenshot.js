@@ -85,6 +85,103 @@ async function auditPage(page, label) {
   console.log('[OK] ' + label + ': no overflow, text clean, buttons ok');
 }
 
+
+// --- PWA / service worker / offline regression tests ---
+async function runPwaTests(page) {
+  // 1. Update-flow UI hooks must exist and expose the current version
+  const uiHooks = await page.evaluate(() => ({
+    hasBanner: !!document.getElementById('update-banner'),
+    hasReloadBtn: !!document.getElementById('btn-update-reload'),
+    hasVersionRow: !!document.getElementById('st-version'),
+    pwaApi: typeof window.PWA === 'object',
+    version: window.PWA ? window.PWA.VERSION : null,
+    checkForUpdates: window.PWA ? typeof window.PWA.checkForUpdates : 'missing'
+  }));
+  if (!uiHooks.hasBanner || !uiHooks.hasReloadBtn || !uiHooks.hasVersionRow ||
+      !uiHooks.pwaApi || uiHooks.checkForUpdates !== 'function' || !uiHooks.version) {
+    throw new Error('PWA update flow incomplete: ' + JSON.stringify(uiHooks));
+  }
+  console.log('[OK] PWA v' + uiHooks.version + ': update banner + version row + checkForUpdates present');
+
+  // 2. Manifest must be a real same-origin file with the fields Android needs
+  const manifest = await page.evaluate(async () => {
+    const link = document.querySelector('link[rel="manifest"]');
+    if (!link) throw new Error('no manifest link');
+    const res = await fetch(link.href);
+    if (!res.ok) throw new Error('manifest fetch failed: ' + res.status);
+    return res.json();
+  });
+  if (!manifest.name || manifest.display !== 'standalone' || !Array.isArray(manifest.icons)) {
+    throw new Error('manifest missing required fields: ' + JSON.stringify(manifest).slice(0, 200));
+  }
+  const sizes = manifest.icons.map(i => i.sizes).join(' ');
+  if (!sizes.includes('192') || !sizes.includes('512')) {
+    throw new Error('manifest icons must include 192 and 512: ' + sizes);
+  }
+  console.log('[OK] manifest valid: ' + manifest.name + ', display=' + manifest.display + ', icons=' + sizes);
+
+  // 3. Service worker must register, activate and control the page
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller, { timeout: 15000 });
+  const swInfo = await page.evaluate(async () => {
+    const reg = await navigator.serviceWorker.getRegistration();
+    const keys = await caches.keys();
+    return {
+      script: reg && reg.active ? reg.active.scriptURL : null,
+      caches: keys
+    };
+  });
+  if (!swInfo.script || !swInfo.script.endsWith('sw.js')) {
+    throw new Error('service worker not active: ' + swInfo.script);
+  }
+  const own = swInfo.caches.filter(k => k.startsWith('arrow-out-'));
+  const foreign = swInfo.caches.filter(k => !k.startsWith('arrow-out-'));
+  if (own.length < 1) throw new Error('no arrow-out-* cache found');
+  if (foreign.length > 0) throw new Error('unexpected non-game caches: ' + foreign.join(','));
+  console.log('[OK] service worker active, game caches: ' + own.join(', '));
+
+  // 4. Cache cleanup must be SCOPED: caches of other apps on this origin
+  //    must survive an Arrow Out! service worker (re)install.
+  await page.evaluate(async () => {
+    const c = await caches.open('foreign-test-app-v1');
+    await c.put('/', new Response('foreign'));
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (reg) await reg.unregister();
+  });
+  await sleep(300);
+  await page.reload({ waitUntil: 'load', timeout: 30000 });
+  await page.waitForSelector('#dlg-home.show', { timeout: 15000 });
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller, { timeout: 15000 });
+  const scoped = await page.evaluate(async () => {
+    const survived = await caches.has('foreign-test-app-v1');
+    const keys = await caches.keys();
+    await caches.delete('foreign-test-app-v1');
+    return { survived, keys };
+  });
+  if (!scoped.survived) {
+    throw new Error('service worker deleted a foreign cache (cleanup must be scoped to arrow-out-*): ' + scoped.keys.join(', '));
+  }
+  console.log('[OK] cache cleanup is scoped: foreign cache survived Arrow Out! (re)install');
+
+  // 5. Offline: reload with the network cut off - the game must still boot
+  await page.setOfflineMode(true);
+  try {
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 20000 });
+    await page.waitForSelector('#dlg-home.show', { timeout: 15000 });
+    const offlineOk = await page.evaluate(() => ({
+      online: navigator.onLine,
+      title: document.title,
+      hud: !!document.getElementById('hud')
+    }));
+    if (offlineOk.online !== false || !offlineOk.hud || offlineOk.title.indexOf('Arrow Out') === -1) {
+      throw new Error('offline boot looks broken: ' + JSON.stringify(offlineOk));
+    }
+    console.log('[OK] offline: game boots fully from the service worker cache');
+  } finally {
+    await page.setOfflineMode(false);
+  }
+}
 async function main() {
   fs.mkdirSync(DOC, { recursive: true });
   const server = spawn('npx', ['http-server', '.', '-p', String(PORT), '--silent'],
@@ -151,6 +248,7 @@ async function main() {
     await auditPage(page, 'board');
     await page.screenshot({ path: path.join(DOC, 'screenshot-board.png') });
     console.log('wrote docs/screenshot-board.png');
+    await runPwaTests(page);
 
     if (pageErrors.length) {
       throw new Error('console/page errors detected:\n  ' + pageErrors.join('\n  '));

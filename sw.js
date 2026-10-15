@@ -1,14 +1,16 @@
 /**
  * Arrow Out! Service Worker
- * Version: v12
+ * Version: v13
  * Handles caching for offline gameplay
  */
 
-const CACHE = 'arrow-out-v12';
+const CACHE = 'arrow-out-v13';
+// Only obsolete caches that belong to THIS game (arrow-out-*) are ever deleted,
+// so other apps served from the same origin keep their caches.
+const CACHE_PREFIX = 'arrow-out-';
 const CORE_ASSETS = [
   './',
   './index.html',
-  './sw.js',
   './css/styles.css',
   './js/game.js',
   './js/render.js',
@@ -45,10 +47,16 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) => 
       Promise.all(
-        keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))
+        keys.filter((k) => k.startsWith(CACHE_PREFIX) && k !== CACHE).map((k) => caches.delete(k))
       )
     ).then(() => self.clients.claim())
   );
+});
+
+// The page can ask a waiting worker to take over immediately
+// (used by the in-game update banner flow).
+self.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', (e) => {
@@ -91,5 +99,3 @@ self.addEventListener('notificationclick', (e) => {
     clients.openWindow(e.notification.data.url);
   }
 });
-
-
