@@ -242,9 +242,9 @@ const Game = (function() {
     
     // Daily reminders toggle. The browser permission prompt is only ever
     // triggered from this deliberate user action, never on page load.
-    // Turning it ON subscribes this device to Web Push and opens a small
-    // one-time setup dialog (copy the code into the repo secret
-    // PUSH_SUBSCRIPTIONS, see .github/workflows/notify.yml).
+    // Turning it ON subscribes this device to Web Push and auto-saves the
+    // subscription to the developer's Supabase roster table (js/pwa.js),
+    // so every player is done with one tap - no copy-paste.
     on($('chk-notifs'), 'change', function() {
       var save = Storage.getSave();
       if (!save.settings) save.settings = {};
@@ -253,6 +253,11 @@ const Game = (function() {
       Storage.persist();
       UI.updateNotifUI();
       if (!want) {
+        // Best-effort: the developer's send list forgets this device,
+        // then the browser subscription itself is removed.
+        PWA.getPushSubscriptionJson().then(function(json) {
+          if (json) PWA.deletePushSubscription(json);
+        });
         PWA.unsubscribePush().then(function() { UI.updateNotifUI(); });
         return;
       }
@@ -274,37 +279,16 @@ const Game = (function() {
             UI.toast('Push not available in this browser');
             return;
           }
-          var ta = $('push-sub-json');
-          if (ta) ta.value = json;
-          UI.openDlg('dlg-push');
-          UI.updateNotifUI();
+          PWA.submitPushSubscription(json).then(function(ok) {
+            UI.toast(ok
+              ? 'Daily reminders on \u2014 see you soon!'
+              : 'Could not save reminders \u2014 check your connection, then toggle off and on');
+            UI.updateNotifUI();
+          });
         });
       };
       if (perm === 'granted') after('granted');
       else PWA.requestNotifPermission().then(after);
-    });
-
-    // One-time push setup dialog: copy the subscription code
-    on($('btn-push-copy'), 'click', function() {
-      Audio.ui();
-      var ta = $('push-sub-json');
-      var text = ta ? ta.value : '';
-      if (!text) return;
-      var fallback = function() {
-        try {
-          ta.focus();
-          ta.select();
-          return document.execCommand('copy');
-        } catch (e) { return false; }
-      };
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(
-          function() { UI.toast('Copied \u2014 now paste it in the GitHub repo secret'); },
-          function() { UI.toast(fallback() ? 'Copied \u2014 now paste it in the GitHub repo secret' : 'Copy failed \u2014 select the code and copy manually'); }
-        );
-      } else {
-        UI.toast(fallback() ? 'Copied \u2014 now paste it in the GitHub repo secret' : 'Copy failed \u2014 select the code and copy manually');
-      }
     });
     
     // Share result (win dialog)

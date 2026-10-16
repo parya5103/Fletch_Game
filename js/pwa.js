@@ -12,7 +12,7 @@ const PWA = (function() {
   // Service worker source
   var SW_SRC = [
     "/* Arrow Out! service worker - save as sw.js next to index.html */",
-    "const CACHE = 'arrow-out-v27';",
+    "const CACHE = 'arrow-out-v28';",
     "const ASSETS = ['./', './index.html', './about.html', './privacy.html', './css/styles.css', './js/game.js', './js/render.js', './js/audio.js', './js/haptics.js', './js/storage.js', './js/bgfx.js', './js/pwa.js', './js/ui.js', './js/main.js', './manifest.webmanifest', './icons/favicon.svg'];",
     "self.addEventListener('install', (e) => {",
     "  e.waitUntil(caches.open(CACHE).then((c) => Promise.all(ASSETS.map((a) => fetch(new Request(a, { cache: 'reload' })).then((r) => { if (!r.ok) throw new Error('precache failed: ' + a); return c.put(a, r); })))).then(() => self.skipWaiting()));",
@@ -247,13 +247,13 @@ const PWA = (function() {
   // The game is a static site, so the "push server" is a scheduled
   // GitHub Actions workflow (.github/workflows/notify.yml) that sends
   // 4-5 short daily reminders through the Web Push API. The VAPID
-  // public key below matches the repo secret PUSH_VAPID_PRIVATE_KEY;
-  // each player's subscription is stored in the repo secret
-  // PUSH_SUBSCRIPTIONS (the game shows it once for copying).
+  // public key below pairs with the repo secret PUSH_VAPID_PRIVATE_KEY.
+  // Each player's subscription is auto-saved to a free Supabase roster
+  // table (insert-only for players, readable only by the developer's
+  // service key) - no copy-paste, no per-player setup.
   //  - the permission prompt only ever fires from the deliberate
   //    Settings toggle, never on page load
-  //  - subscribePush() returns the subscription JSON (for the one-time
-  //    repo secret paste) or null when push is unavailable
+  //  - subscribePush() returns the subscription JSON or null
   //  - sw.js validates every incoming push payload and click URL
   var VAPID_PUBLIC_KEY = 'BCZi4Grxq_wVF9j-pIP7buv5lwCGfSdNCrDmRaeuojmIwkCQCK1o2NdqIIqamu4nuW1Yn3doDR31W1opJzR_9H4';
 
@@ -306,7 +306,7 @@ const PWA = (function() {
     }).then(fn, function() { return null; });
   }
 
-  // Returns the subscription JSON string for the setup dialog, or null
+  // Returns the subscription JSON string, or null
   function subscribePush() {
     return withPushManager(function(sub) { return JSON.stringify(sub); });
   }
@@ -325,8 +325,57 @@ const PWA = (function() {
     }).catch(function() { return false; });
   }
 
+  // --- Supabase: subscription auto-submit (backend-free push roster) ---
+  // Every player who turns on Daily reminders gets their push subscription
+  // saved here automatically - no copy-paste, no repo secrets per player.
+  // The table is insert/delete-only for anonymous visitors (RLS) and
+  // readable only by the developer's service key, which is used by
+  // .github/workflows/notify.yml to send the daily pushes.
+  var SUPABASE_URL = 'https://usszcnaaylbsgqaehsgp.supabase.co';
+  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3pjbmFheWxic2dxYWVoc2dwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4ODY4ODMsImV4cCI6MjEwNzQ2Mjg4M30.6LQPGdiJ8ggDgCdJdTXmxQNkBjV0fA0_vXYHehExMzc';
+
+  function supabaseHeaders(extra) {
+    var h = {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json'
+    };
+    if (extra) {
+      for (var k in extra) {
+        if (Object.prototype.hasOwnProperty.call(extra, k)) h[k] = extra[k];
+      }
+    }
+    return h;
+  }
+
+  // Upsert this device's push subscription. Returns true on success.
+  function submitPushSubscription(subJson) {
+    var sub = null;
+    try { sub = JSON.parse(subJson); } catch (e) { return Promise.resolve(false); }
+    if (!sub || typeof sub.endpoint !== 'string' || !sub.endpoint) return Promise.resolve(false);
+    // merge-duplicates: toggling reminders off/on for the same device
+    // updates the existing row instead of hitting the primary key.
+    return fetch(SUPABASE_URL + '/rest/v1/push_subscriptions', {
+      method: 'POST',
+      headers: supabaseHeaders({ 'Prefer': 'resolution=merge-duplicates' }),
+      body: JSON.stringify({ endpoint: sub.endpoint, subscription: sub })
+    }).then(function(resp) { return resp.ok; }, function() { return false; });
+  }
+
+  // Best-effort removal when reminders are toggled off (privacy: off =
+  // the developer's send list forgets this device). Returns true on success.
+  function deletePushSubscription(subJson) {
+    var sub = null;
+    try { sub = JSON.parse(subJson); } catch (e) { return Promise.resolve(false); }
+    if (!sub || typeof sub.endpoint !== 'string' || !sub.endpoint) return Promise.resolve(false);
+    return fetch(SUPABASE_URL + '/rest/v1/push_subscriptions?endpoint=eq.' + encodeURIComponent(sub.endpoint), {
+      method: 'DELETE',
+      headers: supabaseHeaders()
+    }).then(function(resp) { return resp.ok; }, function() { return false; });
+  }
+
   // Game version - kept in sync with sw.js CACHE version
-  var VERSION = 'v27';
+  var VERSION = 'v28';
 
   // --- Update flow ---
   // The page shows a small banner when a newer service worker (a new game
@@ -476,6 +525,8 @@ const PWA = (function() {
     requestNotifPermission: requestNotifPermission,
     subscribePush: subscribePush,
     getPushSubscriptionJson: getPushSubscriptionJson,
-    unsubscribePush: unsubscribePush
+    unsubscribePush: unsubscribePush,
+    submitPushSubscription: submitPushSubscription,
+    deletePushSubscription: deletePushSubscription
   };
 })();

@@ -6,9 +6,14 @@
 #   1. Settings -> Secrets and variables -> Actions -> New repository secret
 #      Name: PUSH_VAPID_PRIVATE_KEY
 #      Value: the VAPID private key that pairs with the public key in js/pwa.js
-#   2. Play the game -> Settings -> Daily reminders ON -> copy the code ->
-#      New repository secret: PUSH_SUBSCRIPTIONS (paste the code, or a JSON
-#      array of codes for several devices).
+#   2. New repository secret: SUPABASE_SERVICE_KEY
+#      Value: the service_role key of the Supabase project (allows reading
+#      the push_subscriptions table; never put it in client code).
+#
+# Players never copy-paste anything: the game auto-saves each player's
+# push subscription to the Supabase push_subscriptions table when they
+# toggle Settings -> Daily reminders ON (anon key, insert/delete-only RLS).
+# This workflow reads that roster with the service key and sends.
 #
 # The workflow exits cleanly while secrets are unset, so it is safe to
 # merge before setup. Push payloads are validated again in sw.js.
@@ -25,8 +30,9 @@ on:
     - cron: '30 17 * * *'
   workflow_dispatch:
 
-# This job only sends push messages through the Web Push API.
-# It never reads or writes repository contents.
+# This job only sends push messages through the Web Push API and reads
+# the subscription roster from Supabase. It never reads or writes
+# repository contents.
 permissions:
   contents: none
 
@@ -41,7 +47,8 @@ jobs:
 
       - name: Send daily reminder pushes
         env:
-          SUBS: ${{ secrets.PUSH_SUBSCRIPTIONS }}
+          SUPABASE_URL: https://usszcnaaylbsgqaehsgp.supabase.co
+          SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           VAPID_PRIVATE: ${{ secrets.PUSH_VAPID_PRIVATE_KEY }}
         run: |
           mkdir -p /tmp/push && cd /tmp/push
@@ -60,23 +67,40 @@ jobs:
           ];
 
           async function main() {
-            const raw = (process.env.SUBS || '').trim();
             const priv = (process.env.VAPID_PRIVATE || '').trim();
-            if (!raw) {
-              console.log('PUSH_SUBSCRIPTIONS secret not set yet - nothing to send.');
-              return 0;
-            }
             if (!priv) {
               console.log('ERROR: PUSH_VAPID_PRIVATE_KEY secret not set (see README).');
               return 1;
             }
-            let subs;
+            const serviceKey = (process.env.SERVICE_KEY || '').trim();
+            if (!serviceKey) {
+              console.log('SUPABASE_SERVICE_KEY secret not set yet - nothing to send.');
+              return 0;
+            }
+
+            // Fetch the roster the game maintains in Supabase
+            const url = process.env.SUPABASE_URL + '/rest/v1/push_subscriptions?select=subscription';
+            let roster;
             try {
-              const parsed = JSON.parse(raw);
-              subs = Array.isArray(parsed) ? parsed : [parsed];
+              const resp = await fetch(url, {
+                headers: {
+                  'apikey': serviceKey,
+                  'Authorization': 'Bearer ' + serviceKey
+                }
+              });
+              if (!resp.ok) {
+                console.log('ERROR: Supabase roster fetch failed (HTTP ' + resp.status + ').');
+                return 1;
+              }
+              const rows = await resp.json();
+              roster = Array.isArray(rows) ? rows : [];
             } catch (e) {
-              console.log('ERROR: PUSH_SUBSCRIPTIONS is not valid JSON: ' + e.message);
+              console.log('ERROR: Supabase roster fetch error: ' + e.message);
               return 1;
+            }
+            if (!roster.length) {
+              console.log('Roster is empty - no subscribers yet.');
+              return 0;
             }
 
             webpush.setVapidDetails('mailto:parya5103@users.noreply.github.com', PUB, priv);
@@ -91,7 +115,8 @@ jobs:
             });
 
             let sent = 0, failed = 0;
-            for (const sub of subs) {
+            for (const row of roster) {
+              const sub = row && row.subscription;
               if (!sub || !sub.endpoint) continue;
               try {
                 await webpush.sendNotification(sub, payload, { TTL: 86400 });
@@ -101,7 +126,7 @@ jobs:
                 failed++;
                 const status = err && err.statusCode ? err.statusCode : 'unknown';
                 if (status === 404 || status === 410) {
-                  console.log('EXPIRED (' + status + ') - open the game, toggle Daily reminders off/on, and paste the fresh code into PUSH_SUBSCRIPTIONS.');
+                  console.log('EXPIRED (' + status + ') - this device will resubscribe the next time the player toggles Daily reminders off/on.');
                 } else {
                   console.log('failed (' + status + '): ' + (err && err.message ? err.message : 'unknown error'));
                 }
