@@ -258,18 +258,164 @@ const Render = (function() {
     ctx.restore();
   }
 
-  function spawnFly(i, state) {
-    if (!gameState || !gameState.arrows[i]) return;
-    if (!view || !(view.cell > 0)) return; // canvas not laid out yet
+  // Snake exit animation: the arrowhead leads along the piece's exit
+  // direction while the whole winding body follows its own ordered path
+  // like a snake. The visible body is the arc interval
+  // [dist, bodyLen + dist] on the piece's original track (cell centers
+  // tail->head, then the straight exit corridor), so every bend travels
+  // out in sequence and the tail leaves along the exact original route.
+  // Nothing is translated rigidly - the shape stays on its own track.
+  function spawnFly(i, state, onDone) {
+    if (!gameState || !gameState.arrows[i]) return false;
+    if (!view || !(view.cell > 0)) return false; // canvas not laid out yet
     var A = gameState.arrows[i];
+    var cells = A.cells;
+    if (!cells || !cells.length) return false;
+    var n = cells.length;
+    var cell = view.cell;
+    var d = A.dir | 0;
+    if (!DIRS[d]) d = 0;
+    var du = DIRS[d][0], dv = DIRS[d][1];
+    // Pixel-space track: tail center ... head center, neck base, tip
+    var pts = [];
+    for (var k = 0; k < n; k++) {
+      pts.push([(cells[k].x + 0.5) * cell, (cells[k].y + 0.5) * cell]);
+    }
+    var hx = pts[n - 1][0], hy = pts[n - 1][1];
+    pts.push([hx + du * cell * 0.10, hy + dv * cell * 0.10]); // neck base
+    pts.push([hx + du * cell * 0.46, hy + dv * cell * 0.46]); // tip at rest
+    // Cumulative arc length along the track (tail = 0)
+    var arc = [0];
+    for (var q = 1; q < pts.length; q++) {
+      var ddx = pts[q][0] - pts[q - 1][0], ddy = pts[q][1] - pts[q - 1][1];
+      arc.push(arc[q - 1] + Math.sqrt(ddx * ddx + ddy * ddy));
+    }
+    var bodyLen = arc[arc.length - 1];
+    // Distance from the resting tip to the canvas edge along the exit
+    // corridor: the tail must travel bodyLen plus this to leave fully.
+    var tip = pts[pts.length - 1];
+    var toEdge = dv === -1 ? tip[1]
+      : dv === 1 ? (view.side - tip[1])
+      : du === -1 ? tip[0]
+      : (view.side - tip[0]);
+    if (!(toEdge >= 0)) toEdge = 0;
+    // The golden bonus piece exits gold even if the bonus is claimed
+    // (banner flips off) the moment the launch happens.
+    var gold = !!(gameState.bonus && gameState.bonus.active && gameState.bonus.idx === i);
     gameState.flying.push({
-      cells: A.cells,
-      dir: A.dir,
+      snake: true,
+      cells: cells,
+      dir: d,
       c: A.c,
+      gold: gold,
+      pts: pts,
+      arc: arc,
+      bodyLen: bodyLen,
+      travel: bodyLen + toEdge + cell * 0.8,
       t0: performance.now(),
-      dur: window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 360,
-      dist: view.side + view.cell * 3
+      dur: (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+        ? 1 : Math.min(900, 260 + n * 42),
+      onDone: onDone || null
     });
+    return true;
+  }
+
+  // Point on an exit track at arc length a. Beyond the resting tip the
+  // track continues straight along the exit direction (the corridor).
+  function snakePos(P, a) {
+    var arc = P.arc, pts = P.pts;
+    if (a >= P.bodyLen) {
+      var T = pts[pts.length - 1];
+      var du = DIRS[P.dir][0], dv = DIRS[P.dir][1];
+      return [T[0] + du * (a - P.bodyLen), T[1] + dv * (a - P.bodyLen)];
+    }
+    if (a <= 0) return [pts[0][0], pts[0][1]];
+    for (var q = 1; q < arc.length; q++) {
+      if (arc[q] >= a) {
+        var t = (a - arc[q - 1]) / (arc[q] - arc[q - 1]);
+        return [pts[q - 1][0] + (pts[q][0] - pts[q - 1][0]) * t,
+                pts[q - 1][1] + (pts[q][1] - pts[q - 1][1]) * t];
+      }
+    }
+    return [pts[pts.length - 1][0], pts[pts.length - 1][1]];
+  }
+
+  // Draw one snake-exiting arrow: the exact same outline / body / core
+  // passes and arrowhead as a resting piece, but the body is clipped to
+  // the part of its own track the snake still occupies. The head always
+  // points along the exit direction; the tail follows the original
+  // route, so bends leave the board in sequence.
+  function drawSnakeExit(P, cell) {
+    if (!P || P.dist === undefined) return;
+    var startArc = P.dist;               // tail end on the track
+    var endArc = P.bodyLen + P.dist;     // head tip on the track
+    var baseArc = endArc - cell * 0.36;  // arrowhead base on the track
+    if (!(baseArc > startArc)) return;
+    var color = P.gold ? '#fbbf24' : activePalette[P.c % activePalette.length];
+    var lw = Math.max(2.5, cell * 0.11);
+    var du = DIRS[P.dir][0], dv = DIRS[P.dir][1];
+    var px = -dv, py = du, hw = cell * 0.20;
+
+    // Shaft polyline: tail cut point -> still-occupied track vertices
+    // -> arrowhead base (every point stays on the original route)
+    var shaft = [snakePos(P, startArc)];
+    for (var k = 0; k < P.pts.length; k++) {
+      if (P.arc[k] > startArc && P.arc[k] < baseArc) shaft.push(P.pts[k]);
+    }
+    var base = snakePos(P, baseArc);
+    shaft.push(base);
+
+    ctx.save();
+    ctx.lineJoin = 'miter';
+    ctx.miterLimit = 4;
+    ctx.lineCap = 'round';
+
+    ctx.beginPath();
+    ctx.moveTo(shaft[0][0], shaft[0][1]);
+    for (var q = 1; q < shaft.length; q++) ctx.lineTo(shaft[q][0], shaft[q][1]);
+
+    // Golden bonus piece keeps its glow while it slides out
+    if (P.gold) {
+      ctx.save();
+      ctx.globalAlpha = 0.45;
+      ctx.strokeStyle = '#ffd166';
+      ctx.lineWidth = lw * 3.2;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Same three shaft passes as a resting piece
+    ctx.strokeStyle = shadeColor(color, -45);
+    ctx.lineWidth = lw * 1.5;
+    ctx.stroke();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = Math.max(1, lw * 0.28);
+    ctx.stroke();
+
+    // Arrowhead at the moving tip, pointing exactly along the exit dir
+    var tip = snakePos(P, endArc);
+    ctx.beginPath();
+    ctx.moveTo(tip[0], tip[1]);
+    ctx.lineTo(base[0] + px * hw, base[1] + py * hw);
+    ctx.lineTo(base[0] - px * hw, base[1] - py * hw);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+    // Only the two slanted head edges get the dark outline (no seam
+    // across the shaft joint), exactly like a resting piece
+    ctx.beginPath();
+    ctx.moveTo(tip[0], tip[1]);
+    ctx.lineTo(base[0] + px * hw, base[1] + py * hw);
+    ctx.moveTo(tip[0], tip[1]);
+    ctx.lineTo(base[0] - px * hw, base[1] - py * hw);
+    ctx.strokeStyle = shadeColor(color, -45);
+    ctx.lineWidth = Math.max(1.5, lw * 0.9);
+    ctx.stroke();
+
+    ctx.restore();
   }
 
   function spawnConfetti() {
@@ -337,16 +483,25 @@ const Render = (function() {
 
     tick(dt);
 
-    // flying pieces
+    // snake exits: the head leads along its exit direction while the
+    // body follows the original winding path, bends leaving in sequence
     if (gameState) {
       for (var f = gameState.flying.length - 1; f >= 0; f--) {
         var fl = gameState.flying[f];
         var p = (now - fl.t0) / fl.dur;
-        if (p >= 1) { gameState.flying.splice(f, 1); continue; }
+        if (p >= 1) {
+          gameState.flying.splice(f, 1);
+          if (fl.onDone) {
+            var cb = fl.onDone;
+            fl.onDone = null;
+            try { cb(); } catch (e0) { /* never break the render loop */ }
+          }
+          continue;
+        }
         busy = true;
-        fl.px = DIRS[fl.dir][0] * fl.dist * p * p;
-        fl.py = DIRS[fl.dir][1] * fl.dist * p * p;
-        fl.alpha = p < 0.6 ? 1 : 1 - (p - 0.6) / 0.4;
+        // gentle ease-in: the snake accelerates as it clears the board
+        var e = p * (0.65 + 0.35 * p);
+        fl.dist = fl.travel * e;
       }
 
       // shakes
@@ -424,11 +579,9 @@ const Render = (function() {
       drawPiece(A, cell, alpha, scale, i === gameState.hintIdx, i === bonusIdx, ox, oy);
     }
 
-    // flying pieces (on top)
+    // snake exits (on top)
     for (var k = 0; k < gameState.flying.length; k++) {
-      var fl = gameState.flying[k];
-      if (fl.px === undefined) continue;
-      drawPiece(fl, cell, Math.max(0, fl.alpha), 1, false, false, fl.px, fl.py);
+      drawSnakeExit(gameState.flying[k], cell);
     }
 
     // confetti

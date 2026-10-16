@@ -956,8 +956,12 @@ const Game = (function() {
     if (!gameState) return;
 
     var A = gameState.arrows[i];
-    if (!A || !A.alive || !gameState.occ) return;
+    if (!A || !A.alive || A.exiting || !gameState.occ) return;
 
+    // Snake exit: keep a marker while the exit animation runs so the
+    // arrow can never be tapped, relaunched or undone mid-flight. The
+    // renderer draws the moving snake from its own flying list.
+    A.exiting = true;
     A.alive = false;
     for (var k = 0; k < A.cells.length; k++) {
       gameState.occ[A.cells[k].y * gameState.cols + A.cells[k].x] = -1;
@@ -968,7 +972,9 @@ const Game = (function() {
     // Combo juice: consecutive clean launches raise the pop pitch
     gameState.combo++;
     Render.spawnBurst(i, gameState);
-    Render.spawnFly(i, gameState);
+    var st = gameState;
+    var flew = Render.spawnFly(i, st, function() { finishExit(st, i); });
+    if (!flew) A.exiting = false; // canvas not laid out: finalize at once
     Audio.fly(A.dir, gameState.combo);
     UI.updateCombo(gameState.combo);
     resetStall();
@@ -986,7 +992,23 @@ const Game = (function() {
     UI.updateHUD();
     saveCurSoon();
     
-    if (aliveCount() === 0) onWin();
+    // Level completion is checked after the exit animation finalizes
+    scheduleWin();
+  }
+
+  // Win check that waits for snake exits: the level only completes once
+  // the last exit animation has fully left the screen.
+  function scheduleWin() {
+    if (!gameState || gameState.over || gameState.failed) return;
+    if (aliveCount() === 0 && gameState.flying.length === 0) onWin();
+  }
+
+  // Called by the renderer when one snake exit animation finishes.
+  function finishExit(state, i) {
+    if (!state || state !== gameState) return; // level changed meanwhile
+    var A = gameState.arrows[i];
+    if (A) A.exiting = false;
+    scheduleWin();
   }
 
   function aliveCount() {
@@ -1000,6 +1022,10 @@ const Game = (function() {
 
   function undo() {
     if (!gameState || gameState.over || gameState.failed || !gameState.undoIds.length) return;
+
+    // Never restore an arrow while its old exit animation still runs
+    var top = gameState.arrows[gameState.undoIds[gameState.undoIds.length - 1]];
+    if (top && top.exiting) return;
 
     var i = gameState.undoIds.pop();
     var A = gameState.arrows[i];
