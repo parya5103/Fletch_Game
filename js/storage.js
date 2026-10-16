@@ -204,8 +204,7 @@ const Storage = (function() {
     
     save.best[level].plays += plays || 1;
     
-    // Update stats
-    save.stats.totalPlays++;
+    // Update stats (totalPlays counts level starts in loadLevel, not wins)
     save.stats.totalWins++;
     save.stats.totalStars += stars;
     
@@ -215,6 +214,9 @@ const Storage = (function() {
   // Update daily challenge
   function updateDailyChallenge(date, stars) {
     var dateStr = date.toISOString().slice(0, 10);
+
+    // A daily win counts as a completed level for stats/achievements
+    save.stats.totalWins++;
     
     if (save.daily.lastDate !== dateStr) {
       // New day, reset daily

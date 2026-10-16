@@ -57,8 +57,15 @@ const Game = (function() {
     // Show home screen initially
     UI.showHomeScreen();
     
-    // Daily login reward (once per day)
-    checkDailyReward();
+    // PWA app-shortcut deep link (?daily=1): launch straight into today's
+    // Daily Challenge. The daily login-reward dialog is skipped on this
+    // boot (it stays claimable on the next normal start).
+    if (/[?&]daily=1(&|$)/.test(location.search)) {
+      loadDailyChallenge();
+    } else {
+      // Daily login reward (once per day)
+      checkDailyReward();
+    }
 
     // First-time onboarding: show the how-to-play card once, but never
     // on top of the daily reward dialog (it stacks fine afterwards).
@@ -1144,11 +1151,8 @@ const Game = (function() {
     
     // Update progress
     if (gameState.level !== 'daily') {
-      var prev = save.best[gameState.level];
-      save.best[gameState.level] = {
-        stars: Math.max(prev ? prev.stars : 0, stars),
-        plays: (prev ? prev.plays : 0) + 1
-      };
+      // Storage.updateLevelBest owns save.best[level] (stars kept at max,
+      // plays +1 per win). The old manual best-writer double-counted plays.
       
       if (gameState.level >= save.unlocked) {
         save.unlocked = Math.min(gameState.level + 1, Storage.DESIGN_LEVELS);
