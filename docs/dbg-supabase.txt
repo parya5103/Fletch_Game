@@ -1,0 +1,12 @@
+=== probe row: https://debug.example/probe-38895630049 ===
+--- 1. anon INSERT (upsert) ---
+insert: HTTP 401 | {"code":"42501","details":null,"hint":null,"message":"new row violates row-level security policy for table \"push_subscriptions\""}
+--- 2. anon DELETE (probe cleanup + policy check) ---
+delete: HTTP 204 | 
+--- 3. service-key roster fetch (notify.yml path) ---
+SUPABASE_SERVICE_KEY secret set: YES (len 219)
+roster: HTTP 200 | []
+--- 4. VAPID key pair ---
+PUSH_VAPID_PRIVATE_KEY secret set: YES (len 43)
+VAPID derive FAILED: The "key.x" property must be of type string. Received undefined
+=== probe done ===
