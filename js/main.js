@@ -240,6 +240,53 @@ const Game = (function() {
       if (save.music) UI.toast('Music on \u266a');
     });
     
+    // Notifications toggle. The browser permission prompt is only ever
+    // triggered from this deliberate user action, never on page load.
+    // These are LOCAL notifications (no push server exists); the toggle
+    // only stores the player's preference.
+    on($('chk-notifs'), 'change', function() {
+      var save = Storage.getSave();
+      if (!save.settings) save.settings = {};
+      var want = $('chk-notifs').checked;
+      save.settings.notifications = want;
+      Storage.persist();
+      UI.updateNotifUI();
+      if (!want) return;
+      var perm = PWA.notifPermission();
+      if (perm === 'granted') {
+        UI.toast('Notifications on');
+        return;
+      }
+      if (perm === 'denied' || perm === 'unsupported') {
+        // Permission was blocked in browser settings (or unavailable):
+        // the preference is still saved, the game stays fully playable.
+        UI.toast(perm === 'denied' ? 'Blocked in browser notification settings' : 'Notifications not supported here');
+        return;
+      }
+      PWA.requestNotifPermission().then(function(state) {
+        UI.updateNotifUI();
+        if (state === 'granted') UI.toast('Notifications enabled');
+        else if (state === 'denied') UI.toast('Permission denied in browser');
+      });
+    });
+    
+    // Test notification: shows what a local notification looks like
+    on($('btn-notif-test'), 'click', function() {
+      Audio.ui();
+      var save = Storage.getSave();
+      if (!(save.settings && save.settings.notifications)) {
+        UI.toast('Enable notifications first');
+        return;
+      }
+      if (PWA.notifPermission() !== 'granted') {
+        UI.toast('Allow notifications for this site first');
+        return;
+      }
+      PWA.showTestNotification('Arrow Out!', 'Test notification \u2014 this is how they look.').then(function(ok) {
+        if (!ok) UI.toast('Notification blocked or unsupported');
+      });
+    });
+    
     // Share result (win dialog)
     on($('btn-share-win'), 'click', function() {
       Audio.ui();
@@ -1162,6 +1209,10 @@ const Game = (function() {
     } else {
       Storage.updateDailyChallenge(today, stars);
     }
+    
+    // In-game toast for achievements that just became completed
+    // (each one is announced exactly once; no reward logic changes)
+    UI.announceNewAchievements();
     
     save.cur = null;
     Storage.updateSave(save);

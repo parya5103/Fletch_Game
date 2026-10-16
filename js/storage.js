@@ -76,7 +76,7 @@ const Storage = (function() {
       if (oldRaw) {
         var old = JSON.parse(oldRaw);
         if (old && old.v === 1) {
-          save = migrateFromV1(old);
+          save = sanitizeSave(migrateFromV1(old));
           // Remove old save after migration
           try { localStorage.removeItem(OLD_SAVE_KEY); } catch(e) {}
           return;
@@ -133,11 +133,114 @@ const Storage = (function() {
     return newSave;
   }
 
+  // --- Save sanitation (security/robustness pass) ---
+  // localStorage is client-side storage: a user CAN edit their own coins,
+  // progress or stats. This pass does NOT make the save cheat-proof; it
+  // only protects the game from crashing or misbehaving on malformed,
+  // outdated or hand-edited data. Valid progress is never deleted; bad
+  // values are clamped or reset to safe defaults.
+  function toInt(v, min, max, dflt) {
+    var n = Math.floor(Number(v));
+    if (!isFinite(n)) n = dflt;
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function toBool(v, dflt) {
+    return typeof v === 'boolean' ? v : dflt;
+  }
+
+  function toDateString(v) {
+    return (v === null || typeof v === 'string') ? v : null;
+  }
+
+  function sanitizeSave(d) {
+    d.v = 2;
+    d.unlocked = toInt(d.unlocked, 1, DESIGN_LEVELS, 1);
+    d.coins = Math.max(0, toInt(d.coins, 0, 1000000, 0));
+
+    d.sound = toBool(d.sound, true);
+    d.music = toBool(d.music, false);
+    d.vibration = toBool(d.vibration, true);
+    d.installHidden = toBool(d.installHidden, false);
+    d.theme = (d.theme === 'light') ? 'light' : 'dark';
+
+    // best: keep only entries keyed by a real level number with a sane
+    // { stars, plays } shape. Junk keys are dropped; valid keys are clamped.
+    if (!d.best || typeof d.best !== 'object' || Array.isArray(d.best)) d.best = {};
+    var best = {};
+    for (var bk in d.best) {
+      if (!d.best.hasOwnProperty(bk)) continue;
+      var b = d.best[bk];
+      if (b && typeof b === 'object' && !Array.isArray(b)) {
+        var lv = Math.floor(Number(bk));
+        if (isFinite(lv) && lv >= 1 && lv <= DESIGN_LEVELS && !best.hasOwnProperty(String(lv))) {
+          best[String(lv)] = {
+            stars: toInt(b.stars, 0, 3, 0),
+            plays: toInt(b.plays, 0, 1000000, 0)
+          };
+        }
+      }
+    }
+    d.best = best;
+
+    // The saved board snapshot must be a plain object or null;
+    // tryRestore() validates its contents in depth before use.
+    d.cur = (d.cur && typeof d.cur === 'object' && !Array.isArray(d.cur)) ? d.cur : null;
+
+    if (!d.stats || typeof d.stats !== 'object' || Array.isArray(d.stats)) d.stats = defaultSave().stats;
+    d.stats.totalPlays = Math.max(0, toInt(d.stats.totalPlays, 0, 10000000, 0));
+    d.stats.totalWins = Math.max(0, toInt(d.stats.totalWins, 0, 10000000, 0));
+    d.stats.totalStars = Math.max(0, toInt(d.stats.totalStars, 0, 10000000, 0));
+    d.stats.hintsUsed = Math.max(0, toInt(d.stats.hintsUsed, 0, 10000000, 0));
+    d.stats.mistakes = Math.max(0, toInt(d.stats.mistakes, 0, 10000000, 0));
+
+    // achievements just records which achievement toasts were already shown
+    if (!d.achievements || typeof d.achievements !== 'object' || Array.isArray(d.achievements)) d.achievements = {};
+
+    if (!d.daily || typeof d.daily !== 'object' || Array.isArray(d.daily)) d.daily = defaultSave().daily;
+    d.daily.lastDate = toDateString(d.daily.lastDate);
+    d.daily.completed = toBool(d.daily.completed, false);
+    d.daily.stars = toInt(d.daily.stars, 0, 3, 0);
+
+    // bonusClaimed: map of levelKey -> true; drop non-boolean junk entries
+    if (!d.bonusClaimed || typeof d.bonusClaimed !== 'object' || Array.isArray(d.bonusClaimed)) d.bonusClaimed = {};
+    for (var ck in d.bonusClaimed) {
+      if (d.bonusClaimed.hasOwnProperty(ck) && d.bonusClaimed[ck] !== true) delete d.bonusClaimed[ck];
+    }
+
+    // owned skins: map of skinId -> true; the default skin is always owned
+    if (!d.owned || typeof d.owned !== 'object' || Array.isArray(d.owned)) d.owned = {};
+    for (var ok in d.owned) {
+      if (d.owned.hasOwnProperty(ok) && d.owned[ok] !== true) delete d.owned[ok];
+    }
+    d.owned.default = true;
+
+    if (!d.loginRewards || typeof d.loginRewards !== 'object' || Array.isArray(d.loginRewards)) d.loginRewards = defaultSave().loginRewards;
+    d.loginRewards.lastClaim = toDateString(d.loginRewards.lastClaim);
+    d.loginRewards.streak = Math.max(0, toInt(d.loginRewards.streak, 0, 100000, 0));
+
+    if (!d.streaks || typeof d.streaks !== 'object' || Array.isArray(d.streaks)) d.streaks = defaultSave().streaks;
+    d.streaks.current = Math.max(0, toInt(d.streaks.current, 0, 100000, 0));
+    d.streaks.best = Math.max(0, toInt(d.streaks.best, 0, 100000, 0));
+    d.streaks.lastPlayDate = toDateString(d.streaks.lastPlayDate);
+
+    if (!d.settings || typeof d.settings !== 'object' || Array.isArray(d.settings)) d.settings = defaultSave().settings;
+    d.settings.reducedMotion = toBool(d.settings.reducedMotion, false);
+    d.settings.notifications = toBool(d.settings.notifications, true);
+    d.settings.seenOnboarding = toBool(d.settings.seenOnboarding, false);
+
+    return d;
+  }
+
   // Fill in any fields missing from older saves so new features
   // (coins, skins, login rewards) work for existing players too
   function normalizeSave(d) {
     var fresh = defaultSave();
     if (!d) return fresh;
+    // Sanitize FIRST: junk-typed fields (e.g. stats: 'junk') must be
+    // repaired before the fill-in loop below, which writes into nested
+    // objects and would throw on primitives under 'use strict'.
+    d = sanitizeSave(d);
     for (var key in fresh) {
       if (typeof d[key] === 'undefined') {
         d[key] = fresh[key];
@@ -177,7 +280,9 @@ const Storage = (function() {
     for (var key in newData) {
       if (newData.hasOwnProperty(key) && save.hasOwnProperty(key)) {
         if (typeof newData[key] === 'object' && newData[key] !== null) {
-          // Deep merge for objects
+          // Deep merge for objects. If the stored slot is not mergeable
+          // (e.g. null), start from a fresh object instead of crashing.
+          if (!save[key] || typeof save[key] !== 'object') save[key] = {};
           for (var subKey in newData[key]) {
             if (newData[key].hasOwnProperty(subKey)) {
               save[key][subKey] = newData[key][subKey];

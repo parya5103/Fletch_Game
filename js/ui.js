@@ -442,17 +442,34 @@ const UI = (function() {
     if (stInstall) stInstall.innerHTML = canPrompt ? '<span class="ok">Available \u2713</span>' : 'Not available';
     if (stStorage) stStorage.innerHTML = storageOk ? '<span class="ok">Saving \u2713</span>' : '<span class="no">Unavailable</span>';
     if (stVersion) stVersion.textContent = PWA.VERSION || '--';
+    updateNotifUI();
+  }
+
+  // Sync the settings dialog Notifications toggle + its status line.
+  // The browser permission is reported honestly; the game stays fully
+  // playable whatever the state.
+  function updateNotifUI() {
+    var save = Storage.getSave();
+    var pref = !!(save.settings && save.settings.notifications);
+    var chk = $('chk-notifs');
+    if (chk) chk.checked = pref;
+    var st = $('st-notif');
+    if (st) {
+      var perm = PWA.notifPermission();
+      var txt;
+      if (perm === 'unsupported') txt = 'Not supported here';
+      else if (perm === 'denied') txt = 'Blocked in browser settings';
+      else txt = pref ? 'On' : 'Off';
+      st.textContent = txt;
+    }
   }
 
   // Achievements
-  function buildAchievementsGrid() {
-    var grid = $('achievements-grid');
-    if (!grid) return;
-    
-    grid.textContent = '';
-    var save = Storage.getSave();
-    
-    var achievements = [
+  // Single source of truth for the achievement list. Completion is always
+  // recomputed from live stats; save.achievements only remembers which
+  // toasts were already shown.
+  function achievementList(save) {
+    return [
       { id: 'first-win', name: 'First Blood', desc: 'Complete your first level', icon: ICON.trophy, completed: save.stats.totalWins >= 1 },
       { id: 'ten-wins', name: 'Getting Good', desc: 'Complete 10 levels', icon: ICON.trophy, completed: save.stats.totalWins >= 10 },
       { id: 'fifty-wins', name: 'Arrow Master', desc: 'Complete 50 levels', icon: ICON.trophy, completed: save.stats.totalWins >= 50 },
@@ -464,14 +481,67 @@ const UI = (function() {
       { id: 'no-hints', name: 'No Help Needed', desc: 'Complete 5 levels without hints', icon: ICON.bulb, completed: save.stats.totalWins >= 5 && save.stats.hintsUsed === 0 },
       { id: 'daily-complete', name: 'Daily Champion', desc: 'Complete a daily challenge', icon: ICON.award, completed: save.daily.completed }
     ];
+  }
+
+  // Toast once per achievement the moment it becomes completed (max one
+  // toast per call to avoid message spam).
+  function announceNewAchievements() {
+    var save = Storage.getSave();
+    if (!save.achievements || typeof save.achievements !== 'object') save.achievements = {};
+    var fresh = [];
+    achievementList(save).forEach(function(ach) {
+      if (ach.completed && !save.achievements[ach.id]) {
+        save.achievements[ach.id] = true;
+        fresh.push(ach);
+      }
+    });
+    if (fresh.length) {
+      Storage.updateSave({ achievements: save.achievements });
+      toast('Achievement unlocked: ' + fresh[0].name +
+        (fresh.length > 1 ? ' (+' + (fresh.length - 1) + ' more)' : ''));
+    }
+  }
+
+  function buildAchievementsGrid() {
+    var grid = $('achievements-grid');
+    if (!grid) return;
+    
+    grid.textContent = '';
+    var save = Storage.getSave();
+    var achievements = achievementList(save);
     
     achievements.forEach(function(ach) {
+      // Built with createElement/textContent; user-influenced text can
+      // never be interpreted as HTML here.
       var item = document.createElement('div');
       item.className = 'achievement-item' + (ach.completed ? ' completed' : '');
-      item.innerHTML = '<span class="ach-icon" aria-hidden="true">' + ach.icon + '</span>' +
-        '<div class="ach-info"><div class="ach-name">' + ach.name + '</div>' +
-        '<div class="ach-desc">' + ach.desc + '</div></div>' +
-        (ach.completed ? '<span class="ach-check" aria-hidden="true">\u2713</span>' : '');
+      
+      var icon = document.createElement('span');
+      icon.className = 'ach-icon';
+      icon.setAttribute('aria-hidden', 'true');
+      icon.innerHTML = ach.icon; // fixed inline SVG defined in code above
+      
+      var info = document.createElement('div');
+      info.className = 'ach-info';
+      var name = document.createElement('div');
+      name.className = 'ach-name';
+      name.textContent = ach.name;
+      var desc = document.createElement('div');
+      desc.className = 'ach-desc';
+      desc.textContent = ach.desc;
+      info.appendChild(name);
+      info.appendChild(desc);
+      
+      item.appendChild(icon);
+      item.appendChild(info);
+      
+      if (ach.completed) {
+        var check = document.createElement('span');
+        check.className = 'ach-check';
+        check.setAttribute('aria-hidden', 'true');
+        check.textContent = '\u2713';
+        item.appendChild(check);
+      }
       grid.appendChild(item);
     });
   }
@@ -721,6 +791,8 @@ const UI = (function() {
     buildLevelGrid: buildLevelGrid,
     updateStats: updateStats,
     updateSettingsStatus: updateSettingsStatus,
+    updateNotifUI: updateNotifUI,
+    announceNewAchievements: announceNewAchievements,
     buildAchievementsGrid: buildAchievementsGrid,
     showHomeScreen: showHomeScreen,
     showScreen: showScreen,

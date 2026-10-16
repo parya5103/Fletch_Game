@@ -259,6 +259,249 @@ sweepList.forEach(function (n) {
 check('every level fully clears by removing pieces in reverse placement order',
   !solveFail, solveFail);
 
+console.log('# storage: save validation, migration and economy');
+{
+  const storageSrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'storage.js'), 'utf8');
+
+  // Minimal localStorage mock (fresh per scenario)
+  function mockStore(initial) {
+    const data = initial || {};
+    return {
+      getItem: (k) => (Object.prototype.hasOwnProperty.call(data, k) ? data[k] : null),
+      setItem: (k, v) => { data[k] = String(v); },
+      removeItem: (k) => { delete data[k]; },
+      _dump: () => data
+    };
+  }
+
+  function loadStorage(store) {
+    const sb = { console, localStorage: store, GameCore: GC };
+    vm.createContext(sb);
+    vm.runInContext(storageSrc + '\n;globalThis.__ST = Storage;', sb, { filename: 'js/storage.js' });
+    return sb.__ST;
+  }
+
+  // 1. Malformed JSON -> safe fallback to a fresh default save
+  {
+    const ST = loadStorage(mockStore({ 'arrowOut.v2': '{not valid json' }));
+    const s = ST.getSave();
+    check('malformed JSON falls back to a fresh save without crashing',
+      !!s && s.unlocked === 1 && s.coins === 0 && typeof s.best === 'object');
+    check('storage still works after a malformed save', ST.addCoins(5) === 5);
+  }
+
+  // 2. v1 -> v2 migration goes through the sanitizer
+  {
+    const ST = loadStorage(mockStore({
+      'arrowOut.v1': JSON.stringify({ v: 1, unlocked: 5, best: { '1': { stars: 2, plays: 3 } }, sound: false })
+    }));
+    const s = ST.getSave();
+    check('v1 save migrates to sanitized v2',
+      s.v === 2 && s.unlocked === 5 && s.best['1'].stars === 2 && s.best['1'].plays === 3 &&
+      s.sound === false && s.owned.default === true);
+  }
+
+  // 3. Corrupt v2 save: every junk field is clamped or reset, no crash
+  {
+    const corrupt = {
+      v: 2, unlocked: 99999, coins: -500, cur: 'junk',
+      best: { 'x': { stars: 9, plays: -4 }, '3': { stars: 2, plays: 1 }, '77': 'junk', '9': { stars: 99, plays: 0 } },
+      stats: 'junk', skin: 'does-not-exist',
+      owned: { default: 0, fake: 'yes' },
+      achievements: 'junk',
+      daily: { lastDate: 5, completed: 'yes', stars: 99 },
+      bonusClaimed: { '5': 1, '15': true },
+      streaks: { current: -3, best: 'x', lastPlayDate: 42 },
+      loginRewards: { lastClaim: 7, streak: -1 },
+      settings: 'junk'
+    };
+    const ST = loadStorage(mockStore({ 'arrowOut.v2': JSON.stringify(corrupt) }));
+    const s = ST.getSave();
+    check('negative coins clamped to 0', s.coins === 0);
+    check('unlocked clamped to the designed level range', s.unlocked === 1000);
+    check('junk best keys dropped, valid keys kept', !!s.best['3'] && s.best['3'].stars === 2 && s.best['3'].plays === 1 && !s.best['x'] && !s.best['77']);
+    check('best stars clamped to 0-3', s.best['9'].stars === 3);
+    check('non-object board snapshot reset to null', s.cur === null);
+    check('junk stats replaced with numeric defaults', typeof s.stats.totalPlays === 'number' && s.stats.totalWins === 0);
+    check('unknown skin reset to default', s.skin === 'default');
+    check('owned map reduced to true flags and default always owned', s.owned.default === true && !s.owned.fake);
+    check('junk achievements field replaced with an object', !!s.achievements && typeof s.achievements === 'object');
+    check('daily fields sanitized', s.daily.lastDate === null && s.daily.completed === false && s.daily.stars === 3);
+    check('bonusClaimed junk entries dropped, valid kept', s.bonusClaimed['15'] === true && !s.bonusClaimed['5']);
+    check('streaks sanitized', s.streaks.current === 0 && s.streaks.best === 0 && s.streaks.lastPlayDate === null);
+    check('loginRewards sanitized', s.loginRewards.lastClaim === null && s.loginRewards.streak === 0);
+    check('settings defaults restored (notifications on)', s.settings.notifications === true && s.settings.reducedMotion === false);
+  }
+
+  // 4. Valid progress is preserved exactly - nothing valid is deleted
+  {
+    const good = {
+      v: 2, unlocked: 42, coins: 500, skin: 'default',
+      best: { '7': { stars: 3, plays: 4 } },
+      cur: null,
+      stats: { totalPlays: 9, totalWins: 9, totalStars: 20, hintsUsed: 2, mistakes: 3 },
+      streaks: { current: 6, best: 6, lastPlayDate: '2026-10-15' },
+      daily: { lastDate: '2026-10-15', completed: true, stars: 2 },
+      loginRewards: { lastClaim: '2026-10-15', streak: 3 },
+      settings: { reducedMotion: true, notifications: false, seenOnboarding: true },
+      owned: { default: true }, bonusClaimed: { '5': true }, achievements: { 'first-win': true }
+    };
+    const store = mockStore({ 'arrowOut.v2': JSON.stringify(good) });
+    const ST = loadStorage(store);
+    const s = ST.getSave();
+    check('valid progress fully preserved (coins/level/stars/plays)',
+      s.coins === 500 && s.unlocked === 42 && s.best['7'].stars === 3 && s.best['7'].plays === 4);
+    check('valid stats/streaks/daily/settings preserved',
+      s.stats.totalStars === 20 && s.streaks.best === 6 && s.daily.stars === 2 && s.settings.notifications === false);
+    ST.addCoins(1);
+    check('persist round-trip keeps data intact', JSON.parse(store._dump()['arrowOut.v2']).coins === 501);
+  }
+
+  // 5. Oversized / out-of-range values
+  {
+    const ST = loadStorage(mockStore({
+      'arrowOut.v2': JSON.stringify({ v: 2, coins: 1e15, unlocked: 999999999, theme: 'x'.repeat(5000) })
+    }));
+    const s = ST.getSave();
+    check('oversized numeric values clamped', s.coins <= 1000000 && s.unlocked === 1000);
+    check('junk oversized theme falls back to dark', s.theme === 'dark');
+  }
+
+  // 6. Economy invariants
+  {
+    const ST = loadStorage(mockStore({}));
+    check('addCoins rejects negative amounts', ST.addCoins(-5) === 0);
+    check('addCoins floors fractions', ST.addCoins(3.7) === 3);
+    check('addCoins ignores junk types', ST.addCoins('junk') === 3);
+    check('spendCoins fails safely when balance is short', ST.spendCoins(10) === false && ST.getSave().coins === 3);
+    check('spendCoins(0) succeeds without changing balance', ST.spendCoins(0) === true && ST.getSave().coins === 3);
+    check('spendCoins succeeds at exact balance', ST.spendCoins(3) === true && ST.getSave().coins === 0);
+    ST.updateLevelBest(5, 2, 1);
+    ST.updateLevelBest(5, 1, 1);
+    const b5 = ST.getSave().best['5'];
+    check('updateLevelBest never downgrades stars but counts plays', b5.stars === 2 && b5.plays === 2);
+    check('updateLevelBest counts wins (achievement stat)', ST.getSave().stats.totalWins === 2);
+  }
+
+  // 7. Regression: deep-merge into a null slot must not crash
+  {
+    const ST = loadStorage(mockStore({}));
+    ST.updateSave({ cur: { level: 3 } }); // save.cur was null here
+    check('updateSave deep-merge tolerates null slots', ST.getSave().cur.level === 3);
+  }
+}
+
+console.log('# service worker: push payload + notification click validation');
+{
+  const swSrc = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
+
+  // Synchronous thenable so the test stays a plain sync script
+  const syncThen = (v) => ({
+    then: (fn) => { fn(v); return syncThen(v); },
+    catch: () => syncThen(v)
+  });
+
+  const handlers = {};
+  const shown = [];
+  const opened = [];
+  const ORIGIN = 'https://parya5103.github.io';
+  const SCOPE = ORIGIN + '/Fletch_Game/';
+  const selfMock = {
+    location: { origin: ORIGIN },
+    registration: {
+      scope: SCOPE,
+      showNotification: (title, opts) => { shown.push({ title, opts }); return syncThen(); }
+    },
+    clients: {
+      matchAll: () => syncThen([]),
+      openWindow: (u) => { opened.push(u); return syncThen(); }
+    },
+    addEventListener: (name, fn) => { handlers[name] = fn; },
+    skipWaiting: () => {}
+  };
+
+  const sb = {
+    self: selfMock, URL, console,
+    caches: { open: () => Promise.reject(new Error('unused')), keys: () => Promise.resolve([]), match: () => Promise.resolve(null), delete: () => Promise.resolve(true) },
+    fetch: () => Promise.reject(new Error('unused')),
+    Request: function Request() {}
+  };
+  vm.createContext(sb);
+  vm.runInContext(swSrc, sb, { filename: 'sw.js' });
+
+  check('sw.js registers push + notificationclick handlers without crashing',
+    typeof handlers.push === 'function' && typeof handlers.notificationclick === 'function');
+
+  const firePush = (jsonData, broken) => handlers.push({
+    waitUntil: () => {},
+    data: (jsonData === undefined && !broken)
+      ? null
+      : { json: () => { if (broken) throw new Error('malformed json'); return jsonData; } }
+  });
+  const fireClick = (data) => handlers.notificationclick({
+    notification: { close: () => {}, data },
+    waitUntil: () => {}
+  });
+  const last = (arr) => arr[arr.length - 1];
+
+  // Malformed / missing / wrong-type payloads: ignored, never crash
+  firePush(null, true);
+  check('push with malformed JSON is ignored without crashing', shown.length === 0);
+  firePush(undefined);
+  check('push with no data is ignored', shown.length === 0);
+  firePush([{ title: 'x' }]);
+  firePush('string');
+  firePush(12345);
+  check('non-object push payloads are ignored', shown.length === 0);
+
+  // Valid payload: shown with validated, bounded fields
+  firePush({ title: 'Daily Challenge ready', body: 'Play today', data: { url: './?daily=1' } });
+  check('valid push payload shows a notification', shown.length === 1);
+  check('notification title passed through', last(shown).title === 'Daily Challenge ready');
+  check('notification body passed through', last(shown).opts.body === 'Play today');
+  check('notification icon is always the bundled local icon', last(shown).opts.icon === './icons/icon-192.png');
+  check('click URL resolved to a same-origin absolute URL', last(shown).opts.data.url === SCOPE + '?daily=1');
+
+  firePush({ title: 'x'.repeat(500), body: 'y'.repeat(500) });
+  check('oversized title/body truncated to bounds', last(shown).title.length === 80 && last(shown).opts.body.length === 200);
+
+  firePush({ title: 'T', body: 12345 });
+  check('wrong-type body omitted, no crash', !('body' in last(shown).opts));
+
+  firePush({ title: 'T', icon: 'https://evil.example/x.png' });
+  check('payload-supplied icon is ignored (local icon enforced)', last(shown).opts.icon === './icons/icon-192.png');
+
+  firePush({ title: 'T', data: { url: 'javascript:alert(1)' } });
+  check('javascript: click URL rejected', last(shown).opts.data.url === null);
+
+  firePush({ title: 'T', data: { url: 'https://evil.example/' } });
+  check('cross-origin click URL rejected', last(shown).opts.data.url === null);
+
+  firePush({ title: 'T', data: { url: '../../etc' } });
+  check('scope-escaping click URL rejected', last(shown).opts.data.url === null);
+
+  firePush({ title: 'T' });
+  check('default tag prevents duplicate stacked notifications', last(shown).opts.tag === 'arrow-out');
+
+  // notificationclick: unsafe/missing URLs fall back to the app scope
+  fireClick({ url: 'javascript:alert(1)' });
+  check('click on javascript: URL opens the safe default (app scope)', last(opened) === SCOPE);
+  fireClick({ url: 'https://evil.example/' });
+  check('click on cross-origin URL opens the safe default', last(opened) === SCOPE);
+  fireClick(undefined);
+  check('click with no data opens the safe default without crashing', last(opened) === SCOPE);
+  fireClick('junk-string');
+  check('click with non-object data opens the safe default', last(opened) === SCOPE);
+  fireClick({ url: './?daily=1' });
+  check('click with a valid same-origin URL opens it resolved', last(opened) === SCOPE + '?daily=1');
+
+  // Focus-first behavior when a matching window is already open
+  const focused = [];
+  selfMock.clients.matchAll = () => syncThen([{ url: SCOPE, focus: () => { focused.push(SCOPE); return syncThen(); } }]);
+  fireClick({ url: './' });
+  check('existing window is focused instead of opening a new one', focused.length === 1 && last(opened) === SCOPE + '?daily=1');
+}
+
 if (failures) {
   console.error('\n' + failures + ' check(s) FAILED');
   process.exit(1);
