@@ -506,7 +506,7 @@ console.log('# skins shop sanity');
 {
   const ids = Object.keys(GC.SKINS);
   check('default skin exists and is free', !!GC.SKINS.default && GC.SKINS.default.price === 0);
-  check('shop has 11 skins', ids.length === 11, 'found ' + ids.length);
+  check('shop has 16 skins', ids.length === 16, 'found ' + ids.length);
   let allOk = true, detail = '';
   for (const id of ids) {
     const s = GC.SKINS[id];
@@ -518,7 +518,7 @@ console.log('# skins shop sanity');
     if (!good) { allOk = false; detail = id; break; }
   }
   check('every skin has a name, sane price and 8 valid hex colors', allOk, detail);
-  check('new skins are flagged for the shop badge', ['ember', 'ice', 'cyber', 'mono'].every(id => GC.SKINS[id] && GC.SKINS[id].isNew === true));
+  check('new skins are flagged for the shop badge', ['aurora', 'lava', 'toxic', 'carnival', 'rainbow'].every(id => GC.SKINS[id] && GC.SKINS[id].isNew === true));
 }
 
 if (failures) {

@@ -18,16 +18,21 @@ const GameCore = (function() {
   // Cosmetic arrow skins (same 8 slots as PALETTE so any board maps 1:1)
   const SKINS = {
     default: { name: 'Classic Neon', price: 0, colors: PALETTE.slice() },
-    candy:   { name: 'Candy Pop',     price: 120, colors: ['#ff6b9d', '#ffb3c6', '#ffd93d', '#ff8fab', '#a2d2ff', '#bde0fe', '#cdb4db', '#ffafcc'] },
-    sunset:  { name: 'Sunset Heat',   price: 200, colors: ['#ff4d6d', '#ff7b54', '#ffa62b', '#ffd93d', '#ff9a8b', '#ff6b6b', '#f76b8a', '#f8961e'] },
-    ocean:   { name: 'Deep Ocean',    price: 200, colors: ['#00d4ff', '#00b4d8', '#48cae4', '#90e0ef', '#0077b6', '#0096c7', '#62d0ff', '#ade8f4'] },
-    forest:  { name: 'Forest Mint',  price: 300, colors: ['#4ade80', '#22c55e', '#86efac', '#16a34a', '#34d399', '#a7f3d0', '#10b981', '#6ee7b7'] },
-    royal:   { name: 'Royal Gold',    price: 400, colors: ['#ffd700', '#ffb300', '#ffe066', '#f59e0b', '#d4af37', '#fff3b0', '#eab308', '#fde047'] },
-    galaxy:  { name: 'Galaxy Vibes',  price: 500, colors: ['#c084fc', '#a855f7', '#8b5cf6', '#e879f9', '#7c3aed', '#d946ef', '#6366f1', '#f0abfc'] },
-    ember:   { name: 'Ember Glow',    price: 600, isNew: true, colors: ['#ff4d00', '#ff6b35', '#ff9f1c', '#ffd60a', '#e63946', '#d62828', '#ff7b00', '#ffba08'] },
-    ice:     { name: 'Ice Frost',     price: 700, isNew: true, colors: ['#d0f4ff', '#a8e0ff', '#79c8ff', '#bde0fe', '#e0f7ff', '#99e2f5', '#c4e5ff', '#8ecae6'] },
-    cyber:   { name: 'Cyber Neon',   price: 800, isNew: true, colors: ['#39ff14', '#00ff9f', '#00fff7', '#f3ff00', '#ff00e6', '#00ffcc', '#76ff03', '#ff40ff'] },
-    mono:    { name: 'Mono Slate',    price: 900, isNew: true, colors: ['#f8f9fa', '#dee2e6', '#adb5bd', '#6c757d', '#495057', '#ced4da', '#868e96', '#343a40'] }
+    candy:   { name: 'Candy Pop',     price: 300, colors: ['#ff6b9d', '#ffb3c6', '#ffd93d', '#ff8fab', '#a2d2ff', '#bde0fe', '#cdb4db', '#ffafcc'] },
+    sunset:  { name: 'Sunset Heat',   price: 500, colors: ['#ff4d6d', '#ff7b54', '#ffa62b', '#ffd93d', '#ff9a8b', '#ff6b6b', '#f76b8a', '#f8961e'] },
+    ocean:   { name: 'Deep Ocean',    price: 500, colors: ['#00d4ff', '#00b4d8', '#48cae4', '#90e0ef', '#0077b6', '#0096c7', '#62d0ff', '#ade8f4'] },
+    forest:  { name: 'Forest Mint',   price: 800, colors: ['#4ade80', '#22c55e', '#86efac', '#16a34a', '#34d399', '#a7f3d0', '#10b981', '#6ee7b7'] },
+    royal:   { name: 'Royal Gold',    price: 1100, colors: ['#ffd700', '#ffb300', '#ffe066', '#f59e0b', '#d4af37', '#fff3b0', '#eab308', '#fde047'] },
+    galaxy:  { name: 'Galaxy Vibes',  price: 1400, colors: ['#c084fc', '#a855f7', '#8b5cf6', '#e879f9', '#7c3aed', '#d946ef', '#6366f1', '#f0abfc'] },
+    ember:   { name: 'Ember Glow',    price: 1700, colors: ['#ff4d00', '#ff6b35', '#ff9f1c', '#ffd60a', '#e63946', '#d62828', '#ff7b00', '#ffba08'] },
+    ice:     { name: 'Ice Frost',     price: 2000, colors: ['#d0f4ff', '#a8e0ff', '#79c8ff', '#bde0fe', '#e0f7ff', '#99e2f5', '#c4e5ff', '#8ecae6'] },
+    cyber:   { name: 'Cyber Neon',    price: 2300, colors: ['#39ff14', '#00ff9f', '#00fff7', '#f3ff00', '#ff00e6', '#00ffcc', '#76ff03', '#ff40ff'] },
+    mono:    { name: 'Mono Slate',    price: 2600, colors: ['#f8f9fa', '#dee2e6', '#adb5bd', '#6c757d', '#495057', '#ced4da', '#868e96', '#343a40'] },
+    aurora:  { name: 'Aurora Night',  price: 3000, isNew: true, colors: ['#7ef9ff', '#00e5ff', '#5eead4', '#2dd4bf', '#8b5cf6', '#a78bfa', '#c4b5fd', '#7c3aed'] },
+    lava:    { name: 'Lava Burst',    price: 3400, isNew: true, colors: ['#ff6d3a', '#ff4800', '#ff8500', '#ffa000', '#ffd000', '#e63946', '#d62828', '#f77f00'] },
+    toxic:   { name: 'Toxic Ooze',    price: 3800, isNew: true, colors: ['#b6ff00', '#76ff03', '#c6ff00', '#aeea00', '#64dd17', '#00e676', '#3ea50e', '#eaff00'] },
+    carnival:{ name: 'Carnival Rush', price: 4200, isNew: true, colors: ['#ff4d6d', '#ff9a00', '#ffd60a', '#7ae582', '#4cc9f0', '#7b2cbf', '#f72585', '#ffd166'] },
+    rainbow: { name: 'Prism Vibes',   price: 4600, isNew: true, colors: ['#ff595e', '#ffca3a', '#8ac926', '#36f1cd', '#1982c4', '#6a4c93', '#ff6f91', '#a0e7e5'] }
   };
   const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]]; // up, right, down, left
   const DIFFICULTY_THRESHOLDS = {
@@ -79,25 +84,25 @@ const GameCore = (function() {
       grid = Math.min(11, 9 + Math.ceil((n - 10) / 8));
       pieces = Math.min(28, 17 + Math.round((n - 10) * 0.3));
     }
-    // Medium: 9x9 to 10x10 boards
+    // Medium: 10x10 to 11x11 boards
     else if (n <= DIFFICULTY_THRESHOLDS.medium) {
-      grid = Math.min(10, 9 + Math.ceil((n - DIFFICULTY_THRESHOLDS.easy) / 76));
-      pieces = Math.min(26, 18 + Math.round((n - DIFFICULTY_THRESHOLDS.easy) * 0.053));
+      grid = Math.min(11, 10 + Math.ceil((n - DIFFICULTY_THRESHOLDS.easy) / 76));
+      pieces = Math.min(30, 20 + Math.round((n - DIFFICULTY_THRESHOLDS.easy) * 0.07));
     }
-    // Hard: 10x10 to 11x11 boards
+    // Hard: 11x11 to 12x12 boards
     else if (n <= DIFFICULTY_THRESHOLDS.hard) {
-      grid = Math.min(11, 10 + Math.ceil((n - DIFFICULTY_THRESHOLDS.medium) / 101));
-      pieces = Math.min(30, 22 + Math.round((n - DIFFICULTY_THRESHOLDS.medium) * 0.027));
+      grid = Math.min(12, 11 + Math.ceil((n - DIFFICULTY_THRESHOLDS.medium) / 101));
+      pieces = Math.min(33, 24 + Math.round((n - DIFFICULTY_THRESHOLDS.medium) * 0.03));
     }
-    // Expert: 11x11 to 12x12 boards
+    // Expert: full 12x12 boards
     else if (n <= DIFFICULTY_THRESHOLDS.expert) {
-      grid = Math.min(12, 11 + Math.ceil((n - DIFFICULTY_THRESHOLDS.hard) / 101));
-      pieces = Math.min(34, 26 + Math.round((n - DIFFICULTY_THRESHOLDS.hard) * 0.027));
+      grid = Math.min(12, 11 + Math.ceil((n - DIFFICULTY_THRESHOLDS.hard) / 50));
+      pieces = Math.min(36, 28 + Math.round((n - DIFFICULTY_THRESHOLDS.hard) * 0.03));
     }
     // Master: full 12x12 boards, dense maze fill
     else {
       grid = 12;
-      pieces = Math.min(36, 30 + Math.round((n - DIFFICULTY_THRESHOLDS.expert) * 0.03));
+      pieces = Math.min(36, 32 + Math.round((n - DIFFICULTY_THRESHOLDS.expert) * 0.04));
     }
 
     // Roller-coaster overlay: spike every 10th level, breather right after
@@ -130,12 +135,12 @@ const GameCore = (function() {
   }
 
   // Board mask fill fraction: how much of the grid the puzzle silhouette
-  // covers. Levels 1-50 are noticeably denser (more arrows on screen);
-  // 51+ keeps the original curve.
+  // covers. Dense everywhere (the reference maze look), ramping from
+  // 0.80 at level 1 to 0.96 in the late campaign.
   function fillFracFor(n) {
     var lvl = Math.max(1, Math.floor(Number(n)) || 1);
     if (lvl <= 50) return Math.min(0.88, 0.80 + (lvl - 1) * 0.002);
-    return 0.72 + Math.min(0.16, (lvl - 1) * 0.0002);
+    return Math.min(0.96, 0.88 + (lvl - 51) * 0.0002);
   }
 
   function getDifficultyLevel(n) {
@@ -686,9 +691,9 @@ const GameCore = (function() {
     // same dense maze look as the main levels
     var W = 8, H = 8, N = W * H;
     var family = FAMILIES[seed % FAMILIES.length];
-    var piecesCount = 12 + (seed % 5);
+    var piecesCount = 16 + (seed % 5);
     var baseLen = 6;
-    var targetCells = Math.min(N, Math.max(36, Math.round(N * 0.75)));
+    var targetCells = Math.min(N, Math.max(40, Math.round(N * 0.86)));
     var inShape = buildShape(family, W, H, rng, targetCells);
     var arrows = carve(W, H, inShape, rng, piecesCount, baseLen, makeColorFn(family, W, H));
 
