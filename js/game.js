@@ -153,9 +153,12 @@ const GameCore = (function() {
   }
 
   // ===== Movement rules (multi-cell pieces) =====
-  // A piece exits by sliding its WHOLE body along its arrowhead direction.
-  // It is blocked if any OTHER alive piece has a cell strictly ahead of
-  // any of this piece's cells along that direction (the swept corridor).
+  // A piece exits like a snake: it travels its own winding path and then
+  // slides straight out from its HEAD cell along the arrowhead direction.
+  // It is blocked only if another alive piece sits strictly ahead of the
+  // head cell along that direction (the head's exit corridor). Straight
+  // projections of winding body cells are never travelled, so they can
+  // never block the exit (no false blocking).
 
   // Which exit directions are open for a cell during generation,
   // considering only cells already taken by earlier pieces (occS > 0).
@@ -174,17 +177,22 @@ const GameCore = (function() {
   }
 
   // First blocking piece id for piece index pi, or -1 when it can exit.
+  // The piece exits like a snake: the head leads along `dir` out of the
+  // head cell while the body follows the piece's own winding path (its
+  // own cells are vacated at launch and travel with it). Only cells
+  // STRICTLY AHEAD of the head cell along `dir` are ever swept, so only
+  // that exit ray can be blocked - a piece sitting in the straight
+  // projection of some body segment does not block anything.
   function pieceBlocker(occ, pieces, W, H, pi) {
     var P = pieces[pi];
-    if (!P || !P.alive) return -1;
+    if (!P || !P.alive || !P.cells || !P.cells.length) return -1;
     var d = P.dir, dx = DIRS[d][0], dy = DIRS[d][1];
-    for (var k = 0; k < P.cells.length; k++) {
-      var cx = P.cells[k].x + dx, cy = P.cells[k].y + dy;
-      while (cx >= 0 && cx < W && cy >= 0 && cy < H) {
-        var bi = occ[cy * W + cx];
-        if (bi !== -1 && bi !== pi && pieces[bi] && pieces[bi].alive) return bi;
-        cx += dx; cy += dy;
-      }
+    var head = P.cells[P.cells.length - 1];
+    var cx = head.x + dx, cy = head.y + dy;
+    while (cx >= 0 && cx < W && cy >= 0 && cy < H) {
+      var bi = occ[cy * W + cx];
+      if (bi !== -1 && bi !== pi && pieces[bi] && pieces[bi].alive) return bi;
+      cx += dx; cy += dy;
     }
     return -1;
   }
