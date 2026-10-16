@@ -398,8 +398,16 @@ const GameCore = (function() {
       for (var e = 0; e < 2; e++) {
         var end = cs[e === 0 ? 0 : len - 1];
         var out = -1;
-        if (e === 0 && len >= 2) out = dirFrom(cs[1], cs[0]);
-        if (e === 1 && len >= 2) out = dirFrom(cs[len - 2], cs[len - 1]);
+        var otherOut = -1; // out-direction of the end NOT being extended
+        if (len >= 2) {
+          if (e === 0) {
+            out = dirFrom(cs[1], cs[0]);
+            otherOut = dirFrom(cs[len - 2], cs[len - 1]);
+          } else {
+            out = dirFrom(cs[len - 2], cs[len - 1]);
+            otherOut = dirFrom(cs[1], cs[0]);
+          }
+        }
         for (var d = 0; d < 4; d++) {
           var nx = end.x + DIRS[d][0], ny = end.y + DIRS[d][1];
           if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
@@ -411,6 +419,14 @@ const GameCore = (function() {
             if (dirsOK.indexOf(cd[q]) !== -1) inter.push(cd[q]);
           }
           if (!inter.length) continue;
+          // Alignment invariant: the extended end now points out along d.
+          // Keep at least one end's out-direction inside the (shrinking)
+          // legal exit set, so the finished piece ALWAYS has an end whose
+          // segment leads straight into a legal exit direction - the
+          // arrowhead can then sit at the real head pointing exactly
+          // where the piece exits (no sideways/backwards heads).
+          if (inter.indexOf(d) === -1 &&
+              !(otherOut !== -1 && inter.indexOf(otherOut) !== -1)) continue;
           cands.push({ e: e, x: nx, y: ny, inter: inter, straight: out !== -1 && d === out });
         }
       }
@@ -435,19 +451,29 @@ const GameCore = (function() {
   }
 
   // Pick the piece's exit direction and orient the path so the head end
-  // leads naturally into the arrowhead.
+  // leads naturally into the arrowhead. The returned direction ALWAYS
+  // matches the out-direction of whichever end becomes the head, so the
+  // arrowhead tip, the final path segment and the legal exit direction
+  // are consistent for every generated piece.
   function chooseDir(cells, dirsOK, W, H, rng) {
-    if (dirsOK.length === 1) return dirsOK[0];
     var n = cells.length;
     var headOut = n >= 2 ? dirFrom(cells[n - 2], cells[n - 1]) : -1;
     var tailOut = n >= 2 ? dirFrom(cells[1], cells[0]) : -1;
-    if (headOut !== -1 && dirsOK.indexOf(headOut) !== -1 && rng() < 0.8) return headOut;
-    if (tailOut !== -1 && dirsOK.indexOf(tailOut) !== -1) {
+    var headOK = headOut !== -1 && dirsOK.indexOf(headOut) !== -1;
+    var tailOK = tailOut !== -1 && dirsOK.indexOf(tailOut) !== -1;
+    // Prefer the current head end (80%): variety, but always aligned.
+    if (headOK && (!tailOK || rng() < 0.8)) return headOut;
+    // Otherwise the tail end leads: flip the path so it becomes the head.
+    if (tailOK) {
       cells.reverse(); // tail becomes the arrowhead end
       return tailOut;
     }
-    // Otherwise pick the direction that leaves the board soonest from
-    // the head cell (clean exits look better than deep slides).
+    // 20% case where the head was fine but the tail was not an option:
+    // keep the head - a consistent arrowhead beats variety.
+    if (headOK) return headOut;
+    // No end leads into a legal exit. growPiece's alignment invariant
+    // makes this unreachable for real pieces (>= 2 cells); kept only as
+    // a safe fallback so the piece can still exit legally.
     var hx = cells[n - 1].x, hy = cells[n - 1].y;
     var best = dirsOK[0], bestD = 99;
     for (var k = 0; k < dirsOK.length; k++) {
