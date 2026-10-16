@@ -651,7 +651,7 @@ const Game = (function() {
     
     var save = Storage.getSave();
     
-    if (gameState.over) {
+    if (gameState.over || gameState.failed) {
       save.cur = null;
     } else {
       var alive = [];
