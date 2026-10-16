@@ -69,15 +69,15 @@ const GameCore = (function() {
   function levelConfig(n) {
     let grid, pieces;
 
-    // Onboarding (1-10): 7x7 to 8x8 boards, dense maze fill from level 1
+    // Onboarding (1-10): 9x9 to 10x10 boards, dense maze fill from level 1
     if (n <= 10) {
-      grid = Math.min(8, 6 + Math.ceil(n / 3));
-      pieces = 7 + Math.round((n - 1) * 0.7);
+      grid = Math.min(10, 9 + Math.ceil((n - 5) / 5));
+      pieces = Math.min(24, 16 + Math.round((n - 1) * 1.2));
     }
-    // Easy: 8x8 to 9x9 boards
+    // Easy: 9x9 to 11x11 boards
     else if (n <= DIFFICULTY_THRESHOLDS.easy) {
-      grid = Math.min(9, 8 + Math.ceil((n - 10) / 21));
-      pieces = Math.min(20, 13 + Math.round((n - 10) * 0.23));
+      grid = Math.min(11, 9 + Math.ceil((n - 10) / 8));
+      pieces = Math.min(28, 17 + Math.round((n - 10) * 0.3));
     }
     // Medium: 9x9 to 10x10 boards
     else if (n <= DIFFICULTY_THRESHOLDS.medium) {
@@ -130,9 +130,11 @@ const GameCore = (function() {
   }
 
   // Board mask fill fraction: how much of the grid the puzzle silhouette
-  // covers. Dense from level 1 (reference look), slightly fuller later.
+  // covers. Levels 1-50 are noticeably denser (more arrows on screen);
+  // 51+ keeps the original curve.
   function fillFracFor(n) {
     var lvl = Math.max(1, Math.floor(Number(n)) || 1);
+    if (lvl <= 50) return Math.min(0.88, 0.80 + (lvl - 1) * 0.002);
     return 0.72 + Math.min(0.16, (lvl - 1) * 0.0002);
   }
 
