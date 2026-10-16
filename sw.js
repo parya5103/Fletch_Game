@@ -1,10 +1,10 @@
 /**
  * Arrow Out! Service Worker
- * Version: v24
+ * Version: v25
  * Handles caching for offline gameplay
  */
 
-const CACHE = 'arrow-out-v24';
+const CACHE = 'arrow-out-v25';
 // Only obsolete caches that belong to THIS game (arrow-out-*) are ever deleted,
 // so other apps served from the same origin keep their caches.
 const CACHE_PREFIX = 'arrow-out-';
@@ -94,22 +94,79 @@ self.addEventListener('fetch', (e) => {
   );
 });
 
-// Handle push notifications (for future use)
-self.addEventListener('push', (e) => {
-  if (e.data) {
-    const data = e.data.json();
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: data.icon || './icons/icon-192.png',
-      data: data.data
-    });
+// --- Notifications: hardened push + click handling ---
+// Push payloads are NOT trusted just because they arrive through the
+// service worker. JSON parse errors, missing fields, wrong types,
+// oversized text and unsafe icon/URL fields are all handled without
+// ever crashing the worker.
+const NOTIF_TITLE_MAX = 80;
+const NOTIF_BODY_MAX = 200;
+
+function safeNotifText(v, max) {
+  return (typeof v === 'string' && v.length) ? v.slice(0, max) : '';
+}
+
+// Resolve a notification click target. Only same-origin URLs inside the
+// app scope are allowed. javascript:, data:, external origins, malformed
+// and scope-escaping URLs are all rejected (null).
+function safeNotifUrl(v) {
+  if (typeof v !== 'string' || !v.length || v.length > 200) return null;
+  if (/[\u0000-\u001f]/.test(v)) return null;
+  try {
+    const scope = new URL(self.registration.scope);
+    const u = new URL(v, scope);
+    if (u.origin !== scope.origin) return null;
+    if (u.pathname !== scope.pathname && !u.pathname.startsWith(scope.pathname)) return null;
+    return u.href;
+  } catch (e) {
+    return null;
   }
+}
+
+self.addEventListener('push', (e) => {
+  let data = null;
+  try {
+    if (e.data) data = e.data.json();
+  } catch (err) {
+    data = null; // malformed JSON: ignore the payload, never crash
+  }
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return;
+
+  const title = safeNotifText(data.title, NOTIF_TITLE_MAX) || 'Arrow Out!';
+  const opts = {
+    // Never show a payload-supplied icon: it could point at a
+    // cross-origin or data: URL. Always use our own bundled icon.
+    icon: './icons/icon-192.png',
+    // A shared tag prevents duplicate stacked notifications
+    tag: safeNotifText(data.tag, 64) || 'arrow-out'
+  };
+  const body = safeNotifText(data.body, NOTIF_BODY_MAX);
+  if (body) opts.body = body;
+  if (data.data && typeof data.data === 'object' && !Array.isArray(data.data)) {
+    opts.data = { url: safeNotifUrl(data.data.url) };
+  }
+  e.waitUntil(self.registration.showNotification(title, opts).catch(() => null));
 });
 
 // Handle notification clicks
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
-  if (e.notification.data && e.notification.data.url) {
-    clients.openWindow(e.notification.data.url);
-  }
+  const raw = (e.notification && e.notification.data) || null;
+  // Validate the click destination; fall back to the app scope itself
+  // (the game home screen) when the URL is missing or unsafe.
+  const target = (raw && typeof raw === 'object' && !Array.isArray(raw))
+    ? safeNotifUrl(raw.url)
+    : null;
+  const dest = target || self.registration.scope;
+
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
+      // Focus an already-open window at the destination instead of piling
+      // up new ones.
+      for (const w of wins) {
+        if (w.url === dest && typeof w.focus === 'function') return w.focus();
+      }
+      return self.clients.openWindow(dest).catch(() => null);
+    }).catch(() => null)
+  );
 });

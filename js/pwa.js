@@ -12,7 +12,7 @@ const PWA = (function() {
   // Service worker source
   var SW_SRC = [
     "/* Arrow Out! service worker - save as sw.js next to index.html */",
-    "const CACHE = 'arrow-out-v24';",
+    "const CACHE = 'arrow-out-v25';",
     "const ASSETS = ['./', './index.html', './css/styles.css', './js/game.js', './js/render.js', './js/audio.js', './js/haptics.js', './js/storage.js', './js/bgfx.js', './js/pwa.js', './js/ui.js', './js/main.js', './manifest.webmanifest', './icons/favicon.svg'];",
     "self.addEventListener('install', (e) => {",
     "  e.waitUntil(caches.open(CACHE).then((c) => Promise.all(ASSETS.map((a) => fetch(new Request(a, { cache: 'reload' })).then((r) => { if (!r.ok) throw new Error('precache failed: ' + a); return c.put(a, r); })))).then(() => self.skipWaiting()));",
@@ -243,8 +243,68 @@ const PWA = (function() {
     });
   }
 
+  // --- Notifications (local-only; there is no backend) ---
+  // The game is a static site: no push server, no VAPID keys, no
+  // subscription management. These helpers cover the client side only:
+  //  - permission state reporting
+  //  - an explicit permission request (called ONLY from a deliberate
+  //    user action in Settings, never on page load)
+  //  - a local test notification shown through the service worker
+  //    registration (the notification is composed by our own code, not
+  //    delivered from a server)
+  // Real remote push would need a server that stores subscriptions and
+  // calls the Web Push API - deliberately not implemented here.
+  function notifSupported() {
+    return typeof Notification !== 'undefined';
+  }
+
+  function notifPermission() {
+    if (!notifSupported()) return 'unsupported';
+    try { return Notification.permission; } catch (e) { return 'denied'; }
+  }
+
+  function requestNotifPermission() {
+    if (!notifSupported()) return Promise.resolve('unsupported');
+    try {
+      var p = Notification.requestPermission();
+      if (p && typeof p.then === 'function') return p;
+      // Legacy callback-style API (older Safari)
+      return new Promise(function(resolve) {
+        Notification.requestPermission(function(res) { resolve(res); });
+      });
+    } catch (e) {
+      return Promise.resolve('denied');
+    }
+  }
+
+  function showTestNotification(title, body) {
+    if (notifPermission() !== 'granted') return Promise.resolve(false);
+    // Bounded, app-authored content only - nothing user- or server-supplied
+    var t = String(title || 'Arrow Out!').slice(0, 80);
+    var b = String(body || '').slice(0, 200);
+    var opts = {
+      icon: './icons/icon-192.png',
+      tag: 'arrow-out-test',
+      data: { url: './' } // validated again by sw.js on click
+    };
+    if (b) opts.body = b;
+    try {
+      if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+        return navigator.serviceWorker.ready.then(function(reg) {
+          return reg.showNotification(t, opts).then(function() { return true; }, function() { return false; });
+        }, function() { return false; });
+      }
+    } catch (e) { /* fall through to the constructor path */ }
+    try {
+      new Notification(t, opts);
+      return Promise.resolve(true);
+    } catch (e) {
+      return Promise.resolve(false);
+    }
+  }
+
   // Game version - kept in sync with sw.js CACHE version
-  var VERSION = 'v24';
+  var VERSION = 'v25';
 
   // --- Update flow ---
   // The page shows a small banner when a newer service worker (a new game
@@ -387,6 +447,10 @@ const PWA = (function() {
     get swActive() { return swActive; },
     get SW_SRC() { return SW_SRC; },
     get VERSION() { return VERSION; },
-    checkForUpdates: checkForUpdates
+    checkForUpdates: checkForUpdates,
+    notifSupported: notifSupported,
+    notifPermission: notifPermission,
+    requestNotifPermission: requestNotifPermission,
+    showTestNotification: showTestNotification
   };
 })();
