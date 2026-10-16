@@ -240,10 +240,11 @@ const Game = (function() {
       if (save.music) UI.toast('Music on \u266a');
     });
     
-    // Notifications toggle. The browser permission prompt is only ever
+    // Daily reminders toggle. The browser permission prompt is only ever
     // triggered from this deliberate user action, never on page load.
-    // These are LOCAL notifications (no push server exists); the toggle
-    // only stores the player's preference.
+    // Turning it ON subscribes this device to Web Push and opens a small
+    // one-time setup dialog (copy the code into the repo secret
+    // PUSH_SUBSCRIPTIONS, see .github/workflows/notify.yml).
     on($('chk-notifs'), 'change', function() {
       var save = Storage.getSave();
       if (!save.settings) save.settings = {};
@@ -251,40 +252,59 @@ const Game = (function() {
       save.settings.notifications = want;
       Storage.persist();
       UI.updateNotifUI();
-      if (!want) return;
-      var perm = PWA.notifPermission();
-      if (perm === 'granted') {
-        UI.toast('Notifications on');
+      if (!want) {
+        PWA.unsubscribePush().then(function() { UI.updateNotifUI(); });
         return;
       }
+      var perm = PWA.notifPermission();
       if (perm === 'denied' || perm === 'unsupported') {
         // Permission was blocked in browser settings (or unavailable):
         // the preference is still saved, the game stays fully playable.
         UI.toast(perm === 'denied' ? 'Blocked in browser notification settings' : 'Notifications not supported here');
         return;
       }
-      PWA.requestNotifPermission().then(function(state) {
+      var after = function(state) {
         UI.updateNotifUI();
-        if (state === 'granted') UI.toast('Notifications enabled');
-        else if (state === 'denied') UI.toast('Permission denied in browser');
-      });
+        if (state !== 'granted') {
+          UI.toast(state === 'denied' ? 'Permission denied in browser' : 'Notifications not supported here');
+          return;
+        }
+        PWA.subscribePush().then(function(json) {
+          if (!json) {
+            UI.toast('Push not available in this browser');
+            return;
+          }
+          var ta = $('push-sub-json');
+          if (ta) ta.value = json;
+          UI.openDlg('dlg-push');
+          UI.updateNotifUI();
+        });
+      };
+      if (perm === 'granted') after('granted');
+      else PWA.requestNotifPermission().then(after);
     });
-    
-    // Test notification: shows what a local notification looks like
-    on($('btn-notif-test'), 'click', function() {
+
+    // One-time push setup dialog: copy the subscription code
+    on($('btn-push-copy'), 'click', function() {
       Audio.ui();
-      var save = Storage.getSave();
-      if (!(save.settings && save.settings.notifications)) {
-        UI.toast('Enable notifications first');
-        return;
+      var ta = $('push-sub-json');
+      var text = ta ? ta.value : '';
+      if (!text) return;
+      var fallback = function() {
+        try {
+          ta.focus();
+          ta.select();
+          return document.execCommand('copy');
+        } catch (e) { return false; }
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(
+          function() { UI.toast('Copied \u2014 now paste it in the GitHub repo secret'); },
+          function() { UI.toast(fallback() ? 'Copied \u2014 now paste it in the GitHub repo secret' : 'Copy failed \u2014 select the code and copy manually'); }
+        );
+      } else {
+        UI.toast(fallback() ? 'Copied \u2014 now paste it in the GitHub repo secret' : 'Copy failed \u2014 select the code and copy manually');
       }
-      if (PWA.notifPermission() !== 'granted') {
-        UI.toast('Allow notifications for this site first');
-        return;
-      }
-      PWA.showTestNotification('Arrow Out!', 'Test notification \u2014 this is how they look.').then(function(ok) {
-        if (!ok) UI.toast('Notification blocked or unsupported');
-      });
     });
     
     // Share result (win dialog)

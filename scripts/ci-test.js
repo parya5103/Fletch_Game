@@ -502,6 +502,25 @@ console.log('# service worker: push payload + notification click validation');
   check('existing window is focused instead of opening a new one', focused.length === 1 && last(opened) === SCOPE + '?daily=1');
 }
 
+console.log('# skins shop sanity');
+{
+  const ids = Object.keys(GC.SKINS);
+  check('default skin exists and is free', !!GC.SKINS.default && GC.SKINS.default.price === 0);
+  check('shop has 11 skins', ids.length === 11, 'found ' + ids.length);
+  let allOk = true, detail = '';
+  for (const id of ids) {
+    const s = GC.SKINS[id];
+    const good = s &&
+      typeof s.name === 'string' && s.name.length > 0 &&
+      Number.isInteger(s.price) && s.price >= 0 && s.price <= 100000 &&
+      Array.isArray(s.colors) && s.colors.length === 8 &&
+      s.colors.every(c => /^#[0-9a-fA-F]{6}$/.test(c));
+    if (!good) { allOk = false; detail = id; break; }
+  }
+  check('every skin has a name, sane price and 8 valid hex colors', allOk, detail);
+  check('new skins are flagged for the shop badge', ['ember', 'ice', 'cyber', 'mono'].every(id => GC.SKINS[id] && GC.SKINS[id].isNew === true));
+}
+
 if (failures) {
   console.error('\n' + failures + ' check(s) FAILED');
   process.exit(1);

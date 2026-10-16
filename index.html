@@ -392,16 +392,11 @@
         </div>
 
         <div class="row">
-          <span style="font-size:15px;">Notifications</span>
-          <label class="switch" aria-label="Notifications">
+          <span style="font-size:15px;">Daily reminders</span>
+          <label class="switch" aria-label="Daily reminders">
             <input type="checkbox" id="chk-notifs" />
             <span class="track"></span>
           </label>
-        </div>
-
-        <div class="row">
-          <span style="font-size:15px;">Test notification</span>
-          <button class="btn small" id="btn-notif-test" type="button">Send test</button>
         </div>
       </div>
       
@@ -542,6 +537,20 @@
       </button>
       <h2 id="inst-title">Install app</h2>
       <p id="inst-status"></p>
+    </div>
+  </div>
+
+  <!-- ===== PUSH SETUP (one-time) ===== -->
+  <div class="overlay" id="dlg-push" role="dialog" aria-modal="true" aria-labelledby="push-title">
+    <div class="card">
+      <button class="btn icon close-x" data-close type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+      <h2 id="push-title">Reminders &mdash; one last step</h2>
+      <p>Tap <b>Copy</b>, then open <b>github.com &rarr; this repo &rarr; Settings &rarr; Secrets and variables &rarr; Actions &rarr; New repository secret</b>, name it <b>PUSH_SUBSCRIPTIONS</b> and paste this code there.</p>
+      <textarea id="push-sub-json" readonly rows="6" style="width:100%;font-size:11px;font-family:monospace;background:#0d1230;color:#a5b4fc;border:1px solid #2c3a68;border-radius:10px;padding:8px;box-sizing:border-box;"></textarea>
+      <button class="btn small" id="btn-push-copy" type="button">Copy</button>
+      <p style="font-size:12.5px;color:#8a97b8;">Reminders arrive 4&ndash;5 times a day. Only this repo can send them &mdash; the code is private to you. Turn reminders off any time from Settings.</p>
     </div>
   </div>
 

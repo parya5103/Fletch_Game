@@ -23,7 +23,11 @@ const GameCore = (function() {
     ocean:   { name: 'Deep Ocean',    price: 200, colors: ['#00d4ff', '#00b4d8', '#48cae4', '#90e0ef', '#0077b6', '#0096c7', '#62d0ff', '#ade8f4'] },
     forest:  { name: 'Forest Mint',  price: 300, colors: ['#4ade80', '#22c55e', '#86efac', '#16a34a', '#34d399', '#a7f3d0', '#10b981', '#6ee7b7'] },
     royal:   { name: 'Royal Gold',    price: 400, colors: ['#ffd700', '#ffb300', '#ffe066', '#f59e0b', '#d4af37', '#fff3b0', '#eab308', '#fde047'] },
-    galaxy:  { name: 'Galaxy Vibes',  price: 500, colors: ['#c084fc', '#a855f7', '#8b5cf6', '#e879f9', '#7c3aed', '#d946ef', '#6366f1', '#f0abfc'] }
+    galaxy:  { name: 'Galaxy Vibes',  price: 500, colors: ['#c084fc', '#a855f7', '#8b5cf6', '#e879f9', '#7c3aed', '#d946ef', '#6366f1', '#f0abfc'] },
+    ember:   { name: 'Ember Glow',    price: 600, isNew: true, colors: ['#ff4d00', '#ff6b35', '#ff9f1c', '#ffd60a', '#e63946', '#d62828', '#ff7b00', '#ffba08'] },
+    ice:     { name: 'Ice Frost',     price: 700, isNew: true, colors: ['#d0f4ff', '#a8e0ff', '#79c8ff', '#bde0fe', '#e0f7ff', '#99e2f5', '#c4e5ff', '#8ecae6'] },
+    cyber:   { name: 'Cyber Neon',   price: 800, isNew: true, colors: ['#39ff14', '#00ff9f', '#00fff7', '#f3ff00', '#ff00e6', '#00ffcc', '#76ff03', '#ff40ff'] },
+    mono:    { name: 'Mono Slate',    price: 900, isNew: true, colors: ['#f8f9fa', '#dee2e6', '#adb5bd', '#6c757d', '#495057', '#ced4da', '#868e96', '#343a40'] }
   };
   const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]]; // up, right, down, left
   const DIFFICULTY_THRESHOLDS = {

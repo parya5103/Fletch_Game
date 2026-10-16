@@ -1,10 +1,10 @@
 /**
  * Arrow Out! Service Worker
- * Version: v25
+ * Version: v26
  * Handles caching for offline gameplay
  */
 
-const CACHE = 'arrow-out-v25';
+const CACHE = 'arrow-out-v26';
 // Only obsolete caches that belong to THIS game (arrow-out-*) are ever deleted,
 // so other apps served from the same origin keep their caches.
 const CACHE_PREFIX = 'arrow-out-';

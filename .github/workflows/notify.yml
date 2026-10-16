@@ -1,0 +1,116 @@
+# Daily reminders: sends 4-5 short local-time push notifications per day
+# to subscribed players. This scheduled workflow is the "push server" for
+# the static site - no paid backend needed.
+#
+# One-time setup (repo owner):
+#   1. Settings -> Secrets and variables -> Actions -> New repository secret
+#      Name: PUSH_VAPID_PRIVATE_KEY
+#      Value: the VAPID private key that pairs with the public key in js/pwa.js
+#   2. Play the game -> Settings -> Daily reminders ON -> copy the code ->
+#      New repository secret: PUSH_SUBSCRIPTIONS (paste the code, or a JSON
+#      array of codes for several devices).
+#
+# The workflow exits cleanly while secrets are unset, so it is safe to
+# merge before setup. Push payloads are validated again in sw.js.
+name: Daily reminders (web push)
+
+on:
+  schedule:
+    # GitHub cron is UTC and can drift a few minutes. These are
+    # 10:00, 12:30, 17:00, 19:30, 23:00 in India (IST).
+    - cron: '30 4 * * *'
+    - cron: '0 7 * * *'
+    - cron: '30 11 * * *'
+    - cron: '0 14 * * *'
+    - cron: '30 17 * * *'
+  workflow_dispatch:
+
+# This job only sends push messages through the Web Push API.
+# It never reads or writes repository contents.
+permissions:
+  contents: none
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      # Pinned to the immutable commit SHA of the v4 tag
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '20'
+
+      - name: Send daily reminder pushes
+        env:
+          SUBS: ${{ secrets.PUSH_SUBSCRIPTIONS }}
+          VAPID_PRIVATE: ${{ secrets.PUSH_VAPID_PRIVATE_KEY }}
+        run: |
+          mkdir -p /tmp/push && cd /tmp/push
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund --loglevel=error web-push@3.6.7
+          cat > send.js <<'EOF'
+          const webpush = require('web-push');
+          // Must match VAPID_PUBLIC_KEY in js/pwa.js
+          const PUB = 'BCZi4Grxq_wVF9j-pIP7buv5lwCGfSdNCrDmRaeuojmIwkCQCK1o2NdqIIqamu4nuW1Yn3doDR31W1opJzR_9H4';
+          const MESSAGES = [
+            'Daily challenge is live - a fresh puzzle is waiting!',
+            "Don't break your streak - play today's daily challenge!",
+            'Bonus coins are hiding on levels ending in 5 - come grab them!',
+            '3 free hints per level, refilled - the next level is calling!',
+            'Your arrows are getting restless - tap one out of the board!'
+          ];
+
+          async function main() {
+            const raw = (process.env.SUBS || '').trim();
+            const priv = (process.env.VAPID_PRIVATE || '').trim();
+            if (!raw) {
+              console.log('PUSH_SUBSCRIPTIONS secret not set yet - nothing to send.');
+              return 0;
+            }
+            if (!priv) {
+              console.log('ERROR: PUSH_VAPID_PRIVATE_KEY secret not set (see README).');
+              return 1;
+            }
+            let subs;
+            try {
+              const parsed = JSON.parse(raw);
+              subs = Array.isArray(parsed) ? parsed : [parsed];
+            } catch (e) {
+              console.log('ERROR: PUSH_SUBSCRIPTIONS is not valid JSON: ' + e.message);
+              return 1;
+            }
+
+            webpush.setVapidDetails('mailto:parya5103@users.noreply.github.com', PUB, priv);
+
+            // Rotate the message by day and send slot so it stays fresh
+            const idx = (Math.floor(Date.now() / 86400000) + new Date().getUTCHours()) % MESSAGES.length;
+            const payload = JSON.stringify({
+              title: 'Arrow Out!',
+              body: MESSAGES[idx],
+              tag: 'arrow-out-daily',
+              data: { url: './' }
+            });
+
+            let sent = 0, failed = 0;
+            for (const sub of subs) {
+              if (!sub || !sub.endpoint) continue;
+              try {
+                await webpush.sendNotification(sub, payload, { TTL: 86400 });
+                sent++;
+                console.log('sent -> ' + sub.endpoint.slice(0, 48) + '...');
+              } catch (err) {
+                failed++;
+                const status = err && err.statusCode ? err.statusCode : 'unknown';
+                if (status === 404 || status === 410) {
+                  console.log('EXPIRED (' + status + ') - open the game, toggle Daily reminders off/on, and paste the fresh code into PUSH_SUBSCRIPTIONS.');
+                } else {
+                  console.log('failed (' + status + '): ' + (err && err.message ? err.message : 'unknown error'));
+                }
+              }
+            }
+            console.log('done: ' + sent + ' sent, ' + failed + ' failed.');
+            return (sent === 0 && failed > 0) ? 1 : 0;
+          }
+
+          main().then(function (code) { process.exit(code); }).catch(function (e) { console.log('unexpected error: ' + e.message); process.exit(1); });
+          EOF
+          node send.js

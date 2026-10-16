@@ -237,7 +237,7 @@ const UI = (function() {
       }
       
       item.innerHTML =
-        '<div class="skin-name">' + skin.name + '</div>' +
+        '<div class="skin-name">' + (skin.isNew ? '<span style="color:#fbbf24;letter-spacing:0.5px;">NEW</span> &middot; ' : '') + skin.name + '</div>' +
         '<div class="skin-dots">' + dots + '</div>' +
         '<div class="skin-status">' +
           (equipped ? '\u2713 Equipped' : owned ? 'Owned' : skin.price + ' coins') +
@@ -459,7 +459,17 @@ const UI = (function() {
       var txt;
       if (perm === 'unsupported') txt = 'Not supported here';
       else if (perm === 'denied') txt = 'Blocked in browser settings';
-      else txt = pref ? 'On' : 'Off';
+      else if (!pref) txt = 'Off';
+      else {
+        // Preference is on; refine once we know whether a push
+        // subscription actually exists (subtle async, no flicker).
+        txt = 'On \u2014 setup pending';
+        if (typeof PWA.getPushSubscriptionJson === 'function') {
+          PWA.getPushSubscriptionJson().then(function(sub) {
+            if (sub) st.textContent = 'On \u2014 reminders active';
+          });
+        }
+      }
       st.textContent = txt;
     }
   }
