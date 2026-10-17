@@ -1312,3 +1312,30 @@ h2 svg.ic { width: 24px; height: 24px; vertical-align: -4px; }
 #board-view-label { flex: 1; color: var(--muted, #93a0c8); font-size: 11px; }
 #board-tools .btn { min-width: 44px; min-height: 44px; padding: 6px; }
 #board-wrap { overflow: hidden; }
+
+/* The viewport uses the entire remaining flex area. Puzzle cells stay square. */
+#board { flex: none; background: #0c1229; }
+#board-tools { flex-shrink: 0; }
+#board-wrap { padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); }
+[data-board-skin="default"] { background: #0c1229; box-shadow: inset 0 0 0 1px #303b60; }
+[data-board-skin="ice"] { background: radial-gradient(ellipse at top left, #27445a, transparent 65%), repeating-linear-gradient(125deg, #a7eaff09 0 1px, transparent 1px 29px), #0b2034 !important; box-shadow: inset 0 0 18px #90dfff30, inset 0 0 0 1px #81cce380 !important; }
+[data-board-skin="galaxy"] { background: radial-gradient(circle at 20% 30%, #ffffff90 0 1px, transparent 1.5px) 0 0 / 61px 79px, radial-gradient(circle at 70% 60%, #a5caff80 0 1px, transparent 1.5px) 0 0 / 97px 53px, radial-gradient(ellipse at 80% 25%, #4b286b60, transparent 65%), #101126 !important; box-shadow: inset 0 0 0 1px #655482 !important; }
+[data-board-skin="cyber"] { background: linear-gradient(#36d7e00b 1px, transparent 1px) 0 0 / 28px 28px, linear-gradient(90deg, #36d7e00b 1px, transparent 1px) 0 0 / 28px 28px, #081925 !important; box-shadow: inset 0 0 14px #00f0ff18, inset 0 0 0 1px #36d7e080 !important; }
+[data-board-skin="forest"] { background: repeating-radial-gradient(ellipse at 0 100%, transparent 0 24px, #6aaa6a10 25px 26px, transparent 27px 44px), linear-gradient(135deg, #17382a, #0a1c19) !important; box-shadow: inset 0 0 0 1px #66885e !important; }
+.shop-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+.shop-tabs .btn { flex: 1; min-height: 44px; }
+.shop-tabs [aria-selected="true"] { background: #354276; border-color: #a5b4fc; }
+#shop-preview { display: block; width: 100%; max-width: 270px; height: auto; margin: auto; border-radius: 12px; }
+#shop-preview-label { text-align: center; font-size: 13px; }
+.skin-sample { width: 100%; height: auto; border-radius: 8px; }
+.skin-name { margin: 0; }
+.skin-description { font-size: 12px; line-height: 1.5; margin: 0; color: #c5cde6; }
+.skin-item { min-width: 0; }
+.skin-item .btn { min-height: 44px; }
+.skin-item.previewing { outline: 2px solid #a5b4fc; outline-offset: -3px; }
+#dlg-shop .card { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+
+/* Installation and update notices wait for the home screen, clear of controls. */
+body:not(.at-home) #install-banner, body:not(.at-home) #update-banner { display: none; }
+#bonus-banner { position: static; transform: none; display: none; flex: 0 0 auto; align-self: center; margin: 4px 8px; }
+#bonus-banner.show { display: flex; transform: none; }

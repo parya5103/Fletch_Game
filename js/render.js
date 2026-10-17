@@ -13,6 +13,16 @@ const Render = (function() {
   // Swapped at runtime by UI.setSkinPalette() when the player equips a skin.
   var activePalette = (GameCore.PALETTE || []).slice();
   const DIRS = GameCore.DIRS;
+  var arrowStyle = 'classic';
+  function setSkin(skin) { arrowStyle = skin.style || 'classic'; setPalette(skin.colors); }
+  function setBoardSkin(id) {
+    if (!Object.prototype.hasOwnProperty.call(GameCore.COSMETICS.boards, id)) id = 'default';
+    if (canvas) canvas.setAttribute('data-board-skin', id);
+  }
+  function reducedMotion() {
+    return Storage.getSave().settings.reducedMotion ||
+      !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
 
   function setPalette(colors) {
     if (colors && colors.length) {
@@ -29,14 +39,17 @@ const Render = (function() {
 
   function invalidate() { layerKey = ''; needsRender = true; ensureLoop(); }
   function clampCamera() {
-    const min = view.side * (1 - camera.zoom);
-    camera.x = Math.max(min, Math.min(0, camera.x));
-    camera.y = Math.max(min, Math.min(0, camera.y));
+    if (!view || !gameState) return;
+    function axis(offset, viewport, board) {
+      return board <= viewport ? (viewport - board) / 2 : Math.max(viewport - board, Math.min(0, offset));
+    }
+    camera.x = axis(camera.x, view.width, gameState.cols * view.cell * camera.zoom);
+    camera.y = axis(camera.y, view.height, gameState.rows * view.cell * camera.zoom);
     const label = document.getElementById('board-view-label');
     if (label) label.textContent = view.cell * camera.zoom < 24
       ? 'Overview · tap to zoom' : 'Tap an arrow · drag to pan';
   }
-  function zoomAt(zoom, x = view.side / 2, y = view.side / 2) {
+  function zoomAt(zoom, x = view.width / 2, y = view.height / 2) {
     if (!view.cell) return;
     zoom = Math.max(1, Math.min(Math.max(1, 64 / view.cell), zoom));
     const factor = zoom / camera.zoom;
@@ -55,7 +68,7 @@ const Render = (function() {
   }
   function screenToCell(x, y) {
     if (!view.cell || !Number.isFinite(x) || !Number.isFinite(y) ||
-        x < 0 || y < 0 || x >= view.side || y >= view.side) return null;
+        x < 0 || y < 0 || x >= view.width || y >= view.height) return null;
     return { x: Math.floor((x - camera.x) / camera.zoom / view.cell),
       y: Math.floor((y - camera.y) / camera.zoom / view.cell) };
   }
@@ -64,8 +77,8 @@ const Render = (function() {
     if (!a || !view.cell) return;
     const h = a.cells[a.cells.length - 1];
     camera.zoom = Math.max(camera.zoom, 44 / view.cell);
-    camera.x = view.side / 2 - (h.x + 0.5) * view.cell * camera.zoom;
-    camera.y = view.side / 2 - (h.y + 0.5) * view.cell * camera.zoom;
+    camera.x = view.width / 2 - (h.x + 0.5) * view.cell * camera.zoom;
+    camera.y = view.height / 2 - (h.y + 0.5) * view.cell * camera.zoom;
     clampCamera(); invalidate();
   }
   function visible(a) {
@@ -80,7 +93,7 @@ const Render = (function() {
     }
     const cell = view.cell * camera.zoom;
     return b.maxX * cell + camera.x >= 0 && b.maxY * cell + camera.y >= 0 &&
-      b.minX * cell + camera.x <= view.side && b.minY * cell + camera.y <= view.side;
+      b.minX * cell + camera.x <= view.width && b.minY * cell + camera.y <= view.height;
   }
   function worldTransform() {
     ctx.setTransform(dpr * camera.zoom, 0, 0, dpr * camera.zoom, dpr * camera.x, dpr * camera.y);
@@ -89,7 +102,7 @@ const Render = (function() {
   function init(element) {
     canvas = element;
     ctx = canvas.getContext('2d');
-    view = { side: 300, cell: 60 };
+    view = { side: 300, width: 300, height: 300, cell: 60 };
     needsRender = true;
     loopOn = false;
     lastT = 0;
@@ -108,24 +121,44 @@ const Render = (function() {
     var wrap = document.getElementById('board-wrap');
     if (!wrap) return;
     
-    var w = wrap.clientWidth, h = wrap.clientHeight;
+    var style = window.getComputedStyle ? window.getComputedStyle(wrap) : {};
+    var w = Math.floor(wrap.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0));
+    var h = Math.floor(wrap.clientHeight - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0));
     if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0 ||
-        !Number.isInteger(gameState.cols) || gameState.cols <= 0) {
+        !Number.isInteger(gameState.cols) || gameState.cols <= 0 || !Number.isInteger(gameState.rows) || gameState.rows <= 0) {
       view.side = view.cell = 0;
       return;
     }
-    var side = Math.max(1, Math.floor(Math.min(w, h)));
+    // Preserve the world point at the viewport centre through address-bar
+    // changes and rotation; a fitted view remains fitted. Uniform cells only.
+    var oldCell = view.cell, oldZoom = camera.zoom;
+    var cx = (view.width / 2 - camera.x) / (oldCell * oldZoom);
+    var cy = (view.height / 2 - camera.y) / (oldCell * oldZoom);
     var ratio = window.devicePixelRatio;
     dpr = Number.isFinite(ratio) && ratio > 0 ? Math.min(ratio, 2) : 1;
-    
-    canvas.style.width = side + 'px';
-    canvas.style.height = side + 'px';
-    canvas.width = Math.round(side * dpr);
-    canvas.height = Math.round(side * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    
-    view.side = side;
-    view.cell = side / gameState.cols;
+    canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    view.width = w; view.height = h; view.side = Math.min(w, h);
+    view.cell = Math.min(Math.max(1, w - 4) / gameState.cols, Math.max(1, h - 4) / gameState.rows);
+    if (oldZoom > 1 && oldCell > 0) {
+      camera.zoom = Math.max(1, Math.min(64 / view.cell, oldCell * oldZoom / view.cell));
+      camera.x = w / 2 - cx * view.cell * camera.zoom;
+      camera.y = h / 2 - cy * view.cell * camera.zoom;
+    }
+    // Exit tracks are stored in world pixels; keep them aligned if rotation
+    // changes the cell size while an arrow is still leaving the board.
+    if (oldCell > 0 && oldCell !== view.cell) {
+      var factor = view.cell / oldCell;
+      (gameState.flying || []).forEach(function(f) {
+        f.pts.forEach(function(p) { p[0] *= factor; p[1] *= factor; });
+        f.arc = f.arc.map(function(a) { return a * factor; });
+        f.bodyLen *= factor; f.travel *= factor;
+        if (f.dist !== undefined) f.dist *= factor;
+      });
+      (gameState.particles || []).forEach(function(p) {
+        p.x *= factor; p.y *= factor; p.vx *= factor; p.vy *= factor; p.r *= factor;
+      });
+    }
     if (!layer) {
       layer = document.createElement('canvas');
       layerCtx = layer.getContext('2d');
@@ -282,7 +315,7 @@ const Render = (function() {
 
     // Special piece: breathing golden glow under the whole arrow
     if (isSpecial) {
-      var gp = 0.5 + 0.5 * Math.sin(performance.now() / 220);
+      var gp = reducedMotion() ? 0.5 : 0.5 + 0.5 * Math.sin(performance.now() / 220);
       ctx.save();
       ctx.globalAlpha = alpha * (0.30 + 0.30 * gp);
       ctx.strokeStyle = '#ffd166';
@@ -294,37 +327,14 @@ const Render = (function() {
       piecePath(P, cell);
     }
 
-    // Subtle dark outline pass: keeps thin arrows readable, stays slim
-    ctx.strokeStyle = shadeColor(color, -45);
-    ctx.lineWidth = lw * 1.5;
-    ctx.stroke();
-
-    // Thin colored body
-    ctx.strokeStyle = color;
-    ctx.lineWidth = lw;
-    ctx.stroke();
-
-    // Light interior core: outlined-path look, delicate white line
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-    ctx.lineWidth = lw * 0.28;
-    ctx.stroke();
-
-    // Arrowhead: solid filled triangle in the path color. Only the two
-    // slanted edges get the dark outline, so the head joins the shaft
-    // with no seam, gap or doubled edge, and the tip points exactly in
-    // P.dir.
-    headPath(P, cell);
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.beginPath();
-    headSidesAppend(P, cell);
-    ctx.strokeStyle = shadeColor(color, -45);
-    ctx.lineWidth = lw * 0.9;
-    ctx.stroke();
+    paintShaft(color, lw, cell);
+    var head = cells[cells.length - 1], dir = DIRS[P.dir];
+    paintHead((head.x + .5 + dir[0] * .46) * cell,
+      (head.y + .5 + dir[1] * .46) * cell, P.dir, cell, color, lw);
 
     // Hint halo: white pulse around the whole hinted arrow
     if (isHinted) {
-      var hp = 0.5 + 0.5 * Math.sin(performance.now() / 160);
+      var hp = reducedMotion() ? 0.5 : 0.5 + 0.5 * Math.sin(performance.now() / 160);
       ctx.globalAlpha = alpha * (0.35 + 0.5 * hp);
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = lw * (1.5 + 0.7 * hp);
@@ -333,6 +343,72 @@ const Render = (function() {
     }
 
     ctx.restore();
+  }
+
+  // Decoration stays inside each owned corridor. No geometry or hitbox changes.
+  // Static paths are cached; texture is omitted at overview scale.
+  function paintShaft(color, lw, cell) {
+    ctx.strokeStyle = arrowStyle === 'classic' ? shadeColor(color, -45) : '#050b18'; ctx.lineWidth = lw * (arrowStyle === 'classic' ? 1.5 : 2); ctx.stroke();
+    ctx.strokeStyle = color; ctx.lineWidth = lw * (arrowStyle === 'classic' ? 1 : 1.45); ctx.stroke();
+    ctx.strokeStyle = arrowStyle === 'neon' ? '#091126' : 'rgba(255,255,255,.5)';
+    ctx.lineWidth = lw * (arrowStyle === 'neon' ? .65 : .28); ctx.stroke();
+    if (arrowStyle !== 'classic' && cell * camera.zoom >= 16) {
+      ctx.save();
+      ctx.strokeStyle = arrowStyle === 'fire' ? '#fff2aa' : '#ffffff';
+      ctx.lineWidth = lw * .5;
+      if (arrowStyle === 'ice') ctx.setLineDash([cell * .08, cell * .27]);
+      else if (arrowStyle === 'lightning') ctx.setLineDash([cell * .2, cell * .12]);
+      else if (arrowStyle === 'gold') ctx.setLineDash([cell * .32, cell * .05]);
+      else if (arrowStyle === 'fire') ctx.setLineDash([cell * .04, cell * .19]);
+      else ctx.globalAlpha *= .3;
+      ctx.stroke(); ctx.restore();
+    }
+  }
+
+  function paintHead(x, y, dir, cell, color, lw) {
+    ctx.save(); ctx.lineJoin = 'round';
+    var d = DIRS[dir], px = -d[1], py = d[0];
+    // Coordinates measured backwards from the tip, in cell units.
+    var points = arrowStyle === 'ice' ? [[0,0],[.42,.23],[.36,0],[.42,-.23]] :
+      arrowStyle === 'fire' ? [[0,0],[.39,.22],[.29,.07],[.43,0],[.29,-.07],[.39,-.22]] :
+      arrowStyle === 'lightning' ? [[0,0],[.21,.22],[.21,.07],[.43,.13],[.31,-.04],[.36,-.20]] :
+      [[0,0],[.36,.20],[.36,-.20]];
+    ctx.beginPath();
+    points.forEach(function(p, i) {
+      var tx = x - d[0] * p[0] * cell + px * p[1] * cell;
+      var ty = y - d[1] * p[0] * cell + py * p[1] * cell;
+      if (i) ctx.lineTo(tx, ty); else ctx.moveTo(tx, ty);
+    });
+    ctx.closePath();
+    ctx.fillStyle = arrowStyle === 'neon' ? '#091126' : color; ctx.fill();
+    ctx.strokeStyle = arrowStyle === 'neon' ? color : shadeColor(color, -45);
+    if (arrowStyle === 'classic') {
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - d[0] * .36 * cell + px * .20 * cell, y - d[1] * .36 * cell + py * .20 * cell);
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - d[0] * .36 * cell - px * .20 * cell, y - d[1] * .36 * cell - py * .20 * cell);
+    }
+    ctx.lineWidth = lw * (arrowStyle === 'classic' ? .9 : .8); ctx.stroke();
+    if (arrowStyle === 'ice' || arrowStyle === 'gold' || arrowStyle === 'fire') {
+      ctx.beginPath(); ctx.moveTo(x, y);
+      ctx.lineTo(x - d[0] * .32 * cell + px * .12 * cell, y - d[1] * .32 * cell + py * .12 * cell);
+      ctx.lineTo(x - d[0] * .31 * cell, y - d[1] * .31 * cell); ctx.closePath();
+      ctx.fillStyle = 'rgba(255,255,255,.65)'; ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // Shop uses the production renderer; preview never mutates equipment/game state.
+  function drawPreview(target, skin) {
+    var previous = { ctx: ctx, palette: activePalette, style: arrowStyle };
+    try {
+      ctx = target.getContext('2d'); activePalette = skin.colors; arrowStyle = skin.style;
+      ctx.clearRect(0, 0, target.width, target.height);
+      ctx.save(); ctx.scale(target.width / 180, target.height / 96);
+      drawPiece({ cells: [{x:0,y:2},{x:1,y:2},{x:1,y:1},{x:2,y:1},{x:3,y:1},{x:4,y:1}], dir:1, c:0 }, 32, 1, 1, false, false, 8, 0);
+      ctx.restore();
+    } finally { ctx = previous.ctx; activePalette = previous.palette; arrowStyle = previous.style; }
   }
 
   // Snake exit animation: the arrowhead leads along the piece's exit
@@ -372,9 +448,9 @@ const Render = (function() {
     // corridor: the tail must travel bodyLen plus this to leave fully.
     var tip = pts[pts.length - 1];
     var toEdge = dv === -1 ? tip[1]
-      : dv === 1 ? (view.side - tip[1])
+      : dv === 1 ? (gameState.rows * cell - tip[1])
       : du === -1 ? tip[0]
-      : (view.side - tip[0]);
+      : (gameState.cols * cell - tip[0]);
     if (!(toEdge >= 0)) toEdge = 0;
     // The golden bonus piece exits gold even if the bonus is claimed
     // (banner flips off) the moment the launch happens.
@@ -390,7 +466,7 @@ const Render = (function() {
       bodyLen: bodyLen,
       travel: bodyLen + toEdge + cell * 0.8,
       t0: performance.now(),
-      dur: (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+      dur: reducedMotion()
         ? 1 : Math.min(900, 260 + n * 42),
       onDone: onDone || null
     });
@@ -461,42 +537,15 @@ const Render = (function() {
       ctx.restore();
     }
 
-    // Same three shaft passes as a resting piece
-    ctx.strokeStyle = shadeColor(color, -45);
-    ctx.lineWidth = lw * 1.5;
-    ctx.stroke();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = lw;
-    ctx.stroke();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-    ctx.lineWidth = lw * 0.28;
-    ctx.stroke();
-
-    // Arrowhead at the moving tip, pointing exactly along the exit dir
+    paintShaft(color, lw, cell);
     var tip = snakePos(P, endArc);
-    ctx.beginPath();
-    ctx.moveTo(tip[0], tip[1]);
-    ctx.lineTo(base[0] + px * hw, base[1] + py * hw);
-    ctx.lineTo(base[0] - px * hw, base[1] - py * hw);
-    ctx.closePath();
-    ctx.fillStyle = color;
-    ctx.fill();
-    // Only the two slanted head edges get the dark outline (no seam
-    // across the shaft joint), exactly like a resting piece
-    ctx.beginPath();
-    ctx.moveTo(tip[0], tip[1]);
-    ctx.lineTo(base[0] + px * hw, base[1] + py * hw);
-    ctx.moveTo(tip[0], tip[1]);
-    ctx.lineTo(base[0] - px * hw, base[1] - py * hw);
-    ctx.strokeStyle = shadeColor(color, -45);
-    ctx.lineWidth = lw * 0.9;
-    ctx.stroke();
+    paintHead(tip[0], tip[1], P.dir, cell, color, lw);
 
     ctx.restore();
   }
 
   function spawnConfetti() {
-    if (!gameState || !view.side) return;
+    if (!gameState || !view.side || reducedMotion()) return;
     var side = view.side;
     for (var k = 0; k < 30; k++) {
       var ang = (Math.PI * 2 * k) / 30 + Math.random() * 0.6;
@@ -516,7 +565,7 @@ const Render = (function() {
 
   // Combo burst: small particle explosion at a launched piece's centroid
   function spawnBurst(i, state) {
-    if (!gameState || !gameState.arrows[i]) return;
+    if (!gameState || !gameState.arrows[i] || reducedMotion()) return;
     if (!view || !(view.cell > 0)) return;
     var A = gameState.arrows[i];
     var cell = view.cell;
@@ -609,9 +658,9 @@ const Render = (function() {
   function render(now) {
     if (!gameState || !canvas || !layer || !view.cell) return;
     
-    var side = view.side, cell = view.cell;
+    var cell = view.cell;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, side, side);
+    ctx.clearRect(0, 0, view.width, view.height);
     worldTransform();
     var cols = gameState.cols;
 
@@ -662,7 +711,7 @@ const Render = (function() {
       layerKey = key;
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.drawImage(layer, 0, 0, side, side);
+    ctx.drawImage(layer, 0, 0, view.width, view.height);
     worldTransform();
     for (var i = 0; i < gameState.arrows.length; i++) {
       var A = gameState.arrows[i];
@@ -703,7 +752,7 @@ const Render = (function() {
     resetView: resetView,
     screenToCell: screenToCell,
     focusPiece: focusPiece,
-    getView: function() { return { ...camera, cell: view.cell, side: view.side }; },
+    getView: function() { return { ...camera, cell: view.cell, side: view.side, width: view.width, height: view.height }; },
     init: init,
     setGameState: setGameState,
     fitCanvas: fitCanvas,
@@ -711,6 +760,9 @@ const Render = (function() {
     spawnBurst: spawnBurst,
     spawnConfetti: spawnConfetti,
     setPalette: setPalette,
+    setSkin: setSkin,
+    setBoardSkin: setBoardSkin,
+    drawPreview: drawPreview,
     ensureLoop: ensureLoop,
     needsRender: function() { needsRender = true; },
     getCanvas: function() { return canvas; },

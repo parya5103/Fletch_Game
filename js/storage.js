@@ -38,6 +38,8 @@ const Storage = (function() {
       bonusClaimed: {},
       skin: 'default',
       owned: { default: true },
+      boardSkin: 'default',
+      ownedBoards: { default: true },
       loginRewards: {
         lastClaim: null,
         streak: 0
@@ -212,6 +214,11 @@ const Storage = (function() {
       if (Object.prototype.hasOwnProperty.call(d.owned, ok) && d.owned[ok] !== true) delete d.owned[ok];
     }
     d.owned.default = true;
+    if (!d.ownedBoards || typeof d.ownedBoards !== 'object' || Array.isArray(d.ownedBoards)) d.ownedBoards = {};
+    Object.keys(d.ownedBoards).forEach(function(id) { if (d.ownedBoards[id] !== true) delete d.ownedBoards[id]; });
+    d.ownedBoards.default = true;
+    if (typeof d.boardSkin !== 'string' || !Object.prototype.hasOwnProperty.call(GameCore.COSMETICS.boards, d.boardSkin) ||
+        d.ownedBoards[d.boardSkin] !== true) d.boardSkin = 'default';
 
     if (!d.loginRewards || typeof d.loginRewards !== 'object' || Array.isArray(d.loginRewards)) d.loginRewards = defaultSave().loginRewards;
     d.loginRewards.lastClaim = toDateString(d.loginRewards.lastClaim);
@@ -372,6 +379,29 @@ const Storage = (function() {
     return true;
   }
 
+  // One synchronous write commits coins, ownership and equipment together.
+  // Re-check current ownership on every invocation, including stale/double taps.
+  function cosmeticAction(category, id, purchase) {
+    if (!Object.prototype.hasOwnProperty.call(GameCore.COSMETICS, category)) return 'invalid';
+    var catalog = GameCore.COSMETICS[category];
+    if (!catalog || !Object.prototype.hasOwnProperty.call(catalog, id)) return 'invalid';
+    var item = catalog[id], ownedKey = category === 'boards' ? 'ownedBoards' : 'owned';
+    var equippedKey = category === 'boards' ? 'boardSkin' : 'skin';
+    var owned = save[ownedKey][id] === true;
+    if (!owned && !purchase) return 'locked';
+    if (!owned && (item.currency !== 'coins' || !Number.isInteger(item.price) || item.price < 0)) return 'invalid';
+    if (!owned && save.coins < item.price) return 'insufficient';
+    var before = { coins: save.coins, equipped: save[equippedKey] };
+    if (!owned) { save.coins -= item.price; save[ownedKey][id] = true; }
+    save[equippedKey] = id;
+    if (!persist()) {
+      save.coins = before.coins; save[equippedKey] = before.equipped;
+      if (!owned) delete save[ownedKey][id];
+      return 'storage';
+    }
+    return owned ? 'equipped' : 'purchased';
+  }
+
   // Update hints used
   function updateHintsUsed(count) {
     save.stats.hintsUsed += count;
@@ -408,6 +438,7 @@ const Storage = (function() {
     updateMistakes: updateMistakes,
     addCoins: addCoins,
     spendCoins: spendCoins,
+    cosmeticAction: cosmeticAction,
     resetAll: resetAll,
     isStorageOk: isStorageOk,
     persist: persist,

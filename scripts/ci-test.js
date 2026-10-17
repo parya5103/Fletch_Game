@@ -506,7 +506,7 @@ console.log('# skins shop sanity');
 {
   const ids = Object.keys(GC.SKINS);
   check('default skin exists and is free', !!GC.SKINS.default && GC.SKINS.default.price === 0);
-  check('shop has 16 skins', ids.length === 16, 'found ' + ids.length);
+  check('shop retains 16 legacy skins and adds Lightning', ids.length === 17, 'found ' + ids.length);
   let allOk = true, detail = '';
   for (const id of ids) {
     const s = GC.SKINS[id];

@@ -17,16 +17,16 @@ const GameCore = (function() {
   const PALETTE = ['#ff5d8f', '#ff9f43', '#ffd93d', '#4ade80', '#2dd4bf', '#38bdf8', '#818cf8', '#c084fc'];
   // Cosmetic arrow skins (same 8 slots as PALETTE so any board maps 1:1)
   const SKINS = {
-    default: { name: 'Classic Neon', price: 0, colors: PALETTE.slice() },
+    default: { name: 'Classic', price: 0, colors: PALETTE.slice() },
     candy:   { name: 'Candy Pop',     price: 300, colors: ['#ff6b9d', '#ffb3c6', '#ffd93d', '#ff8fab', '#a2d2ff', '#bde0fe', '#cdb4db', '#ffafcc'] },
     sunset:  { name: 'Sunset Heat',   price: 500, colors: ['#ff4d6d', '#ff7b54', '#ffa62b', '#ffd93d', '#ff9a8b', '#ff6b6b', '#f76b8a', '#f8961e'] },
     ocean:   { name: 'Deep Ocean',    price: 500, colors: ['#00d4ff', '#00b4d8', '#48cae4', '#90e0ef', '#0077b6', '#0096c7', '#62d0ff', '#ade8f4'] },
     forest:  { name: 'Forest Mint',   price: 800, colors: ['#4ade80', '#22c55e', '#86efac', '#16a34a', '#34d399', '#a7f3d0', '#10b981', '#6ee7b7'] },
     royal:   { name: 'Royal Gold',    price: 1100, colors: ['#ffd700', '#ffb300', '#ffe066', '#f59e0b', '#d4af37', '#fff3b0', '#eab308', '#fde047'] },
     galaxy:  { name: 'Galaxy Vibes',  price: 1400, colors: ['#c084fc', '#a855f7', '#8b5cf6', '#e879f9', '#7c3aed', '#d946ef', '#6366f1', '#f0abfc'] },
-    ember:   { name: 'Ember Glow',    price: 1700, colors: ['#ff4d00', '#ff6b35', '#ff9f1c', '#ffd60a', '#e63946', '#d62828', '#ff7b00', '#ffba08'] },
-    ice:     { name: 'Ice Frost',     price: 2000, colors: ['#d0f4ff', '#a8e0ff', '#79c8ff', '#bde0fe', '#e0f7ff', '#99e2f5', '#c4e5ff', '#8ecae6'] },
-    cyber:   { name: 'Cyber Neon',    price: 2300, colors: ['#39ff14', '#00ff9f', '#00fff7', '#f3ff00', '#ff00e6', '#00ffcc', '#76ff03', '#ff40ff'] },
+    ember:   { name: 'Fire',    price: 1700, colors: ['#ff4d00', '#ff6b35', '#ff9f1c', '#ffd60a', '#e63946', '#d62828', '#ff7b00', '#ffba08'] },
+    ice:     { name: 'Ice Crystal',     price: 2000, colors: ['#d0f4ff', '#a8e0ff', '#79c8ff', '#bde0fe', '#e0f7ff', '#99e2f5', '#c4e5ff', '#8ecae6'] },
+    cyber:   { name: 'Neon',    price: 2300, colors: ['#39ff14', '#00ff9f', '#00fff7', '#f3ff00', '#ff00e6', '#00ffcc', '#76ff03', '#ff40ff'] },
     mono:    { name: 'Mono Slate',    price: 2600, colors: ['#f8f9fa', '#dee2e6', '#adb5bd', '#6c757d', '#495057', '#ced4da', '#868e96', '#343a40'] },
     aurora:  { name: 'Aurora Night',  price: 3000, isNew: true, colors: ['#7ef9ff', '#00e5ff', '#5eead4', '#2dd4bf', '#8b5cf6', '#a78bfa', '#c4b5fd', '#7c3aed'] },
     lava:    { name: 'Lava Burst',    price: 3400, isNew: true, colors: ['#ff6d3a', '#ff4800', '#ff8500', '#ffa000', '#ffd000', '#e63946', '#d62828', '#f77f00'] },
@@ -34,6 +34,28 @@ const GameCore = (function() {
     carnival:{ name: 'Carnival Rush', price: 4200, isNew: true, colors: ['#ff4d6d', '#ff9a00', '#ffd60a', '#7ae582', '#4cc9f0', '#7b2cbf', '#f72585', '#ffd166'] },
     rainbow: { name: 'Prism Vibes',   price: 4600, isNew: true, colors: ['#ff595e', '#ffca3a', '#8ac926', '#36f1cd', '#1982c4', '#6a4c93', '#ff6f91', '#a0e7e5'] }
   };
+  // Stable legacy IDs preserve all existing purchases. Prices live only here.
+  SKINS.lightning = { name: 'Lightning', price: 2400, colors: ['#a5f3fc', '#fde68a', '#c4b5fd', '#67e8f9', '#e0f2fe', '#fef08a', '#93c5fd', '#ddd6fe'] };
+  const styles = { ice: ['ice', 'Frosted crystal shafts and faceted tips.'],
+    ember: ['fire', 'Ember trails and flame-shaped arrowheads.'],
+    lightning: ['lightning', 'Electric traces and angular bolt tips.'],
+    cyber: ['neon', 'Luminous rails and hollow neon tips.'],
+    royal: ['gold', 'Metallic bands and polished gold tips.'] };
+  Object.keys(SKINS).forEach(function(id) {
+    SKINS[id].style = styles[id] ? styles[id][0] : 'classic';
+    SKINS[id].description = styles[id] ? styles[id][1] : 'Classic winding arrows in ' + SKINS[id].name + ' colours.';
+    SKINS[id].currency = 'coins';
+  });
+  const BOARD_SKINS = {
+    default: { name: 'Classic Night', price: 0, description: 'The original quiet midnight surface.' },
+    ice: { name: 'Ice Crystal', price: 800, description: 'Frozen blue glass with fine frost edges.' },
+    galaxy: { name: 'Galaxy', price: 1200, description: 'Distant stars over a violet nebula.' },
+    cyber: { name: 'Neon Cyber', price: 1600, description: 'A restrained electric grid and neon rim.' },
+    forest: { name: 'Forest', price: 1000, description: 'Deep woodland greens and organic grain.' }
+  };
+  Object.keys(BOARD_SKINS).forEach(function(id) { BOARD_SKINS[id].currency = 'coins'; });
+  // Future real-money entitlements require server verification, not this coin API.
+  const COSMETICS = { arrows: SKINS, boards: BOARD_SKINS };
   const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]]; // up, right, down, left
   const DIFFICULTY_THRESHOLDS = {
     easy: 50,
@@ -695,6 +717,7 @@ const GameCore = (function() {
     FREE_HINTS: FREE_HINTS,
     PALETTE: PALETTE,
     SKINS: SKINS,
+    COSMETICS: COSMETICS,
     DIRS: DIRS,
     FAMILIES: FAMILIES.slice(),
     familyOf: familyOf,
