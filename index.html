@@ -179,6 +179,12 @@
       <button id="btn-zoom-in" class="btn" aria-label="Zoom in">+</button>
       <button id="btn-board-fit" class="btn" aria-label="Show whole board">Fit</button>
     </div>
+    <!-- Timed bonus objective banner -->
+    <div id="bonus-banner" role="status" aria-live="polite" aria-hidden="true">
+      <span class="bb-coin" id="bonus-coins">+25</span>
+      <span class="bb-label">bonus</span>
+      <span class="bb-time" id="bonus-time">0:30</span>
+    </div>
     <main id="board-wrap">
       <canvas id="board" role="img" aria-label="Arrow puzzle board. Tap an arrow with a clear path to send it off the board."></canvas>
       <div id="combo-badge" aria-hidden="true"></div>
@@ -207,13 +213,6 @@
 
     <!-- Level intro banner -->
     <div id="level-banner" aria-hidden="true"></div>
-
-    <!-- Timed bonus objective banner -->
-    <div id="bonus-banner" role="status" aria-live="polite" aria-hidden="true">
-      <span class="bb-coin" id="bonus-coins">+25</span>
-      <span class="bb-label">bonus</span>
-      <span class="bb-time" id="bonus-time">0:30</span>
-    </div>
   </div>
 
   <!-- TOAST NOTIFICATION -->
@@ -558,10 +557,16 @@
       <button class="btn icon close-x" data-close type="button" aria-label="Close shop">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>
-      <h2 id="shop-title">Arrow skins</h2>
-      <p class="sub">Coins come from winning levels &mdash; everything here is free, no purchases.</p>
+      <h2 id="shop-title">Style your game</h2>
+      <p class="sub">Earn coins by playing. Preview freely, then buy with game coins.</p>
       <div id="shop-coins" class="shop-coins" aria-live="polite"></div>
-      <div id="shop-grid"></div>
+      <div class="shop-tabs" role="tablist" aria-label="Cosmetic category">
+        <button id="shop-tab-boards" class="btn" role="tab" aria-selected="true" aria-controls="shop-grid">Board Skins</button>
+        <button id="shop-tab-arrows" class="btn" role="tab" aria-selected="false" aria-controls="shop-grid" tabindex="-1">Arrow Skins</button>
+      </div>
+      <canvas id="shop-preview" width="540" height="288" role="img" aria-label="Selected cosmetic preview"></canvas>
+      <p id="shop-preview-label" tabindex="-1" aria-live="polite"></p>
+      <div id="shop-grid" role="tabpanel" aria-labelledby="shop-tab-boards"></div>
     </div>
   </div>
 

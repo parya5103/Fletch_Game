@@ -44,7 +44,9 @@ jobs:
           node scripts/audit-test.js
 
       - name: Dense boards, camera, touch and save compatibility
-        run: node scripts/density-test.js
+        run: |
+          node scripts/density-test.js
+          node scripts/cosmetics-test.js
 
       - name: Independent full campaign and daily validation
         run: timeout 180s node scripts/validate-levels.js
