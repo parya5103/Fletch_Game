@@ -584,7 +584,14 @@ const GameCore = (function() {
   // order), so they can never trap an earlier piece's exit. Head rays
   // are checked against GLOBAL per-line occupancy extremes, so a head
   // is only ever seeded where its whole ray is currently clear.
-  var BUDGET_SCHEDULE = [0.75, 0.72, 0.70, 0.68, 0.66];
+  // v4 Phase 2C: lean-budget retries. The first five values are the
+  // original Phase 2B schedule (unchanged, so any level that already
+  // hit its exact target there still picks the identical board - the
+  // retry seed depends only on the tries index). The leaner tail gives
+  // dense levels (L250+) extra deterministic retries with shorter
+  // pieces, which measurably raises placement counts. Fixed length,
+  // so the retry loop stays bounded; best-valid fallback unchanged.
+  var BUDGET_SCHEDULE = [0.75, 0.72, 0.70, 0.68, 0.66, 0.64, 0.62, 0.60, 0.58, 0.56, 0.54, 0.52];
 
   // Big boards are full squares (every cell is board).
   function stripShape(W, H) {

@@ -9,8 +9,9 @@ service worker v30 -> v31 at the end.
 - Phase 0 inspect + checkpoint: DONE (commit 414c0b8e).
 - Recovery restore of preserved v4 engine: DONE (commit 72c7810e).
 - Phase 2A deferred-drop bug fix: DONE (commit 1d8c1e6a).
-- Phase 2B lane-capacity fix (head-seed order): DONE (this commit).
-  Exact arrow counts still fail above ~200 arrows (open bug below).
+- Phase 2B lane-capacity fix (head-seed order): DONE (commit 4183cc65).
+- Phase 2C lean-budget retries: DONE (this commit).
+  All four rep levels now hit EXACT target counts.
 - Phase 3 (large-board navigation): NOT STARTED.
 - Phase 4 (rendering/performance): NOT STARTED.
 - Phase 5 (1-1000 validation): PARTIALLY RUN (results below).
@@ -45,17 +46,18 @@ service worker v30 -> v31 at the end.
   places cells on its own exit ray; descending-step removal solves the
   board by construction. Placement is a global round-robin across the
   four lanes (makeLanePlacer + carveStrips) with strict (decent-length)
-  and lenient (exact-count top-up) phases; budget retries 0.75..0.66
-  until arrows.length === cfg.pieces AND validateBigSolution passes.
+  and lenient (exact-count top-up) phases; budget retries now
+  0.75..0.52 until arrows.length === cfg.pieces AND validateBigSolution
+  passes.
 - validateBigSolution is exported for scripts/ci-test.js.
 
 ## js/game.js on this branch
 Restored byte-identical from the preserved development backup in
 recovery commit 72c7810e (1088 lines, 47152 bytes, md5 7625ca7f...);
-Phase 2A fix applied on top (1093 lines, 47535 bytes); Phase 2B
-head-seed order fix applied on top of that (1100 lines, 48009 bytes).
-The original backup and separate snapshot copies remain in the agent's
-persistent store.
+Phase 2A fix on top (1093 lines, 47535 bytes); Phase 2B head-seed
+order fix on top (1100 lines, 48009 bytes); Phase 2C lean-budget retry
+schedule on top of that (1107 lines, 48537 bytes). The original backup
+and separate snapshot copies remain in the agent's persistent store.
 - Patched: levelConfig override, whole big-board block, genLevel branch,
   validateBigSolution export.
 - Bug history: (1) head cells seeded without an occupancy check ->
@@ -65,7 +67,10 @@ persistent store.
   capacity-aware global round-robin placer.
   (3) natural head-seed order poisoned whole lines in the UP and LEFT
   lanes (~1 head/column, ~1 head/row) -> starved boards -> FIXED in
-  Phase 2B (see below).
+  Phase 2B.
+  (4) only 5 fill-budget retries, all too fat for dense targets
+  (L250/500/1000 fell 1-16% short) -> FIXED in Phase 2C by extending
+  the retry schedule with leaner budgets.
 
 ## Phase 2A (commit 1d8c1e6a): deferred-drop bug FIXED
 - Root cause: makeLanePlacer.placeOne()'s deferred loop SHIFTED every
@@ -81,7 +86,7 @@ persistent store.
 - Lane-capacity policy, board dimensions, budgets and levelConfig are
   UNTOUCHED in that phase.
 
-## Phase 2B (this commit): head-seed ray-axis order FIXED
+## Phase 2B (commit 4183cc65): head-seed ray-axis order FIXED
 - Root cause (measured with a throwaway instrumented copy, never
   committed): makeLanePlacer built its head queue in each line's
   natural order. For the UP lane the first seed in a column sat at the
@@ -99,14 +104,40 @@ persistent store.
 - Before -> after arrow counts (same targets):
   L100 99/116 -> 116/116 EXACT; L250 181/289 -> 288/289;
   L500 333/576 -> 485/576; L1000 313/576 -> 491/576.
-- Remaining gap measured (instrumented, in-memory only, not part of
-  the committed code): every lane consumes its FULL candidate queue
-  (qi == qlen == 1296 on the 72x72 reps) with an empty deferred queue
-  at the end; most candidates die on ray-clearance / occupancy /
-  growth checks as the strips fill. The remaining shortfall is
-  intrinsic density pressure, not a lost-placement bug. Leaner budget
-  retries place more pieces (measured L500: 415@0.75, 487@0.72,
-  502@0.68), so extra lean retries are the natural Phase 2C lever.
+- Diagnostics showed every lane consumes its FULL candidate queue
+  with an empty deferred queue at the end; the remaining shortfall was
+  intrinsic density pressure, which Phase 2C addresses.
+
+## Phase 2C (this commit): lean-budget retries
+- Change (one line + comment): BUDGET_SCHEDULE extended from
+  [0.75, 0.72, 0.70, 0.68, 0.66] to
+  [0.75, 0.72, 0.70, 0.68, 0.66, 0.64, 0.62, 0.60, 0.58, 0.56, 0.54, 0.52].
+  The first five values are byte-identical to Phase 2B, and the retry
+  seed depends only on the tries index, so any level that already hit
+  its exact target still picks the identical board. The leaner tail
+  gives dense levels extra deterministic retries with shorter pieces
+  (want shrinks with the budget), which measurably raises placement
+  counts. Fixed schedule length keeps the loop bounded; the
+  accept-only-exact+valid rule and best-valid fallback are unchanged.
+- Investigation first (in-memory probe with a stub color fn, never
+  committed): lean budgets raise counts monotonically-ish on dense
+  levels (L500: 415@0.75 ... 576@0.60 probe), so the tail was capped at
+  0.52 to avoid pushing piece quality further than needed. Piece
+  quality at the winning tries stays sane (avg 4.7-6.4 cells, only
+  4-8.5% two-cell pieces, same >=2-cell rule as before).
+- Real results (selected try measured with an instrumented in-memory
+  copy of the real code path):
+  * L100: 116/116 EXACT, picked try 0 (bf 0.75) - identical board to
+    Phase 2B, proving the head of the schedule is untouched.
+  * L250: 289/289 EXACT (was 288/289), picked try 7 (bf 0.60).
+  * L500: 576/576 EXACT (was 485/576), picked try 8 (bf 0.58).
+  * L1000: 576/576 EXACT (was 491/576), picked try 9 (bf 0.56).
+- All four boards: validateBigSolution PASS, deterministic repeat PASS.
+- Path lengths of the final boards: L100 min2/max7/avg6.43 (9 tiny);
+  L250 min2/max6/avg5.16 (12 tiny); L500 min2/max5/avg4.72 (49 tiny);
+  L1000 min2/max5/avg4.75 (47 tiny). "Tiny" = two-cell pieces; the
+  lenient top-up phase has always allowed them, the share stays under
+  8.5% even at the densest targets.
 
 ## Tests actually run (sandbox JS evaluation, no browser)
 - Harness v1 (pre-restore, 13 checks): L1-99 byte-identity PASS; big
@@ -115,48 +146,48 @@ persistent store.
   alignment, bonus PASS; exact counts FAIL (distribution bug).
 - Harness v3 (10 checks, round-robin rewrite): L100 solvable PASS;
   exact counts FAIL (L100 95/116) - deferred-drop found.
-- Phase 2A targeted tests (commit 1d8c1e6a):
-  * syntax: new Function compile OK (1093 lines).
-  * success case incl. deferred/retry recovery: L101 EXACT 81/81 with
-    validateBigSolution PASS.
-  * failure-adjacent case: L100 solvable PASS, count 99/116 - still
-    short (the separate lane-capacity bug, Phase 2B).
-  * determinism: genLevel(100) twice identical PASS.
-  * L1-99 spot-check (levels 1, 2, 50, 99 layouts vs v3): PASS.
-- Phase 2B targeted tests (this commit):
-  * syntax: new Function compile OK (1100 lines, 48009 bytes).
+- Phase 2A targeted tests (commit 1d8c1e6a): compile OK; L101 EXACT
+  81/81 valid; L100 99/116 solvable; determinism PASS; L1-99
+  spot-check PASS.
+- Phase 2B targeted tests (commit 4183cc65): compile OK (1100 lines,
+  48009 bytes); L1/L2/L50/L99 identity PASS; L100 116/116 EXACT valid;
+  L250 288/289, L500 485/576, L1000 491/576 all valid; determinism
+  PASS; instrumented per-lane/queue diagnostics collected.
+- Phase 2C targeted tests (this commit):
+  * syntax: new Function compile OK (1107 lines, 48537 bytes).
   * L1/L2/L50/L99 layouts vs v3 baseline: PASS (byte-identical).
-  * reps: L100 116/116 EXACT validateBigSolution PASS; L250 288/289
-    valid PASS; L500 485/576 valid PASS; L1000 491/576 valid PASS
-    (exact counts for 250/500/1000 still UNMET - see open bug).
-  * determinism: genLevel(100) twice identical PASS.
-  * instrumented diagnostics (throwaway copy): per-lane placed/queue/
-    deferred stats collected for L500/L1000 across all 5 budget
-    retries; see Phase 2B section.
-- Full 1000-level sweep: NOT run (deferred until exact counts green).
+  * L100 116/116, L250 289/289, L500 576/576, L1000 576/576 - all
+    EXACT, all validateBigSolution PASS, all deterministic PASS.
+  * selected retry/budget and path-length stats recorded (Phase 2C
+    section) via an instrumented throwaway copy; the committed file
+    contains no diagnostics.
+- Full 1000-level sweep: NOT run (next phase item).
 
-## OPEN BUG (Phase 2C): exact counts above ~200 arrows
-After the 2A+2B fixes every placement path is lossless (queues fully
-consumed, deferred queue drains to 0), L100 hits its exact target, but
-dense targets (L250 289, L500/L1000 576) still fall ~1-16% short: best
-attempts 288/289, 485/576, 491/576. All short boards remain VALID and
-SOLVABLE (validateBigSolution PASS), just below the requested count.
-genBigLevel keeps the best valid attempt as fallback; it never
-silently claims the target was met.
+## OPEN ITEM: full 1-1000 sweep
+The four rep levels hit exact counts, but the sweep has not been run:
+some other big level may still fall back to its best-valid attempt
+below target. genBigLevel would then return a valid, solvable, but
+slightly under-count board - never a silent success claim. The sweep
+must verify: exact counts, solvability, tier floors (>=80 arrows for
+L100-500, >=300 for L501-1000), no duplicate layouts in the 100-140
+family, hint-solve reps, determinism.
 
 ## Known risks
-- The engine is NOT shippable yet: exact counts fail above ~200 arrows
-  and no render/main changes exist (big boards would render tiny +
-  wrong taps).
+- The engine is NOT shippable yet: no render/main changes exist (big
+  boards would render tiny + wrong taps), and the full sweep is
+  pending. Lean-retry levels generate up to 12 carve attempts on a
+  miss, so worst-case generation time for big levels rises (still
+  bounded and deterministic; Phase 4 perf pass can revisit).
 - main branch untouched at 5af9fd36.
 
 ## Next exact action (next run)
-1. Phase 2C (smallest safe lever, no architecture change): extend
-   BUDGET_SCHEDULE with leaner retries (e.g. append 0.64, 0.62, 0.60)
-   so retries place shorter pieces and more heads survive; keep the
-   accept-only-exact+valid rule and the best-valid fallback.
-2. Targeted verification on L100/L250/L500/L1000 first; full 1-1000
-   sweep only when those are green; commit when green.
+1. Phase 5-style full 1-1000 sweep on the committed engine: exact
+   counts, validateBigSolution, tier floors, duplicate-layout check for
+   the 100-140 family, hint-solve reps, determinism reps. Record any
+   level that falls back below target and decide there whether one
+   more schedule entry is warranted.
+2. Then Phase 3 (render.js/main.js pan-scroll navigation, MIN_CELL,
+   culling, pan-aware tap, tryRestore N cap 400 -> 6600).
 
 ## Commits
 - 414c0b8e Phase 0 checkpoint: PROGRESS.md only. No gameplay code.
@@ -164,6 +195,9 @@ silently claims the target was met.
   byte-identical from backup, md5 7625ca7f...).
 - 1d8c1e6a Phase 2A: fix makeLanePlacer deferred-drop bug (re-queue
   short-deferred heads; no capacity policy change).
-- (this commit) Phase 2B: fix lane-capacity starvation - reverse the
-  head-seed order for UP/LEFT lanes (far-end-first stacking). L100 now
-  exact 116/116; L250/500/1000 improved but still short (open bug).
+- 4183cc65 Phase 2B: fix lane starvation - reverse the head-seed
+  order for UP/LEFT lanes (far-end-first stacking). L100 exact 116/116;
+  L250/500/1000 improved but short (open bug then).
+- (this commit) Phase 2C: extend BUDGET_SCHEDULE with lean retries
+  (0.64..0.52). L100/250/500/1000 now all EXACT: 116/116, 289/289,
+  576/576, 576/576 - all valid and deterministic; L1-99 untouched.
