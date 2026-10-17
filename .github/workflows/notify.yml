@@ -1,4 +1,4 @@
-# Daily reminders: sends 4-5 short local-time push notifications per day
+# Daily reminders: schedules five pushes per day at fixed IST times
 # to subscribed players. This scheduled workflow is the "push server" for
 # the static site - no paid backend needed.
 #
@@ -12,11 +12,11 @@
 #
 # Players never copy-paste anything: the game auto-saves each player's
 # push subscription to the Supabase push_subscriptions table when they
-# toggle Settings -> Daily reminders ON (anon key, insert/delete-only RLS).
+# toggle Settings -> Daily reminders ON (public anon key; verify RLS separately).
 # This workflow reads that roster with the service key and sends.
 #
-# The workflow exits cleanly while secrets are unset, so it is safe to
-# merge before setup. Push payloads are validated again in sw.js.
+# Missing VAPID configuration fails the run; a missing roster credential
+# skips delivery. Push payloads are validated again in sw.js.
 name: Daily reminders (web push)
 
 on:
@@ -30,8 +30,8 @@ on:
     - cron: '30 17 * * *'
   workflow_dispatch:
 
-# This job only sends push messages through the Web Push API and reads
-# the subscription roster from Supabase. It never reads or writes
+# This job sends Web Push messages, reads the Supabase roster and removes
+# expired subscriptions. It never reads or writes
 # repository contents.
 permissions:
   contents: none
@@ -45,15 +45,19 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install push sender dependency
+        run: |
+          mkdir -p /tmp/push && cd /tmp/push
+          npm init -y >/dev/null 2>&1
+          npm install --ignore-scripts --no-audit --no-fund --loglevel=error web-push@3.6.7
+
       - name: Send daily reminder pushes
         env:
           SUPABASE_URL: https://usszcnaaylbsgqaehsgp.supabase.co
           SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           VAPID_PRIVATE: ${{ secrets.PUSH_VAPID_PRIVATE_KEY }}
         run: |
-          mkdir -p /tmp/push && cd /tmp/push
-          npm init -y >/dev/null 2>&1
-          npm install --no-audit --no-fund --loglevel=error web-push@3.6.7
+          cd /tmp/push
           cat > send.js <<'EOF'
           const webpush = require('web-push');
           // Must match VAPID_PUBLIC_KEY in js/pwa.js
@@ -95,7 +99,7 @@ jobs:
               const rows = await resp.json();
               roster = Array.isArray(rows) ? rows : [];
             } catch (e) {
-              console.log('ERROR: Supabase roster fetch error: ' + e.message);
+              console.log('ERROR: Supabase roster fetch failed.');
               return 1;
             }
             if (!roster.length) {
@@ -114,28 +118,41 @@ jobs:
               data: { url: './' }
             });
 
-            let sent = 0, failed = 0;
+            let sent = 0, failed = 0, cleanupFailed = 0;
             for (const row of roster) {
               const sub = row && row.subscription;
               if (!sub || !sub.endpoint) continue;
               try {
                 await webpush.sendNotification(sub, payload, { TTL: 86400 });
                 sent++;
-                console.log('sent -> ' + sub.endpoint.slice(0, 48) + '...');
+                // Subscription endpoints are device identifiers; never log them.
               } catch (err) {
                 failed++;
                 const status = err && err.statusCode ? err.statusCode : 'unknown';
                 if (status === 404 || status === 410) {
-                  console.log('EXPIRED (' + status + ') - this device will resubscribe the next time the player toggles Daily reminders off/on.');
+                  try {
+                    const removed = await fetch(process.env.SUPABASE_URL +
+                      '/rest/v1/push_subscriptions?endpoint=eq.' + encodeURIComponent(sub.endpoint), {
+                      method: 'DELETE',
+                      headers: { 'apikey': serviceKey, 'Authorization': 'Bearer ' + serviceKey }
+                    });
+                    if (!removed.ok) {
+                      cleanupFailed++;
+                      console.log('Expired subscription cleanup failed (HTTP ' + removed.status + ').');
+                    } else console.log('Expired subscription removed (' + status + ').');
+                  } catch (e) {
+                    cleanupFailed++;
+                    console.log('Expired subscription cleanup failed (network error).');
+                  }
                 } else {
-                  console.log('failed (' + status + '): ' + (err && err.message ? err.message : 'unknown error'));
+                  console.log('Push failed (status ' + status + ').');
                 }
               }
             }
             console.log('done: ' + sent + ' sent, ' + failed + ' failed.');
-            return (sent === 0 && failed > 0) ? 1 : 0;
+            return (cleanupFailed > 0 || sent === 0 && failed > 0) ? 1 : 0;
           }
 
-          main().then(function (code) { process.exit(code); }).catch(function (e) { console.log('unexpected error: ' + e.message); process.exit(1); });
+          main().then(function (code) { process.exit(code); }).catch(function (e) { console.log('Unexpected sender error.'); process.exit(1); });
           EOF
           node send.js

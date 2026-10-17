@@ -330,7 +330,7 @@ console.log('# storage: save validation, migration and economy');
     check('bonusClaimed junk entries dropped, valid kept', s.bonusClaimed['15'] === true && !s.bonusClaimed['5']);
     check('streaks sanitized', s.streaks.current === 0 && s.streaks.best === 0 && s.streaks.lastPlayDate === null);
     check('loginRewards sanitized', s.loginRewards.lastClaim === null && s.loginRewards.streak === 0);
-    check('settings defaults restored (notifications on)', s.settings.notifications === true && s.settings.reducedMotion === false);
+    check('settings defaults restored (notifications off)', s.settings.notifications === false && s.settings.reducedMotion === false);
   }
 
   // 4. Valid progress is preserved exactly - nothing valid is deleted

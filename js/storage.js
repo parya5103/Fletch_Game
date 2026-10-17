@@ -49,7 +49,7 @@ const Storage = (function() {
       },
       settings: {
         reducedMotion: false,
-        notifications: true,
+        notifications: false,
         seenOnboarding: false
       }
     };
@@ -224,7 +224,7 @@ const Storage = (function() {
 
     if (!d.settings || typeof d.settings !== 'object' || Array.isArray(d.settings)) d.settings = defaultSave().settings;
     d.settings.reducedMotion = toBool(d.settings.reducedMotion, false);
-    d.settings.notifications = toBool(d.settings.notifications, true);
+    d.settings.notifications = toBool(d.settings.notifications, false);
     d.settings.seenOnboarding = toBool(d.settings.seenOnboarding, false);
 
     return d;

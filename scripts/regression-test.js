@@ -149,7 +149,7 @@ test('service worker assets exist and failed precache cannot activate; cache iso
   let pending; const event={waitUntil:p=>pending=p};
   missing='js/main.js'; handlers.install(event);await assert.rejects(pending,/precache failed/);assert.equal(activate,0);
   missing=null;handlers.install(event);await pending;assert.equal(activate,1);
-  handlers.activate(event);await pending;assert.deepEqual(deleted,['arrow-out-v31']);
+  handlers.activate(event);await pending;assert.deepEqual(deleted,['arrow-out-v31','arrow-out-v32']);
   entries.clear();entries.set(scope+'index.html',new Response('<html>game</html>'));
   entries.set(scope+'js/game.js',new Response('CURRENT_JS'));
   async function request(file,mode='cors'){

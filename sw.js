@@ -1,11 +1,11 @@
 /**
  * Arrow Out! Service Worker
- * Version: v32
- * Dense campaign release: scalable paths, camera controls and cached rendering.
+ * Version: v33
+ * Audit fixes: notification privacy, saved settings and interrupted game restoration.
  * Handles caching for offline gameplay
  */
 
-const CACHE = 'arrow-out-v32';
+const CACHE = 'arrow-out-v33';
 // Only obsolete caches that belong to THIS game (arrow-out-*) are ever deleted,
 // so other apps served from the same origin keep their caches.
 const CACHE_PREFIX = 'arrow-out-';
@@ -45,7 +45,7 @@ const EXTRA_ASSETS = [
 // stay on stale files until the next release (fetch is cache-first).
 function precacheFresh(cache, url) {
   return fetch(new Request(url, { cache: 'reload' })).then((resp) => {
-    if (!resp.ok) throw new Error('precache failed: ' + url + ' (' + resp.status + ')');
+    if (!resp.ok || resp.redirected) throw new Error('precache failed: ' + url + ' (' + resp.status + ')');
     return cache.put(url, resp);
   });
 }

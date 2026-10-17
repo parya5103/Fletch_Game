@@ -34,39 +34,41 @@
 <body>
   <div class="wrap">
     <h1>Arrow Out! &mdash; Privacy Policy</h1>
-    <p class="sub">Effective date: 16 October 2026 &middot; Plain-English summary: the game stores everything on your device and collects almost nothing.</p>
+    <p class="sub">Effective date: 17 October 2026 &middot; Game progress stays on your device. Optional reminders use external push services.</p>
 
     <h2>What the game stores</h2>
-    <p>Arrow Out! has no accounts, no sign-in and no server database. All your progress &mdash; current level, stars, coins, owned skins, streaks, achievements and settings &mdash; is saved in your browser's <b>localStorage</b>, on your own device. It never leaves your device.</p>
+    <p>Arrow Out! has no accounts or sign-in. There is no server database for game progress. All your progress &mdash; current level, stars, coins, owned skins, streaks, achievements and settings &mdash; is saved in your browser's <b>localStorage</b>, on your own device. It never leaves your device.</p>
     <ul>
-      <li>The game makes no external network requests while you play (the site ships with a strict Content-Security-Policy).</li>
+      <li>Normal gameplay needs no external API. Loading or updating the site contacts GitHub Pages; enabling or disabling reminders contacts Supabase and your browser's push service.</li>
       <li>There are no analytics, no trackers, no cookies and no advertising IDs today (see Advertising below).</li>
       <li>Installing the game (PWA) copies it to your device for offline play; it does not add any new data collection.</li>
     </ul>
 
     <h2>Daily reminders (optional notifications)</h2>
-    <p>Reminders are off unless you turn them on in Settings. If you enable them, your browser creates a Web Push subscription. That subscription record (a unique device endpoint, no personal details) is stored by the developer and used for exactly one purpose: delivering the 4&ndash;5 daily game reminders you asked for. It contains no name, email or gameplay data.</p>
+    <p>New saves default to reminders off; existing preferences are preserved. Permission is requested only when you enable reminders in Settings. Your browser creates a Web Push subscription containing an endpoint and encryption keys. These are device-linked identifiers, stored in a Supabase database to deliver game reminders. No name, email or game progress is included. The sender runs in GitHub Actions five times a day on a fixed schedule (10:00, 12:30, 17:00, 19:30 and 23:00 India time), regardless of your time zone; delivery may be delayed.</p>
     <ul>
-      <li>Turning reminders off in Settings removes the subscription and it is deleted from the send list.</li>
-      <li>You can also revoke notification permission for the site any time in your browser settings.</li>
+      <li>Turning reminders off attempts to delete the send-list record and unsubscribe this browser. A connection or permission failure can prevent removal; the game reports failures. Expired endpoints are removed when the sender receives an expiration response. Deletion from the send list does not promise immediate erasure from provider backups or logs.</li>
+      <li>You can revoke notification permission for the site any time in your browser settings. This stops permission to notify; it does not directly delete the Supabase record.</li>
     </ul>
+
+    <p>GitHub hosts the site and runs the sender; Supabase stores the subscription; your browser vendor's push service delivers messages. These services receive network metadata such as IP addresses and apply their own retention policies. See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>, <a href="https://supabase.com/privacy">Supabase's privacy policy</a>, and your browser vendor's privacy policy. Subscription values should never be posted in public issues.</p>
 
     <h2>Deleting your data</h2>
     <ul>
-      <li>In the game: Settings &rarr; <b>Reset all progress</b> clears everything stored on your device.</li>
-      <li>In your browser: clearing site data for this site removes the save and any notification subscription.</li>
+      <li>In the game: Settings &rarr; <b>Reset all progress</b> resets game progress and preferences. It does not clear the offline cache or unsubscribe notifications; turn reminders off first.</li>
+      <li>In your browser: clearing site data removes local game data. Use notification settings to revoke permission, and turn reminders off in the game before clearing data to request send-list deletion. Clearing local data cannot itself delete the server record.</li>
     </ul>
 
     <h2>Advertising</h2>
-    <p>Arrow Out! shows no ads today. The game is prepared to add optional rewarded ads (for example, watch a short ad to earn one extra hint) through a provider such as Google AdSense or Google AdMob. If and when ads go live:</p>
+    <p>Arrow Out! shows no ads today. The current rewarded-hint screen is a labelled five-second demo, with no ad SDK or revenue. A future release may add optional rewarded ads (for example, watch a short ad to earn one extra hint) through a provider such as Google AdSense or Google AdMob. If and when ads go live:</p>
     <ul>
       <li>The ad provider may use cookies or advertising identifiers under its own privacy policy (for example Google's). This page will name the provider and link to their policy at that time.</li>
       <li>Rewarded ads are always optional &mdash; the full game stays playable without watching any.</li>
-      <li>The game itself still sends no gameplay data to the ad provider.</li>
+      <li>The integration and this policy must disclose any data the provider needs before real ads are enabled.</li>
     </ul>
 
     <h2>Children</h2>
-    <p>The game collects no personal information from anyone, including children. There is nothing to sign up for and no way to submit personal details.</p>
+    <p>There are no accounts or forms for names or email addresses. Optional reminders still process device-linked identifiers and network metadata as described above. Any future advertising integration needs a separate review of age, consent and applicable privacy requirements before launch.</p>
 
     <h2>Changes</h2>
     <p>If this policy ever changes (for example, if advertising or a backup service is added), the updated policy will be published on this page with a new effective date.</p>

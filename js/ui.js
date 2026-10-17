@@ -448,7 +448,9 @@ const UI = (function() {
   // Sync the settings dialog Notifications toggle + its status line.
   // The browser permission is reported honestly; the game stays fully
   // playable whatever the state.
+  var notifStatusRequest = 0;
   function updateNotifUI() {
+    var request = ++notifStatusRequest;
     var save = Storage.getSave();
     var pref = !!(save.settings && save.settings.notifications);
     var chk = $('chk-notifs');
@@ -466,8 +468,10 @@ const UI = (function() {
         txt = 'On \u2014 setup pending';
         if (typeof PWA.getPushSubscriptionJson === 'function') {
           PWA.getPushSubscriptionJson().then(function(sub) {
-            if (sub) st.textContent = 'On \u2014 reminders active';
-          });
+            if (sub && request === notifStatusRequest && Storage.getSave().settings.notifications) {
+              st.textContent = 'On \u2014 browser subscribed';
+            }
+          }).catch(function() {});
         }
       }
       st.textContent = txt;
@@ -756,7 +760,8 @@ const UI = (function() {
     
     var body = document.body;
     if (body) {
-      body.className = theme === 'dark' ? 'theme-dark' : 'theme-light';
+      body.classList.toggle('theme-dark', theme === 'dark');
+      body.classList.toggle('theme-light', theme !== 'dark');
     }
     
     updateThemeBtn();

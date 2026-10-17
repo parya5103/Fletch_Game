@@ -39,7 +39,9 @@ jobs:
         run: node scripts/ci-test.js
 
       - name: State, storage, audio and PWA regressions
-        run: node scripts/regression-test.js
+        run: |
+          node scripts/regression-test.js
+          node scripts/audit-test.js
 
       - name: Dense boards, camera, touch and save compatibility
         run: node scripts/density-test.js
