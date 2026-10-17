@@ -6,10 +6,10 @@ objects) with pan/scroll navigation; levels 1-99 stay byte-identical;
 service worker v30 -> v31 at the end.
 
 ## Phase status (checkpoint 2026-10-17)
-- Phase 0 inspect + checkpoint: DONE (commit 414c0b8e; no gameplay code).
-- Phase 1+2 (arrow-count config + generation capacity): IN PROGRESS.
-  v4 game engine restored to this branch as a recovery commit
-  (byte-identical from the preserved backup; known bugs NOT fixed yet).
+- Phase 0 inspect + checkpoint: DONE (commit 414c0b8e).
+- Recovery restore of preserved v4 engine: DONE (commit 72c7810e).
+- Phase 2A deferred-drop bug fix: DONE (this commit).
+- Phase 2B lane-capacity fix: NOT STARTED (open bug, see below).
 - Phase 3 (large-board navigation): NOT STARTED.
 - Phase 4 (rendering/performance): NOT STARTED.
 - Phase 5 (1-1000 validation): PARTIALLY RUN (results below).
@@ -48,51 +48,76 @@ service worker v30 -> v31 at the end.
   until arrows.length === cfg.pieces AND validateBigSolution passes.
 - validateBigSolution is exported for scripts/ci-test.js.
 
-## js/game.js on this branch (recovery commit)
-Restored byte-identical from the preserved development backup:
-1088 lines, 47152 bytes, md5 7625ca7fee4e8067e5eea74b5e64c07c.
-The backup and a separate snapshot copy remain in the agent's
-persistent store. Restored UNMODIFIED - no redesign, no refactoring.
+## js/game.js on this branch
+Restored byte-identical from the preserved development backup in
+recovery commit 72c7810e (1088 lines, 47152 bytes, md5 7625ca7f...);
+Phase 2A fix applied on top (1093 lines, 47535 bytes). The original
+backup and a separate snapshot copy remain in the agent's persistent
+store.
 - Patched: levelConfig override, whole big-board block, genLevel branch,
   validateBigSolution export.
-- Bug history this session: (1) head cells were seeded without an
-  occupancy check -> overlapping pieces -> FIXED (validated).
+- Bug history: (1) head cells seeded without an occupancy check ->
+  overlapping pieces -> FIXED pre-restore (validated).
   (2) equal 25% lane quotas starve horizontal lanes (~2 heads/row
   capacity) -> exact counts failed (L100 101/116) -> replaced with the
   capacity-aware global round-robin placer.
-- OPEN BUGS (intentionally NOT fixed in the recovery commit):
-  (a) makeLanePlacer deferred-drop: strict-phase retries of deferred
-      heads SHIFT them out of the queue and lose them, cutting capacity.
-  (b) lane-capacity: big levels still miss exact counts (L100 95/116,
-      L101 78/81, L1000 308/576) - fix after (a), re-measure.
+
+## Phase 2A (this commit): deferred-drop bug FIXED
+- Root cause: makeLanePlacer.placeOne()'s deferred loop SHIFTED every
+  deferred head out of the queue and only returned on 'placed'; heads
+  that re-tried as 'short' during the strict phase were silently
+  DROPPED, permanently losing placement positions and cutting counts.
+- Fix (minimal, same architecture, still deterministic): deferred is
+  now scanned by index; 'placed' removes just that head, 'dead' is a
+  permanent rejection removed once (rays/occupancy only get more
+  blocked), and 'short' heads STAY queued for the lenient phase.
+  No infinite retry: queue items are consumed once (qi only grows) and
+  deferred items can only leave, never re-enter from the queue loop.
+- Lane-capacity policy, board dimensions, budgets and levelConfig are
+  UNTOUCHED in this phase.
 
 ## Tests actually run (sandbox JS evaluation, no browser)
-- Harness v1 (13 checks): L1-99 byte-identity PASS; big solvability
-  FAIL L100 (overlap bug above).
-- Harness v2 (9 checks, after overlap fix): L1-99 PASS; hint-solve,
-  determinism, head alignment, bonus, L101 breather PASS; exact arrow
-  counts FAIL (distribution bug above).
-- Harness v3 (10 checks, after round-robin rewrite): L1-99 PASS; L100
-  solvable PASS; exact counts still FAIL (L100 95/116; see open bugs).
-- Full 1000-level sweep: NOT run since the round-robin rewrite.
-- Recovery commit: syntax check only (new Function compile OK).
-  No gameplay behaviour was tested for this commit.
+- Harness v1 (pre-restore, 13 checks): L1-99 byte-identity PASS; big
+  solvability FAIL L100 (overlap bug, fixed).
+- Harness v2 (9 checks): L1-99 PASS; hint-solve, determinism, head
+  alignment, bonus PASS; exact counts FAIL (distribution bug).
+- Harness v3 (10 checks, round-robin rewrite): L100 solvable PASS;
+  exact counts FAIL (L100 95/116) - deferred-drop found.
+- Phase 2A targeted tests (this commit):
+  * syntax: new Function compile OK (1093 lines).
+  * success case incl. deferred/retry recovery: L101 EXACT 81/81 with
+    validateBigSolution PASS; 17 pieces of length 2-3 on L100 prove the
+    lenient phase recovered its deferred heads.
+  * failure-adjacent case: L100 solvable PASS, count 99/116 - still
+    short, but that is the SEPARATE lane-capacity bug (Phase 2B).
+  * determinism: genLevel(100) twice identical PASS.
+  * L1-99 spot-check (levels 1, 2, 50, 99 layouts vs v3): PASS.
+- Full 1000-level sweep: NOT run (deferred, Phase 2B first).
+
+## OPEN BUG (Phase 2B): lane-capacity starvation
+After the 2A fix, measured counts: L100 99/116, L101 81/81,
+L250 181/289, L500 333/576, L1000 313/576. Deferred positions are no
+longer lost, so the remaining gap is real lane/head capacity (vertical
+strips stack many heads per column; horizontal strips cap at roughly
+2-3 heads per row).
 
 ## Known risks
-- The restored engine is NOT shippable yet: exact counts fail and no
-  render/main changes exist (big boards would render tiny + wrong taps).
+- The engine is NOT shippable yet: exact counts fail above ~100 arrows
+  and no render/main changes exist (big boards would render tiny +
+  wrong taps).
 - main branch untouched at 5af9fd36.
 
 ## Next exact action (next run)
-1. Fix the makeLanePlacer deferred-drop bug (re-queue short-rejected
-   deferred heads instead of dropping them).
-2. Re-measure lane capacity on L100/L101/L250/L500/L1000 (targeted,
-   cheap); then fix lane-capacity starvation if counts still miss.
-3. Only after exact counts + validateBigSolution pass on a targeted
-   set: run the full 1-1000 sweep, then commit.
+1. Phase 2B: fix lane-capacity starvation (e.g. rebalance per-lane
+   quotas toward vertical lanes' stacking capacity, and/or widen head
+   seeding) while keeping L1-99 identical and the solvability invariant
+   (seed-time global rayClear + own-ray guard).
+2. Targeted verification on L100/L101/L250/L500/L1000 first; full
+   1-1000 sweep only when those are green; commit when green.
 
 ## Commits
 - 414c0b8e Phase 0 checkpoint: PROGRESS.md only. No gameplay code.
-- (this commit) recovery: restore preserved v4 game engine.
-  js/game.js byte-identical from backup (md5 7625ca7f...); PROGRESS.md
-  updated. Known bugs left open on purpose.
+- 72c7810e recovery: restore preserved v4 game engine (js/game.js
+  byte-identical from backup, md5 7625ca7f...).
+- (this commit) Phase 2A: fix makeLanePlacer deferred-drop bug
+  (re-queue short-deferred heads; no capacity policy change).

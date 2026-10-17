@@ -779,9 +779,14 @@ const GameCore = (function() {
     }
     return {
       placeOne: function (strict) {
-        while (deferred.length) {
-          var d = deferred.shift();
-          if (tryHead(d, strict) === 'placed') return true;
+        // Deferred heads are retried once per call. 'dead' is a
+        // permanent rejection (rays/occupancy only ever get MORE
+        // blocked), the placed head is removed, and 'short' heads STAY
+        // queued for the lenient phase - they must never be dropped.
+        for (var di = 0; di < deferred.length; di++) {
+          var dr = tryHead(deferred[di], strict);
+          if (dr === 'placed') { deferred.splice(di, 1); return true; }
+          if (dr === 'dead') { deferred.splice(di, 1); di--; }
         }
         while (qi < queue.length) {
           var h = queue[qi++];
