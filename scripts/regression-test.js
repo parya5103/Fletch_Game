@@ -122,7 +122,7 @@ test('audio inputs cannot schedule nonfinite or nonpositive AudioParams', () => 
 });
 test('zero viewport and invalid pixel ratio do not produce invalid canvas dimensions', () => {
   const h = harness(), wrap={clientWidth:0,clientHeight:0}, canvas={style:{},getContext:()=>({setTransform(){}})};
-  h.box.document.getElementById=()=>wrap; h.box.requestAnimationFrame=()=>{};
+  h.box.document.getElementById=()=>wrap; h.box.document.createElement=()=>({getContext:()=>({})}); h.box.requestAnimationFrame=()=>{};
   vm.runInContext(source('js/render.js')+'\nglobalThis.R=Render;',h.box);
   h.box.R.init(canvas); h.box.R.setGameState({cols:9});h.box.R.fitCanvas(); assert.equal(h.box.R.getCellSize(),0);
   wrap.clientWidth=100;wrap.clientHeight=80;h.box.window.devicePixelRatio=Infinity;h.box.R.fitCanvas();
@@ -140,7 +140,7 @@ test('service worker assets exist and failed precache cannot activate; cache iso
   const box=vm.createContext({URL,Request:Req,Response,console,
     self:{location:{origin:'https://example.test'},registration:{scope},clients:{claim:async()=>{}},
       addEventListener:(n,fn)=>handlers[n]=fn,skipWaiting:()=>{activate++;}},
-    caches:{open:async()=>cache, keys:async()=>['other-app','arrow-out-v30','arrow-out-v31'],delete:async k=>deleted.push(k)},
+    caches:{open:async()=>cache, keys:async()=>['other-app','arrow-out-v31','arrow-out-v32'],delete:async k=>deleted.push(k)},
     fetch:async req=>{if(!network)throw Error('offline');return new Response('asset',{status:req.url?.endsWith(missing)&&missing?404:200});}
   });
   vm.runInContext(sw+'\nglobalThis.assets=CORE_ASSETS.concat(EXTRA_ASSETS);',box);
@@ -149,7 +149,7 @@ test('service worker assets exist and failed precache cannot activate; cache iso
   let pending; const event={waitUntil:p=>pending=p};
   missing='js/main.js'; handlers.install(event);await assert.rejects(pending,/precache failed/);assert.equal(activate,0);
   missing=null;handlers.install(event);await pending;assert.equal(activate,1);
-  handlers.activate(event);await pending;assert.deepEqual(deleted,['arrow-out-v30']);
+  handlers.activate(event);await pending;assert.deepEqual(deleted,['arrow-out-v31']);
   entries.clear();entries.set(scope+'index.html',new Response('<html>game</html>'));
   entries.set(scope+'js/game.js',new Response('CURRENT_JS'));
   async function request(file,mode='cors'){

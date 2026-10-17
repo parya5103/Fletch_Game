@@ -15,7 +15,7 @@ function harness(initial = {}, options = {}) {
   const noop = () => {};
   const ui = new Proxy({ anyOpen: () => false, showWinDialog: () => dialogs.push('win'), showFailDialog: () => dialogs.push('fail') },
     { get: (obj, key) => obj[key] || noop });
-  const render = new Proxy({ spawnFly: () => false, getCellSize: () => 10 }, { get: (obj, key) => obj[key] || noop });
+  const render = new Proxy({ spawnFly: () => false, getCellSize: () => 10, getView: () => ({ cell: 10, zoom: 3 }), screenToCell: (x,y) => ({x: Math.floor(x/10), y: Math.floor(y/10)}) }, { get: (obj, key) => obj[key] || noop });
   const document = { hidden: false, body: { classList: { contains: () => false } },
     getElementById: id => elements[id] || null, addEventListener: (name, cb) => { events[name] = cb; } };
   const box = vm.createContext({ Math, Date, Number, Set, console: { log: noop, warn: noop, error: noop },
@@ -29,7 +29,7 @@ function harness(initial = {}, options = {}) {
   vm.runInContext(source('js/game.js') + '\nglobalThis.GC = GameCore;', box);
   vm.runInContext(source('js/storage.js') + '\nglobalThis.ST = Storage;', box);
   // Expose closure entry points only inside this test sandbox.
-  const main = source('js/main.js').replace('    init: init,', '    test: {tryRestore, saveCur, scheduleWin, setupEventListeners, handlePointerDown, adForHint},\n    init: init,');
+  const main = source('js/main.js').replace('    init: init,', '    test: {tryRestore, saveCur, scheduleWin, setupEventListeners, handlePointerDown, gestureDown, gestureMove, gestureUp, gestureCancel, doHint, adForHint},\n    init: init,');
   vm.runInContext(main + '\nglobalThis.G = Game;', box);
   return { box, GC: box.GC, ST: box.ST, G: box.G, data, ui, render, elements, events, timers, dialogs,
     flush(ms) { for (const [id, task] of [...timers]) if (task.ms === ms) { timers.delete(id); task.fn(); } } };

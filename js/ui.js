@@ -183,9 +183,9 @@ const UI = (function() {
     if (gameState.level === 'daily') {
       label = 'Daily Challenge';
     } else {
-      var isSpike = gameState.level > 10 && gameState.level % 10 === 0;
+      var isMilestone = gameState.level % 50 === 0;
       label = 'Level ' + gameState.level + ' \u00b7 ' + GameCore.getDifficultyName(gameState.level) +
-        (isSpike ? ' \u00b7 Spike' : '');
+        (isMilestone ? ' \u00b7 Milestone' : '');
     }
     banner.textContent = label;
     banner.setAttribute('data-diff', gameState.level === 'daily' ? 'medium' : GameCore.getDifficultyLevel(gameState.level));

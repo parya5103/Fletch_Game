@@ -1306,3 +1306,9 @@ h2 svg.ic { width: 24px; height: 24px; vertical-align: -4px; }
 @media (prefers-reduced-motion: reduce) {
   #bonus-banner { transition: none; }
 }
+
+/* Dense boards keep a fixed-size viewport; zoom never allocates a giant canvas. */
+#board-tools { display: flex; align-items: center; gap: 6px; padding: 0 12px; }
+#board-view-label { flex: 1; color: var(--muted, #93a0c8); font-size: 11px; }
+#board-tools .btn { min-width: 44px; min-height: 44px; padding: 6px; }
+#board-wrap { overflow: hidden; }

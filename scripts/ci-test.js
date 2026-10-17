@@ -71,7 +71,7 @@ console.log('# genLevel sanity');
 [1, 2, 5, 7, 10, 15, 20, 25, 50, 51, 60, 100, 200, 500, 1000].forEach(function (n) {
   const lv = GC.genLevel(n);
   const shapeOk = !!lv && !!lv.arrows && lv.arrows.length >= 4 &&
-    lv.cols >= 4 && lv.cols <= 12 && lv.rows === lv.cols;
+    lv.cols >= 4 && lv.cols <= GC.MAX_GRID && lv.rows === lv.cols;
   let detail = shapeOk ? JSON.stringify({ cols: lv.cols, pieces: lv.arrows.length }) : 'no board';
   const piecesOk = shapeOk && lv.arrows.every(function (a) { return pieceValid(a, lv.cols, lv.rows); });
   // unique steps + no cell shared by two pieces
@@ -125,14 +125,14 @@ let boundsOk = true;
 let detail = '';
 for (let n = 1; n <= 1000; n += 7) {
   const c = GC.levelConfig(n);
-  if (!(c.grid >= 4 && c.grid <= 12 && c.pieces >= 2 && c.pieces <= 36 &&
+  if (!(c.grid >= 4 && c.grid <= GC.MAX_GRID && c.pieces >= 2 && c.pieces <= 600 &&
         Number.isInteger(c.seed))) {
     boundsOk = false;
     detail = 'level ' + n + ' -> ' + JSON.stringify(c);
     break;
   }
 }
-check('grid 4-12 / pieces 4-36 / integer seed for all levels', boundsOk, detail);
+check('grid 4-72 / pieces 4-600 / integer seed for all levels', boundsOk, detail);
 check('DESIGN_LEVELS is 1000', GC.DESIGN_LEVELS === 1000);
 
 console.log('# difficulty tiers');
