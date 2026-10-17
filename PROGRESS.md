@@ -8,8 +8,9 @@ service worker v30 -> v31 at the end.
 ## Phase status (checkpoint 2026-10-17)
 - Phase 0 inspect + checkpoint: DONE (commit 414c0b8e).
 - Recovery restore of preserved v4 engine: DONE (commit 72c7810e).
-- Phase 2A deferred-drop bug fix: DONE (this commit).
-- Phase 2B lane-capacity fix: NOT STARTED (open bug, see below).
+- Phase 2A deferred-drop bug fix: DONE (commit 1d8c1e6a).
+- Phase 2B lane-capacity fix (head-seed order): DONE (this commit).
+  Exact arrow counts still fail above ~200 arrows (open bug below).
 - Phase 3 (large-board navigation): NOT STARTED.
 - Phase 4 (rendering/performance): NOT STARTED.
 - Phase 5 (1-1000 validation): PARTIALLY RUN (results below).
@@ -51,9 +52,10 @@ service worker v30 -> v31 at the end.
 ## js/game.js on this branch
 Restored byte-identical from the preserved development backup in
 recovery commit 72c7810e (1088 lines, 47152 bytes, md5 7625ca7f...);
-Phase 2A fix applied on top (1093 lines, 47535 bytes). The original
-backup and a separate snapshot copy remain in the agent's persistent
-store.
+Phase 2A fix applied on top (1093 lines, 47535 bytes); Phase 2B
+head-seed order fix applied on top of that (1100 lines, 48009 bytes).
+The original backup and separate snapshot copies remain in the agent's
+persistent store.
 - Patched: levelConfig override, whole big-board block, genLevel branch,
   validateBigSolution export.
 - Bug history: (1) head cells seeded without an occupancy check ->
@@ -61,8 +63,11 @@ store.
   (2) equal 25% lane quotas starve horizontal lanes (~2 heads/row
   capacity) -> exact counts failed (L100 101/116) -> replaced with the
   capacity-aware global round-robin placer.
+  (3) natural head-seed order poisoned whole lines in the UP and LEFT
+  lanes (~1 head/column, ~1 head/row) -> starved boards -> FIXED in
+  Phase 2B (see below).
 
-## Phase 2A (this commit): deferred-drop bug FIXED
+## Phase 2A (commit 1d8c1e6a): deferred-drop bug FIXED
 - Root cause: makeLanePlacer.placeOne()'s deferred loop SHIFTED every
   deferred head out of the queue and only returned on 'placed'; heads
   that re-tried as 'short' during the strict phase were silently
@@ -74,7 +79,34 @@ store.
   No infinite retry: queue items are consumed once (qi only grows) and
   deferred items can only leave, never re-enter from the queue loop.
 - Lane-capacity policy, board dimensions, budgets and levelConfig are
-  UNTOUCHED in this phase.
+  UNTOUCHED in that phase.
+
+## Phase 2B (this commit): head-seed ray-axis order FIXED
+- Root cause (measured with a throwaway instrumented copy, never
+  committed): makeLanePlacer built its head queue in each line's
+  natural order. For the UP lane the first seed in a column sat at the
+  strip's inner edge; its ray record (minRow[x]) then poisoned the
+  whole column so later candidates in that column died (~1 head per
+  column, measured UP=16 vs DOWN=43 on L100). Same for LEFT (~1 head
+  per row). DOWN/RIGHT seeded in the stacking-friendly direction, which
+  is why they out-placed UP/LEFT.
+- Fix (one line + comment, no architecture change): for lanes 0 (UP)
+  and 2 (LEFT) reverse the lines[] order before building the candidate
+  queue, so heads seed at the FAR end of each line first and stack
+  toward the exit edge. Determinism, rayClear/own-ray guards, lane
+  quotas, budgets, board dimensions and the classic 1-99 path are all
+  untouched.
+- Before -> after arrow counts (same targets):
+  L100 99/116 -> 116/116 EXACT; L250 181/289 -> 288/289;
+  L500 333/576 -> 485/576; L1000 313/576 -> 491/576.
+- Remaining gap measured (instrumented, in-memory only, not part of
+  the committed code): every lane consumes its FULL candidate queue
+  (qi == qlen == 1296 on the 72x72 reps) with an empty deferred queue
+  at the end; most candidates die on ray-clearance / occupancy /
+  growth checks as the strips fill. The remaining shortfall is
+  intrinsic density pressure, not a lost-placement bug. Leaner budget
+  retries place more pieces (measured L500: 415@0.75, 487@0.72,
+  502@0.68), so extra lean retries are the natural Phase 2C lever.
 
 ## Tests actually run (sandbox JS evaluation, no browser)
 - Harness v1 (pre-restore, 13 checks): L1-99 byte-identity PASS; big
@@ -83,41 +115,55 @@ store.
   alignment, bonus PASS; exact counts FAIL (distribution bug).
 - Harness v3 (10 checks, round-robin rewrite): L100 solvable PASS;
   exact counts FAIL (L100 95/116) - deferred-drop found.
-- Phase 2A targeted tests (this commit):
+- Phase 2A targeted tests (commit 1d8c1e6a):
   * syntax: new Function compile OK (1093 lines).
   * success case incl. deferred/retry recovery: L101 EXACT 81/81 with
-    validateBigSolution PASS; 17 pieces of length 2-3 on L100 prove the
-    lenient phase recovered its deferred heads.
+    validateBigSolution PASS.
   * failure-adjacent case: L100 solvable PASS, count 99/116 - still
-    short, but that is the SEPARATE lane-capacity bug (Phase 2B).
+    short (the separate lane-capacity bug, Phase 2B).
   * determinism: genLevel(100) twice identical PASS.
   * L1-99 spot-check (levels 1, 2, 50, 99 layouts vs v3): PASS.
-- Full 1000-level sweep: NOT run (deferred, Phase 2B first).
+- Phase 2B targeted tests (this commit):
+  * syntax: new Function compile OK (1100 lines, 48009 bytes).
+  * L1/L2/L50/L99 layouts vs v3 baseline: PASS (byte-identical).
+  * reps: L100 116/116 EXACT validateBigSolution PASS; L250 288/289
+    valid PASS; L500 485/576 valid PASS; L1000 491/576 valid PASS
+    (exact counts for 250/500/1000 still UNMET - see open bug).
+  * determinism: genLevel(100) twice identical PASS.
+  * instrumented diagnostics (throwaway copy): per-lane placed/queue/
+    deferred stats collected for L500/L1000 across all 5 budget
+    retries; see Phase 2B section.
+- Full 1000-level sweep: NOT run (deferred until exact counts green).
 
-## OPEN BUG (Phase 2B): lane-capacity starvation
-After the 2A fix, measured counts: L100 99/116, L101 81/81,
-L250 181/289, L500 333/576, L1000 313/576. Deferred positions are no
-longer lost, so the remaining gap is real lane/head capacity (vertical
-strips stack many heads per column; horizontal strips cap at roughly
-2-3 heads per row).
+## OPEN BUG (Phase 2C): exact counts above ~200 arrows
+After the 2A+2B fixes every placement path is lossless (queues fully
+consumed, deferred queue drains to 0), L100 hits its exact target, but
+dense targets (L250 289, L500/L1000 576) still fall ~1-16% short: best
+attempts 288/289, 485/576, 491/576. All short boards remain VALID and
+SOLVABLE (validateBigSolution PASS), just below the requested count.
+genBigLevel keeps the best valid attempt as fallback; it never
+silently claims the target was met.
 
 ## Known risks
-- The engine is NOT shippable yet: exact counts fail above ~100 arrows
+- The engine is NOT shippable yet: exact counts fail above ~200 arrows
   and no render/main changes exist (big boards would render tiny +
   wrong taps).
 - main branch untouched at 5af9fd36.
 
 ## Next exact action (next run)
-1. Phase 2B: fix lane-capacity starvation (e.g. rebalance per-lane
-   quotas toward vertical lanes' stacking capacity, and/or widen head
-   seeding) while keeping L1-99 identical and the solvability invariant
-   (seed-time global rayClear + own-ray guard).
-2. Targeted verification on L100/L101/L250/L500/L1000 first; full
-   1-1000 sweep only when those are green; commit when green.
+1. Phase 2C (smallest safe lever, no architecture change): extend
+   BUDGET_SCHEDULE with leaner retries (e.g. append 0.64, 0.62, 0.60)
+   so retries place shorter pieces and more heads survive; keep the
+   accept-only-exact+valid rule and the best-valid fallback.
+2. Targeted verification on L100/L250/L500/L1000 first; full 1-1000
+   sweep only when those are green; commit when green.
 
 ## Commits
 - 414c0b8e Phase 0 checkpoint: PROGRESS.md only. No gameplay code.
 - 72c7810e recovery: restore preserved v4 game engine (js/game.js
   byte-identical from backup, md5 7625ca7f...).
-- (this commit) Phase 2A: fix makeLanePlacer deferred-drop bug
-  (re-queue short-deferred heads; no capacity policy change).
+- 1d8c1e6a Phase 2A: fix makeLanePlacer deferred-drop bug (re-queue
+  short-deferred heads; no capacity policy change).
+- (this commit) Phase 2B: fix lane-capacity starvation - reverse the
+  head-seed order for UP/LEFT lanes (far-end-first stacking). L100 now
+  exact 116/116; L250/500/1000 improved but still short (open bug).

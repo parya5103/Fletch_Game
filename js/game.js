@@ -747,6 +747,13 @@ const GameCore = (function() {
     var lines = [];
     if (ln.vertical) { for (var y = ln.y0; y < ln.y1; y++) lines.push(y); }
     else { for (var x = ln.x0; x < ln.x1; x++) lines.push(x); }
+    // v4 Phase 2B head-seed order: along each line's ray axis, seed the
+    // FAR end of the strip first so heads stack toward the exit edge.
+    // With the natural order the first seed poisons its whole line
+    // (measured: UP ~1 head/column, LEFT ~1 head/row), starving the
+    // board. Reversing the ray-axis order for the UP and LEFT lanes
+    // makes every later head sit in the still-clear part of the line.
+    if (ln.id === 0 || ln.id === 2) lines.reverse();
     var perLine = ln.vertical ? (ln.x1 - ln.x0) : (ln.y1 - ln.y0);
     var ord = centerScan(perLine);
     var queue = [];
