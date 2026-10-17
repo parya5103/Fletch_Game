@@ -22,19 +22,19 @@
 [pwa-2-manifest] [PWA 2/6] checking web app manifest...
 [pwa-2-manifest] [OK] manifest valid: Arrow Out!, display=standalone, icons=192x192 512x512 512x512
 [pwa-3-sw-active] [PWA 3/6] checking service worker activation...
-[pwa-3-sw-active] [OK] service worker active, game caches: arrow-out-v31
+[pwa-3-sw-active] [OK] service worker active, game caches: arrow-out-v32
 [pwa-4-cache-scope] [PWA 4/6] checking scoped cache cleanup (reinstall dance)...
 [pwa-4-cache-scope] [OK] cache cleanup is scoped: foreign cache survived Arrow Out! (re)install
 [pwa-5-offline] [PWA 5/6] checking offline boot from service worker cache...
 [pwa-5-offline] [WARN] offline emulation did not flip navigator.onLine (test-env quirk)
 [pwa-5-offline] [OK] offline: game boots fully from the service worker cache
 [pwa-6-update-cycle] [PWA 6/6] simulating a new deployment (bumped sw.js + changed index.html)...
-[pwa-6-update-cycle] simulated deployment: sw.js v31 -> v32 (deploy marker in index.html)
+[pwa-6-update-cycle] simulated deployment: sw.js v32 -> v33 (deploy marker in index.html)
 [pwa-6-update-cycle] [OK] new deployment detected: update banner shown
 [pwa-6-update-cycle] [OK] banner Refresh reloaded the game
 [pwa-6-update-cycle] [OK] reload served the NEW html (deploy marker present in DOM)
 [pwa-6-update-cycle] [OK] localStorage progress identical before/after the update
 [pwa-6-update-cycle] [OK] update banner did not reappear after reload (no reload loop)
-[pwa-6-update-cycle] [OK] cache swap verified: arrow-out-v32
+[pwa-6-update-cycle] [OK] cache swap verified: arrow-out-v33
 [final-console-check] [OK] no console errors
 [final-console-check] ALL CHECKS PASSED
