@@ -73,6 +73,19 @@ const GameCore = (function() {
   // every 10th level is followed by an easier breather.
   function levelConfig(n) {
     let grid, pieces;
+    // v4 big boards (levels 100+): the density campaign continues past
+    // the classic 12x12 cap with adaptive grids (16-80) holding 40-600
+    // real winding arrows. Early return so the classic 4-12/2-36 clamps
+    // below never touch big-board configs.
+    if (n > 99) {
+      var bigPieces = n <= 500 ? Math.round(100 + (n - 100)) : Math.round(450 + (n - 500) * 0.1);
+      var bmod = n % 10;
+      if (bmod === 0) bigPieces = Math.round(bigPieces * 1.15) + 1; // spike
+      else if (bmod === 1) bigPieces = Math.max(40, Math.round(bigPieces * 0.8)); // breather
+      bigPieces = Math.max(40, Math.min(600, bigPieces | 0));
+      var bigGrid = Math.max(16, Math.min(80, Math.ceil(Math.sqrt(bigPieces * 9))));
+      return { grid: bigGrid, pieces: bigPieces, seed: ((n * 2654435761) ^ 0x9E3779B9) >>> 0 };
+    }
 
     // Onboarding (1-10): 9x9 to 10x10 boards, dense maze fill from level 1
     if (n <= 10) {
@@ -559,12 +572,340 @@ const GameCore = (function() {
     return arrows;
   }
 
+  // ===== v4 big boards (levels 100+): strip-lane generator =====
+  // Large adaptive boards (16-80 square grids, 40-600 arrows) use a
+  // four-lane "windrose" layout: an UP strip along the top edge, a DOWN
+  // strip along the bottom, and LEFT/RIGHT strips on the middle band's
+  // halves. Each lane's arrows wind inside their strip (plus a small
+  // adjacent band) and their heads point out through their own edge.
+  // Cross-lane wandering is safe because a head exit ray is a 1-D line
+  // per column/row: a piece never places cells on its OWN head ray, and
+  // later-placed pieces are always removed first (descending step
+  // order), so they can never trap an earlier piece's exit. Head rays
+  // are checked against GLOBAL per-line occupancy extremes, so a head
+  // is only ever seeded where its whole ray is currently clear.
+  var BUDGET_SCHEDULE = [0.75, 0.72, 0.70, 0.68, 0.66];
+
+  // Big boards are full squares (every cell is board).
+  function stripShape(W, H) {
+    var s = new Uint8Array(W * H);
+    for (var i = 0; i < s.length; i++) s[i] = 1;
+    return s;
+  }
+
+  function fillExtArr(n, v) { var a = new Int32Array(n); a.fill(v); return a; }
+
+  // Per-board lane geometry + global per-line occupancy extremes for
+  // O(1) head-ray clearance checks while placing pieces.
+  function laneCtx(W, H) {
+    var tEnd = Math.floor(H / 4);
+    var bStart = H - Math.floor(H / 4);
+    var leftW = Math.floor(W / 2);
+    var band = Math.max(2, Math.floor((bStart - tEnd) / 8));
+    var lanes = [
+      // 0 UP: top strip, heads exit through the top edge
+      { id: 0, dir: 0, x0: 0, x1: W, y0: 0, y1: tEnd, vertical: true },
+      // 1 DOWN: bottom strip, heads exit through the bottom edge
+      { id: 1, dir: 2, x0: 0, x1: W, y0: bStart, y1: H, vertical: true },
+      // 2 LEFT: left half of the middle band, exits through the left edge
+      { id: 2, dir: 3, x0: 0, x1: leftW, y0: tEnd, y1: bStart, vertical: false },
+      // 3 RIGHT: right half of the middle band, exits through the right edge
+      { id: 3, dir: 1, x0: leftW, x1: W, y0: tEnd, y1: bStart, vertical: false }
+    ];
+    return {
+      tEnd: tEnd, bStart: bStart, leftW: leftW, band: band, lanes: lanes,
+      minRow: fillExtArr(W, H),   // per column: min occupied row (H = none)
+      maxRow: fillExtArr(W, -1),  // per column: max occupied row (-1 = none)
+      minCol: fillExtArr(H, W),   // per row: min occupied col (W = none)
+      maxCol: fillExtArr(H, -1)   // per row: max occupied col (-1 = none)
+    };
+  }
+
+  function updateExt(ext, x, y) {
+    if (y < ext.minRow[x]) ext.minRow[x] = y;
+    if (y > ext.maxRow[x]) ext.maxRow[x] = y;
+    if (x < ext.minCol[y]) ext.minCol[y] = x;
+    if (x > ext.maxCol[y]) ext.maxCol[y] = x;
+  }
+
+  // Is the exit ray of a candidate head (hx,hy) in lane `ln` clear of
+  // every already-placed cell on that 1-D line? (global ext, so heads
+  // are also protected against wandering pieces from earlier lanes)
+  function rayClear(ext, ln, hx, hy) {
+    if (ln.dir === 0) return ext.minRow[hx] >= hy;  // nothing above
+    if (ln.dir === 2) return ext.maxRow[hx] <= hy;  // nothing below
+    if (ln.dir === 3) return ext.minCol[hy] >= hx;  // nothing to the left
+    return ext.maxCol[hy] <= hx;                   // nothing to the right
+  }
+
+  // Scan order for n positions along a line: center outward.
+  function centerScan(n) {
+    var order = new Int32Array(n), c = (n / 2) | 0, k = 0;
+    order[k++] = c;
+    for (var r = 1; k < n; r++) {
+      if (c - r >= 0) order[k++] = c - r;
+      if (k < n && c + r < n) order[k++] = c + r;
+    }
+    return order;
+  }
+
+  // Is (x,y) strictly ahead of the head (hx,hy) along direction d?
+  function onRayLine(d, hx, hy, x, y) {
+    if (d === 0) return x === hx && y < hy;
+    if (d === 2) return x === hx && y > hy;
+    if (d === 3) return y === hy && x < hx;
+    return y === hy && x > hx;
+  }
+
+  // Grow one winding strip path, HEAD FIRST. path[0] is the head seed
+  // and path[1] is always the inward step, which guarantees the final
+  // segment leads straight into the lane's exit dir (arrowhead
+  // alignment). The body then wanders with weighted persistence:
+  // straight > outward > sideways > inward, x3 for cells inside the
+  // own strip. Cells never land on the head's own exit ray and never
+  // outside the lane's growth bounds (own strip + adjacent band).
+  function growStripPath(rng, ln, hx, hy, want, occ, lctx, W, H) {
+    var D = ln.dir;
+    var gx0, gx1, gy0, gy1;
+    if (D === 0) { gx0 = 0; gx1 = W; gy0 = 0; gy1 = Math.min(lctx.bStart, lctx.tEnd + lctx.band); }
+    else if (D === 2) { gx0 = 0; gx1 = W; gy0 = Math.max(lctx.tEnd, lctx.bStart - lctx.band); gy1 = H; }
+    else if (D === 3) { gx0 = 0; gx1 = Math.min(W, lctx.leftW + lctx.band); gy0 = lctx.tEnd; gy1 = lctx.bStart; }
+    else { gx0 = Math.max(0, lctx.leftW - lctx.band); gx1 = W; gy0 = lctx.tEnd; gy1 = lctx.bStart; }
+
+    var path = [{ x: hx, y: hy }];
+    var used = {};
+    used[hy * W + hx] = 1;
+
+    // Second cell is ALWAYS the inward step (keeps the head aligned).
+    var inD = (D + 2) % 4;
+    var ix = hx + DIRS[inD][0], iy = hy + DIRS[inD][1];
+    if (ix < 0 || iy < 0 || ix >= W || iy >= H) return null;
+    var ii = iy * W + ix;
+    if (occ[ii] || used[ii]) return null;
+    path.push({ x: ix, y: iy });
+    used[ii] = 1;
+
+    var last = inD;
+    var guard = 0;
+    var maxIter = Math.max(12, want * 6);
+    while (path.length < want && guard++ < maxIter) {
+      var end = path[path.length - 1];
+      var cands = [];
+      for (var d = 0; d < 4; d++) {
+        var nx = end.x + DIRS[d][0], ny = end.y + DIRS[d][1];
+        if (nx < gx0 || nx >= gx1 || ny < gy0 || ny >= gy1) continue;
+        var ni = ny * W + nx;
+        if (occ[ni] || used[ni]) continue;
+        if (onRayLine(D, hx, hy, nx, ny)) continue;
+        var w;
+        if (d === last) w = 6;                                   // straight
+        else if (d === D) w = 4;                                 // outward
+        else if (d === (last + 2) % 4) w = 1;                    // reversal
+        else w = 2;                                              // sideways
+        if (nx >= ln.x0 && nx < ln.x1 && ny >= ln.y0 && ny < ln.y1) w *= 3; // own strip
+        cands.push({ x: nx, y: ny, w: w });
+      }
+      if (!cands.length) break;
+      var total = 0;
+      for (var c = 0; c < cands.length; c++) total += cands[c].w;
+      var pickV = rng() * total, pick = cands[cands.length - 1];
+      for (var c2 = 0; c2 < cands.length; c2++) {
+        pickV -= cands[c2].w;
+        if (pickV <= 0) { pick = cands[c2]; break; }
+      }
+      path.push({ x: pick.x, y: pick.y });
+      used[pick.y * W + pick.x] = 1;
+      last = dirFrom(end, pick);
+    }
+    return path;
+  }
+
+  // Build the best strip piece from a head seed: a few attempts, keep
+  // the longest result of at least 2 cells, early-exit at full length.
+  function growStripPiece(rng, ln, hx, hy, want, occ, lctx, W, H) {
+    var attempts = want <= 3 ? 1 : 3;
+    var best = null;
+    for (var a = 0; a < attempts; a++) {
+      var p = growStripPath(rng, ln, hx, hy, want, occ, lctx, W, H);
+      if (p && p.length >= 2) {
+        if (!best || p.length > best.length) best = p;
+        if (best.length >= want) break;
+      }
+    }
+    return best;
+  }
+
+  // One lane's piece placer: an ordered queue of candidate head
+  // positions. Positions cycle line-by-line (center outward within
+  // each line) so early placements spread across the whole strip
+  // instead of packing one line flat. Rays and occupancy only get
+  // MORE blocked as placement proceeds, so a rejected position is
+  // never retried; short-piece rejections (strict phase) are deferred
+  // for the lenient top-up. A single shared rng + fixed queue order
+  // keeps generation fully deterministic per seed.
+  function makeLanePlacer(rng, ln, estCount, budgetFactor, lctx, occ, colorFn, arrows, W, H) {
+    var lines = [];
+    if (ln.vertical) { for (var y = ln.y0; y < ln.y1; y++) lines.push(y); }
+    else { for (var x = ln.x0; x < ln.x1; x++) lines.push(x); }
+    var perLine = ln.vertical ? (ln.x1 - ln.x0) : (ln.y1 - ln.y0);
+    var ord = centerScan(perLine);
+    var queue = [];
+    for (var oi = 0; oi < ord.length; oi++) {
+      for (var li = 0; li < lines.length; li++) {
+        queue.push(ln.vertical ? { x: ord[oi], y: lines[li] } : { x: lines[li], y: ln.y0 + ord[oi] });
+      }
+    }
+    var laneArea = (ln.x1 - ln.x0) * (ln.y1 - ln.y0);
+    var budget = Math.min(estCount * 7, Math.floor(laneArea * budgetFactor));
+    var want0 = Math.max(3, Math.min(9, Math.round(budget / Math.max(1, estCount))));
+    var cellsUsed = 0, placed = 0, qi = 0;
+    var deferred = [];
+    function tryHead(h, strict) {
+      if (occ[h.y * W + h.x]) return 'dead';
+      if (!rayClear(lctx, ln, h.x, h.y)) return 'dead';
+      var want = Math.max(2, Math.min(want0, Math.round((budget - cellsUsed) / Math.max(1, estCount - placed))));
+      var p = growStripPiece(rng, ln, h.x, h.y, want, occ, lctx, W, H);
+      if (!p || p.length < 2) return 'dead';
+      if (strict && p.length < Math.min(want, 4)) return 'short';
+      var cells = p.slice().reverse(); // stored tail -> head
+      for (var k = 0; k < cells.length; k++) {
+        occ[cells[k].y * W + cells[k].x] = 1;
+        updateExt(lctx, cells[k].x, cells[k].y);
+      }
+      arrows.push({ cells: cells, dir: ln.dir, c: colorFn(p[0].x, p[0].y, rng), step: arrows.length, alive: true });
+      cellsUsed += cells.length;
+      placed++;
+      return 'placed';
+    }
+    return {
+      placeOne: function (strict) {
+        while (deferred.length) {
+          var d = deferred.shift();
+          if (tryHead(d, strict) === 'placed') return true;
+        }
+        while (qi < queue.length) {
+          var h = queue[qi++];
+          var r = tryHead(h, strict);
+          if (r === 'placed') return true;
+          if (r === 'short') deferred.push(h);
+        }
+        return false;
+      }
+    };
+  }
+
+  // Carve all four lanes for one try. Lanes take turns placing one
+  // piece per round so the four strips fill evenly; a lane whose
+  // positions are exhausted simply stops, and the remaining lanes
+  // absorb its share (vertical strips have far more head-stacking
+  // capacity, so big targets stay achievable at exact counts).
+  function carveStrips(W, H, rng, total, budgetFactor, colorFn) {
+    var occ = new Uint8Array(W * H);
+    var lctx = laneCtx(W, H);
+    var arrows = [];
+    var est = Math.max(4, Math.ceil(total / 4));
+    var placers = [];
+    for (var pi = 0; pi < lctx.lanes.length; pi++) {
+      placers.push(makeLanePlacer(rng, lctx.lanes[pi], est, budgetFactor, lctx, occ, colorFn, arrows, W, H));
+    }
+    // Phase 1 (strict): decent-length pieces only.
+    var progress = true;
+    while (arrows.length < total && progress) {
+      progress = false;
+      for (var i = 0; i < placers.length && arrows.length < total; i++) {
+        if (placers[i].placeOne(true)) progress = true;
+      }
+    }
+    // Phase 2 (lenient): exact-count top-up, any 2+ cell piece.
+    progress = true;
+    while (arrows.length < total && progress) {
+      progress = false;
+      for (var j = 0; j < placers.length && arrows.length < total; j++) {
+        if (placers[j].placeOne(false)) progress = true;
+      }
+    }
+    return arrows;
+  }
+
+  // Generate one big level. Retries with a leaner fill budget until the
+  // board hits the EXACT target arrow count and passes validation;
+  // keeps the best attempt as a never-in-practice fallback.
+  function genBigLevel(n, cfg) {
+    var W = cfg.grid, H = cfg.grid;
+    var colorFn = makeColorFn('dense', W, H);
+    var bestAny = null, bestValid = null;
+    for (var tries = 0; tries < BUDGET_SCHEDULE.length; tries++) {
+      var rng = mulberry32((cfg.seed ^ (0xBEEF + tries * 7919)) >>> 0);
+      var arrows = carveStrips(W, H, rng, cfg.pieces, BUDGET_SCHEDULE[tries], colorFn);
+      var cand = {
+        level: n,
+        cols: W,
+        rows: H,
+        shape: stripShape(W, H),
+        arrows: arrows,
+        difficulty: getDifficultyLevel(n),
+        family: 'strips',
+        bonus: levelBonus(n, arrows)
+      };
+      var ok = validateBigSolution(W, H, arrows);
+      if (arrows.length === cfg.pieces && ok) return cand;
+      if (ok && (!bestValid || arrows.length > bestValid.arrows.length)) bestValid = cand;
+      if (!bestAny || arrows.length > bestAny.arrows.length) bestAny = cand;
+    }
+    return bestValid || bestAny;
+  }
+
+  // Validate a big board: disjoint in-bounds orthogonal pieces with
+  // unique steps and aligned heads, then a full descending-step
+  // removal where only the head's 1-D exit ray can block a piece.
+  function validateBigSolution(W, H, arrows) {
+    if (!arrows || arrows.length < 2) return false;
+    var N = W * H;
+    var occ = new Int32Array(N).fill(-1);
+    var seenStep = {};
+    for (var i = 0; i < arrows.length; i++) {
+      var P = arrows[i], cs = P.cells;
+      if (!cs || cs.length < 2) return false;
+      if (typeof P.step !== 'number' || (P.step | 0) !== P.step || seenStep[P.step]) return false;
+      seenStep[P.step] = 1;
+      if (P.dir !== (P.dir | 0) || P.dir < 0 || P.dir > 3) return false;
+      for (var k = 0; k < cs.length; k++) {
+        var x = cs[k].x, y = cs[k].y;
+        if (x < 0 || y < 0 || x >= W || y >= H) return false;
+        if (k > 0 && dirFrom(cs[k - 1], cs[k]) === -1) return false;
+        var idx = y * W + x;
+        if (occ[idx] !== -1) return false; // overlapping pieces
+        occ[idx] = i;
+      }
+      if (dirFrom(cs[cs.length - 2], cs[cs.length - 1]) !== P.dir) return false;
+    }
+    // Descending-step removal with head-ray-only blocking.
+    var order = [];
+    for (var j = 0; j < arrows.length; j++) order.push(j);
+    order.sort(function (a, b) { return arrows[b].step - arrows[a].step; });
+    for (var o = 0; o < order.length; o++) {
+      var pi = order[o], P2 = arrows[pi];
+      var d = P2.dir, dx = DIRS[d][0], dy = DIRS[d][1];
+      var head = P2.cells[P2.cells.length - 1];
+      var cx = head.x + dx, cy = head.y + dy;
+      while (cx >= 0 && cx < W && cy >= 0 && cy < H) {
+        if (occ[cy * W + cx] !== -1 && occ[cy * W + cx] !== pi) return false;
+        cx += dx; cy += dy;
+      }
+      for (var c2 = 0; c2 < P2.cells.length; c2++) {
+        occ[P2.cells[c2].y * W + P2.cells[c2].x] = -1;
+      }
+    }
+    return true;
+  }
+
   // Generate a valid, solvable level
   function genLevel(n) {
     // Sanitize input: NaN/undefined must never reach level configuration.
     n = Math.floor(Number(n));
     if (!isFinite(n) || n < 1) n = 1;
     var cfg = levelConfig(n);
+    if (n > 99) return genBigLevel(n, cfg); // v4 big board path
     cfg.grid = Math.max(4, Math.min(12, cfg.grid | 0));
     cfg.pieces = Math.max(2, Math.min(36, cfg.pieces | 0));
     var rng = mulberry32(cfg.seed);
@@ -738,6 +1079,7 @@ const GameCore = (function() {
     genLevel: genLevel,
     genDailyChallenge: genDailyChallenge,
     validateBoardSolution: validateBoardSolution,
+    validateBigSolution: validateBigSolution,
     hintArrow: hintArrow,
     pieceBlocker: pieceBlocker,
     levelBonus: levelBonus,

@@ -6,9 +6,10 @@ objects) with pan/scroll navigation; levels 1-99 stay byte-identical;
 service worker v30 -> v31 at the end.
 
 ## Phase status (checkpoint 2026-10-17)
-- Phase 0 inspect + checkpoint: DONE (this commit; no gameplay code touched).
+- Phase 0 inspect + checkpoint: DONE (commit 414c0b8e; no gameplay code).
 - Phase 1+2 (arrow-count config + generation capacity): IN PROGRESS.
-  Full design implemented in an uncommitted working copy of js/game.js.
+  v4 game engine restored to this branch as a recovery commit
+  (byte-identical from the preserved backup; known bugs NOT fixed yet).
 - Phase 3 (large-board navigation): NOT STARTED.
 - Phase 4 (rendering/performance): NOT STARTED.
 - Phase 5 (1-1000 validation): PARTIALLY RUN (results below).
@@ -47,16 +48,23 @@ service worker v30 -> v31 at the end.
   until arrows.length === cfg.pieces AND validateBigSolution passes.
 - validateBigSolution is exported for scripts/ci-test.js.
 
-## Working-copy state (uncommitted js/game.js, 1088 lines)
-Preserved in the development agent's persistent backup; NOT in the repo
-yet because the last rewrite is unverified:
+## js/game.js on this branch (recovery commit)
+Restored byte-identical from the preserved development backup:
+1088 lines, 47152 bytes, md5 7625ca7fee4e8067e5eea74b5e64c07c.
+The backup and a separate snapshot copy remain in the agent's
+persistent store. Restored UNMODIFIED - no redesign, no refactoring.
 - Patched: levelConfig override, whole big-board block, genLevel branch,
   validateBigSolution export.
 - Bug history this session: (1) head cells were seeded without an
   occupancy check -> overlapping pieces -> FIXED (validated).
   (2) equal 25% lane quotas starve horizontal lanes (~2 heads/row
   capacity) -> exact counts failed (L100 101/116) -> replaced with the
-  capacity-aware global round-robin placer -> NOT YET RE-VERIFIED.
+  capacity-aware global round-robin placer.
+- OPEN BUGS (intentionally NOT fixed in the recovery commit):
+  (a) makeLanePlacer deferred-drop: strict-phase retries of deferred
+      heads SHIFT them out of the queue and lose them, cutting capacity.
+  (b) lane-capacity: big levels still miss exact counts (L100 95/116,
+      L101 78/81, L1000 308/576) - fix after (a), re-measure.
 
 ## Tests actually run (sandbox JS evaluation, no browser)
 - Harness v1 (13 checks): L1-99 byte-identity PASS; big solvability
@@ -64,23 +72,27 @@ yet because the last rewrite is unverified:
 - Harness v2 (9 checks, after overlap fix): L1-99 PASS; hint-solve,
   determinism, head alignment, bonus, L101 breather PASS; exact arrow
   counts FAIL (distribution bug above).
-- makeLanePlacer rewrite: NO test run yet. Do not trust it yet.
+- Harness v3 (10 checks, after round-robin rewrite): L1-99 PASS; L100
+  solvable PASS; exact counts still FAIL (L100 95/116; see open bugs).
+- Full 1000-level sweep: NOT run since the round-robin rewrite.
+- Recovery commit: syntax check only (new Function compile OK).
+  No gameplay behaviour was tested for this commit.
 
-## Known bugs / risks
-- Exact-count + solvability for all 901 big levels unproven after the
-  round-robin rewrite (next action proves it).
-- No render/main changes yet: a big board rendered by the current UI
-  would be unreadably tiny and tap hit-testing would be wrong. Shipping
-  js/game.js alone would be broken.
+## Known risks
+- The restored engine is NOT shippable yet: exact counts fail and no
+  render/main changes exist (big boards would render tiny + wrong taps).
+- main branch untouched at 5af9fd36.
 
 ## Next exact action (next run)
-1. Restore the working copy of js/game.js from the agent backup.
-2. Run the full verification: L1-99 byte-identity vs v3, full 1-1000
-   sweep (validate + exact arrow counts + tier floors + no duplicate
-   layouts 100-140 + hint-solve on L100/250/500/750/1000 + replay
-   determinism).
-3. If green: commit js/game.js here as "Phase 1+2: big-board game core"
-   and update this file. If red: fix the generator only.
+1. Fix the makeLanePlacer deferred-drop bug (re-queue short-rejected
+   deferred heads instead of dropping them).
+2. Re-measure lane capacity on L100/L101/L250/L500/L1000 (targeted,
+   cheap); then fix lane-capacity starvation if counts still miss.
+3. Only after exact counts + validateBigSolution pass on a targeted
+   set: run the full 1-1000 sweep, then commit.
 
 ## Commits
-- Phase 0 checkpoint: PROGRESS.md only (this commit). No gameplay code.
+- 414c0b8e Phase 0 checkpoint: PROGRESS.md only. No gameplay code.
+- (this commit) recovery: restore preserved v4 game engine.
+  js/game.js byte-identical from backup (md5 7625ca7f...); PROGRESS.md
+  updated. Known bugs left open on purpose.
