@@ -234,11 +234,11 @@ const PWA = (function() {
   // --- Notifications (real Web Push, backend-free) ---
   // The game is a static site, so the "push server" is a scheduled
   // GitHub Actions workflow (.github/workflows/notify.yml) that sends
-  // 4-5 short daily reminders through the Web Push API. The VAPID
+  // five daily reminders at fixed IST times through the Web Push API. The VAPID
   // public key below pairs with the repo secret PUSH_VAPID_PRIVATE_KEY.
   // Each player's subscription is auto-saved to a free Supabase roster
-  // table (insert-only for players, readable only by the developer's
-  // service key) - no copy-paste, no per-player setup.
+  // table (intended restricted writes for players and service-role reads;
+  // actual policies require owner verification) - no copy-paste, no per-player setup.
   //  - the permission prompt only ever fires from the deliberate
   //    Settings toggle, never on page load
   //  - subscribePush() returns the subscription JSON or null
@@ -316,9 +316,9 @@ const PWA = (function() {
   // --- Supabase: subscription auto-submit (backend-free push roster) ---
   // Every player who turns on Daily reminders gets their push subscription
   // saved here automatically - no copy-paste, no repo secrets per player.
-  // The table is insert/delete-only for anonymous visitors (RLS) and
-  // readable only by the developer's service key, which is used by
-  // .github/workflows/notify.yml to send the daily pushes.
+  // Intended RLS restricts anonymous subscription writes and reserves roster
+  // reads for the sender service key. Verify grants, duplicate-upsert and
+  // deletion policies externally; this client cannot establish authorization.
   var SUPABASE_URL = 'https://usszcnaaylbsgqaehsgp.supabase.co';
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3pjbmFheWxic2dxYWVoc2dwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4ODY4ODMsImV4cCI6MjEwNzQ2Mjg4M30.6LQPGdiJ8ggDgCdJdTXmxQNkBjV0fA0_vXYHehExMzc';
 
@@ -363,7 +363,7 @@ const PWA = (function() {
   }
 
   // Game version - kept in sync with sw.js CACHE version
-  var VERSION = 'v31';
+  var VERSION = 'v33';
 
   // --- Update flow ---
   // The page shows a small banner when a newer service worker (a new game

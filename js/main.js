@@ -15,6 +15,7 @@ const Game = (function() {
   // Initialize the game
   function init() {
     // Initialize modules
+    Audio.enabled = Storage.getSave().sound;
     Audio.unlock();
     Haptics.checkSupport();
     UI.init();
@@ -65,19 +66,7 @@ const Game = (function() {
       checkDailyReward();
     }
 
-    // First-time onboarding: show the how-to-play card once, but never
-    // on top of the daily reward dialog (it stacks fine afterwards).
-    try {
-      var sv = Storage.getSave();
-      if (sv.settings && !sv.settings.seenOnboarding) {
-        sv.settings.seenOnboarding = true;
-        Storage.persist();
-        var rewardDlg = document.getElementById('dlg-reward');
-        if (!rewardDlg || !rewardDlg.classList.contains('show')) {
-          UI.openDlg('dlg-howto');
-        }
-      }
-    } catch (e) { /* onboarding is best-effort */ }
+    maybeShowOnboarding();
     
     // Ensure render loop is running
     Render.ensureLoop();
@@ -273,6 +262,7 @@ const Game = (function() {
     // Sound toggle
     on($('btn-sound'), 'click', function() {
       Audio.enabled = !Audio.enabled;
+      Storage.updateSave({ sound: Audio.enabled });
       UI.updateSoundBtn();
       applyMusic();
       if (Audio.enabled) Audio.ui();
@@ -280,6 +270,7 @@ const Game = (function() {
     
     on($('chk-sound'), 'change', function() {
       Audio.enabled = $('chk-sound').checked;
+      Storage.updateSave({ sound: Audio.enabled });
       UI.updateSoundBtn();
       applyMusic();
     });
@@ -326,50 +317,57 @@ const Game = (function() {
     // Turning it ON subscribes this device to Web Push and auto-saves the
     // subscription to the developer's Supabase roster table (js/pwa.js),
     // so every player is done with one tap - no copy-paste.
-    on($('chk-notifs'), 'change', function() {
+    var notificationBusy = false;
+    on($('chk-notifs'), 'change', async function() {
+      var toggle = $('chk-notifs');
+      if (notificationBusy) return;
+      notificationBusy = true;
+      toggle.disabled = true;
       var save = Storage.getSave();
-      if (!save.settings) save.settings = {};
-      var want = $('chk-notifs').checked;
+      var want = toggle.checked;
       save.settings.notifications = want;
       Storage.persist();
       UI.updateNotifUI();
-      if (!want) {
-        // Best-effort: the developer's send list forgets this device,
-        // then the browser subscription itself is removed.
-        PWA.getPushSubscriptionJson().then(function(json) {
-          if (json) PWA.deletePushSubscription(json);
-        });
-        PWA.unsubscribePush().then(function() { UI.updateNotifUI(); });
-        return;
-      }
-      var perm = PWA.notifPermission();
-      if (perm === 'denied' || perm === 'unsupported') {
-        // Permission was blocked in browser settings (or unavailable):
-        // the preference is still saved, the game stays fully playable.
-        UI.toast(perm === 'denied' ? 'Blocked in browser notification settings' : 'Notifications not supported here');
-        return;
-      }
-      var after = function(state) {
-        UI.updateNotifUI();
-        if (state !== 'granted') {
-          UI.toast(state === 'denied' ? 'Permission denied in browser' : 'Notifications not supported here');
+      try {
+        if (!want) {
+          // Capture the endpoint before removing the browser subscription.
+          // Attempt both removals even when the roster request fails.
+          var json = await PWA.getPushSubscriptionJson();
+          if (json) {
+            var results = await Promise.all([
+              PWA.deletePushSubscription(json).catch(function() { return false; }),
+              PWA.unsubscribePush().catch(function() { return false; })
+            ]);
+            if (!results[1]) UI.toast('Could not unsubscribe — retry or block notifications in browser settings');
+            else if (!results[0]) UI.toast('Reminders off in this browser; send list removal could not be confirmed');
+            else UI.toast('Reminders off');
+          }
           return;
         }
-        PWA.subscribePush().then(function(json) {
-          if (!json) {
-            UI.toast('Push not available in this browser');
-            return;
-          }
-          PWA.submitPushSubscription(json).then(function(ok) {
-            UI.toast(ok
-              ? 'Daily reminders on \u2014 see you soon!'
-              : 'Could not save reminders \u2014 check your connection, then toggle off and on');
-            UI.updateNotifUI();
-          });
-        });
-      };
-      if (perm === 'granted') after('granted');
-      else PWA.requestNotifPermission().then(after);
+        var perm = PWA.notifPermission();
+        if (perm !== 'granted' && perm !== 'denied' && perm !== 'unsupported') {
+          perm = await PWA.requestNotifPermission();
+        }
+        if (perm !== 'granted') {
+          UI.toast(perm === 'denied' ? 'Blocked in browser notification settings' : 'Notifications not enabled here');
+          return;
+        }
+        var subscription = await PWA.subscribePush();
+        if (!subscription) {
+          UI.toast('Push not available in this browser');
+          return;
+        }
+        var ok = await PWA.submitPushSubscription(subscription);
+        UI.toast(ok
+          ? 'Daily reminders on — see you soon!'
+          : 'Could not save reminders — check your connection, then toggle off and on');
+      } catch (e) {
+        UI.toast('Could not update reminders — retry or use browser notification settings');
+      } finally {
+        notificationBusy = false;
+        toggle.disabled = false;
+        UI.updateNotifUI();
+      }
     });
     
     // Share result (win dialog)
@@ -431,6 +429,11 @@ const Game = (function() {
         var restored = tryRestore();
         if (!restored) {
           loadLevel(Math.min(save.unlocked, Storage.DESIGN_LEVELS));
+        } else {
+          Render.fitCanvas();
+          UI.updateHUD();
+          saveCur();
+          scheduleWin();
         }
       } else {
         loadLevel(Math.min(save.unlocked, Storage.DESIGN_LEVELS));
@@ -632,6 +635,7 @@ const Game = (function() {
 
     // Home button
     on($('btn-home'), 'click', function() {
+      saveCur();
       Audio.ui();
       UI.showHomeScreen();
     });
@@ -1360,13 +1364,21 @@ const Game = (function() {
     Render.setPalette(skin.colors);
   }
 
+  function maybeShowOnboarding() {
+    var settings = Storage.getSave().settings;
+    if (settings.seenOnboarding || UI.anyOpen()) return;
+    UI.openDlg('dlg-howto');
+    settings.seenOnboarding = true;
+    Storage.persist();
+  }
+
   // --- Daily login rewards (7-day coin calendar) ---
   var LOGIN_REWARDS = [15, 20, 30, 40, 50, 75, 100];
 
   function rewardDayFor(save, now) {
     var today = now.toISOString().slice(0, 10);
     var yest = new Date(now);
-    yest.setDate(yest.getDate() - 1);
+    yest.setUTCDate(yest.getUTCDate() - 1);
     var isConsecutive = save.loginRewards.lastClaim === yest.toISOString().slice(0, 10);
     return isConsecutive ? (save.loginRewards.streak % 7) + 1 : 1;
   }
@@ -1386,7 +1398,7 @@ const Game = (function() {
     if (save.loginRewards.lastClaim === today) { UI.closeAll(); UI.showHomeScreen(); return; }
     
     var yest = new Date(now);
-    yest.setDate(yest.getDate() - 1);
+    yest.setUTCDate(yest.getUTCDate() - 1);
     var streak = save.loginRewards.lastClaim === yest.toISOString().slice(0, 10)
       ? save.loginRewards.streak + 1 : 1;
     var day = ((streak - 1) % 7) + 1;
@@ -1403,6 +1415,7 @@ const Game = (function() {
     UI.closeAll();
     UI.toast('+' + coins + ' coins claimed! Day ' + day);
     UI.showHomeScreen();
+    maybeShowOnboarding();
   }
 
   // Advertising (placeholder)
