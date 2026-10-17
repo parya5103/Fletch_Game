@@ -1,10 +1,11 @@
 /**
  * Arrow Out! Service Worker
- * Version: v30
+ * Version: v31
+ * Stabilization release: validated saves, state transitions and offline responses.
  * Handles caching for offline gameplay
  */
 
-const CACHE = 'arrow-out-v30';
+const CACHE = 'arrow-out-v31';
 // Only obsolete caches that belong to THIS game (arrow-out-*) are ever deleted,
 // so other apps served from the same origin keep their caches.
 const CACHE_PREFIX = 'arrow-out-';
@@ -82,18 +83,31 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (url.origin !== self.location.origin) return;
 
-  e.respondWith(
-    caches.match(e.request, { ignoreSearch: true }).then((hit) => 
-      hit || fetch(e.request).then((resp) => {
-        // Only cache successful responses; never cache errors or redirects
-        if (resp && resp.ok) {
-          const copy = resp.clone();
-          caches.open(CACHE).then((c) => c.put(e.request, copy));
-        }
-        return resp;
-      }).catch(() => caches.match('./index.html'))
-    )
-  );
+  const scope = new URL(self.registration.scope);
+  if (!url.pathname.startsWith(scope.pathname)) return;
+  const known = CORE_ASSETS.concat(EXTRA_ASSETS).some((asset) =>
+    new URL(asset, scope).pathname === url.pathname);
+  const navigation = e.request.mode === 'navigate';
+  // Cache only the finite app shell. Arbitrary URLs and query variants
+  // must not fill storage; asset failures must never return HTML as JS.
+  e.respondWith(caches.open(CACHE).catch(() => null).then(async (cache) => {
+    const key = new URL(url.pathname, url.origin).href;
+    const hit = known && cache ? await cache.match(key).catch(() => null) : null;
+    if (hit) return hit;
+    try {
+      const resp = await fetch(e.request);
+      if (known && cache && resp.ok && !resp.redirected) {
+        e.waitUntil(cache.put(key, resp.clone()).catch(() => {}));
+      }
+      return resp;
+    } catch (err) {
+      if (navigation && cache) {
+        const home = await cache.match(new URL('./index.html', scope).href).catch(() => null);
+        if (home) return home;
+      }
+      return Response.error();
+    }
+  }));
 });
 
 // --- Notifications: hardened push + click handling ---

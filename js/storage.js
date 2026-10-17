@@ -59,32 +59,28 @@ const Storage = (function() {
   var storageOk = true;
 
   // Initialize storage
+  function readSave(key) {
+    var raw;
+    try { raw = localStorage.getItem(key); }
+    catch (e) { storageOk = false; return null; }
+    if (!raw) return null;
+    try { return JSON.parse(raw); }
+    catch (e) { return null; } // damaged v2 must not hide a valid v1 backup
+  }
+
   function init() {
-    try {
-      // Try to load existing save
-      var raw = localStorage.getItem(SAVE_KEY);
-      if (raw) {
-        var d = JSON.parse(raw);
-        if (d && d.v === 2) {
-          save = normalizeSave(d);
-          return;
-        }
+    var d = readSave(SAVE_KEY);
+    if (d && d.v === 2) {
+      save = normalizeSave(d);
+      return;
+    }
+    var old = readSave(OLD_SAVE_KEY);
+    if (old && old.v === 1) {
+      save = normalizeSave(migrateFromV1(old));
+      // Keep the legacy backup until its replacement is durably written.
+      if (persist()) {
+        try { localStorage.removeItem(OLD_SAVE_KEY); } catch (e) {}
       }
-      
-      // Try to migrate from old version
-      var oldRaw = localStorage.getItem(OLD_SAVE_KEY);
-      if (oldRaw) {
-        var old = JSON.parse(oldRaw);
-        if (old && old.v === 1) {
-          save = sanitizeSave(migrateFromV1(old));
-          // Remove old save after migration
-          try { localStorage.removeItem(OLD_SAVE_KEY); } catch(e) {}
-          return;
-        }
-      }
-    } catch (e) {
-      storageOk = false;
-      console.error('Storage error:', e);
     }
   }
 
@@ -93,8 +89,8 @@ const Storage = (function() {
     var newSave = defaultSave();
     
     // Migrate basic progress
-    newSave.unlocked = Math.max(1, Math.min(old.unlocked || 1, DESIGN_LEVELS));
-    newSave.best = old.best || {};
+    newSave.unlocked = toInt(old.unlocked, 1, DESIGN_LEVELS, 1);
+    newSave.best = old.best && typeof old.best === 'object' && !Array.isArray(old.best) ? old.best : {};
     
     // Migrate current game state
     newSave.cur = old.cur || null;
@@ -106,12 +102,14 @@ const Storage = (function() {
     // Handle old perfect flag
     if (old.perfect) {
       for (var pk in old.perfect) {
-        if (!newSave.best[pk]) {
+        if (/^[1-9][0-9]*$/.test(pk) && Number(pk) <= DESIGN_LEVELS && !newSave.best[pk]) {
           newSave.best[pk] = { stars: 3, plays: 1 };
         }
       }
     }
     
+    newSave = sanitizeSave(newSave);
+
     // Calculate stats from migrated data
     var levels = 0, stars = 0, plays = 0;
     for (var k in newSave.best) {
@@ -140,7 +138,7 @@ const Storage = (function() {
   // outdated or hand-edited data. Valid progress is never deleted; bad
   // values are clamped or reset to safe defaults.
   function toInt(v, min, max, dflt) {
-    var n = Math.floor(Number(v));
+    var n = (typeof v === 'number' || typeof v === 'string') ? Math.floor(Number(v)) : dflt;
     if (!isFinite(n)) n = dflt;
     return Math.max(min, Math.min(max, n));
   }
@@ -169,11 +167,11 @@ const Storage = (function() {
     if (!d.best || typeof d.best !== 'object' || Array.isArray(d.best)) d.best = {};
     var best = {};
     for (var bk in d.best) {
-      if (!d.best.hasOwnProperty(bk)) continue;
+      if (!Object.prototype.hasOwnProperty.call(d.best, bk)) continue;
       var b = d.best[bk];
       if (b && typeof b === 'object' && !Array.isArray(b)) {
         var lv = Math.floor(Number(bk));
-        if (isFinite(lv) && lv >= 1 && lv <= DESIGN_LEVELS && !best.hasOwnProperty(String(lv))) {
+        if (isFinite(lv) && lv >= 1 && lv <= DESIGN_LEVELS && !Object.prototype.hasOwnProperty.call(best, String(lv))) {
           best[String(lv)] = {
             stars: toInt(b.stars, 0, 3, 0),
             plays: toInt(b.plays, 0, 1000000, 0)
@@ -205,13 +203,13 @@ const Storage = (function() {
     // bonusClaimed: map of levelKey -> true; drop non-boolean junk entries
     if (!d.bonusClaimed || typeof d.bonusClaimed !== 'object' || Array.isArray(d.bonusClaimed)) d.bonusClaimed = {};
     for (var ck in d.bonusClaimed) {
-      if (d.bonusClaimed.hasOwnProperty(ck) && d.bonusClaimed[ck] !== true) delete d.bonusClaimed[ck];
+      if (Object.prototype.hasOwnProperty.call(d.bonusClaimed, ck) && d.bonusClaimed[ck] !== true) delete d.bonusClaimed[ck];
     }
 
     // owned skins: map of skinId -> true; the default skin is always owned
     if (!d.owned || typeof d.owned !== 'object' || Array.isArray(d.owned)) d.owned = {};
     for (var ok in d.owned) {
-      if (d.owned.hasOwnProperty(ok) && d.owned[ok] !== true) delete d.owned[ok];
+      if (Object.prototype.hasOwnProperty.call(d.owned, ok) && d.owned[ok] !== true) delete d.owned[ok];
     }
     d.owned.default = true;
 
@@ -254,7 +252,8 @@ const Storage = (function() {
       if (!d.owned) d.owned = {};
       d.owned.default = true;
     }
-    if (typeof GameCore === 'undefined' || !GameCore.SKINS || !GameCore.SKINS[d.skin]) d.skin = 'default';
+    if (typeof d.skin !== 'string' || typeof GameCore === 'undefined' || !GameCore.SKINS ||
+        !Object.prototype.hasOwnProperty.call(GameCore.SKINS, d.skin) || d.owned[d.skin] !== true) d.skin = 'default';
     return d;
   }
 
@@ -262,11 +261,14 @@ const Storage = (function() {
   function persist() {
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+      storageOk = true;
+      return true;
     } catch (e) {
       if (storageOk) {
         storageOk = false;
         console.error('Failed to save:', e);
       }
+      return false;
     }
   }
 
@@ -278,13 +280,14 @@ const Storage = (function() {
   // Update save with new data
   function updateSave(newData) {
     for (var key in newData) {
-      if (newData.hasOwnProperty(key) && save.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(newData, key) && Object.prototype.hasOwnProperty.call(save, key)) {
         if (typeof newData[key] === 'object' && newData[key] !== null) {
           // Deep merge for objects. If the stored slot is not mergeable
           // (e.g. null), start from a fresh object instead of crashing.
           if (!save[key] || typeof save[key] !== 'object') save[key] = {};
           for (var subKey in newData[key]) {
-            if (newData[key].hasOwnProperty(subKey)) {
+            if (subKey !== '__proto__' && subKey !== 'constructor' && subKey !== 'prototype' &&
+                Object.prototype.hasOwnProperty.call(newData[key], subKey)) {
               save[key][subKey] = newData[key][subKey];
             }
           }
@@ -322,6 +325,7 @@ const Storage = (function() {
 
     // A daily win counts as a completed level for stats/achievements
     save.stats.totalWins++;
+    save.stats.totalStars += stars;
     
     if (save.daily.lastDate !== dateStr) {
       // New day, reset daily
@@ -336,9 +340,8 @@ const Storage = (function() {
     save.daily.stars = Math.max(save.daily.stars, stars);
     
     // Update streaks
-    var today = new Date();
-    var yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    var yesterday = new Date(date);
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
     
     if (save.streaks.lastPlayDate === yesterday.toISOString().slice(0, 10)) {
       save.streaks.current++;
@@ -354,14 +357,15 @@ const Storage = (function() {
 
   // Coins economy
   function addCoins(n) {
-    n = Math.max(0, Math.floor(Number(n) || 0));
-    save.coins = (save.coins | 0) + n;
+    n = toInt(n, 0, 1000000, 0);
+    save.coins = Math.min(1000000, save.coins + n);
     persist();
     return save.coins;
   }
 
   function spendCoins(n) {
-    n = Math.max(0, Math.floor(Number(n) || 0));
+    n = Math.floor(Number(n));
+    if (!Number.isFinite(n) || n < 0) return false;
     if (save.coins < n) return false;
     save.coins -= n;
     persist();

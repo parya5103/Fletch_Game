@@ -45,8 +45,14 @@ const Render = (function() {
     if (!wrap) return;
     
     var w = wrap.clientWidth, h = wrap.clientHeight;
-    var side = Math.max(140, Math.floor(Math.min(w, h)));
-    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0 ||
+        !Number.isInteger(gameState.cols) || gameState.cols <= 0) {
+      view.side = view.cell = 0;
+      return;
+    }
+    var side = Math.max(1, Math.floor(Math.min(w, h)));
+    var ratio = window.devicePixelRatio;
+    var dpr = Number.isFinite(ratio) && ratio > 0 ? Math.min(ratio, 2) : 1;
     
     canvas.style.width = side + 'px';
     canvas.style.height = side + 'px';

@@ -9,28 +9,16 @@ const PWA = (function() {
   var swActive = false;
   var manifestBuilt = false;
 
-  // Service worker source
-  var SW_SRC = [
-    "/* Arrow Out! service worker - save as sw.js next to index.html */",
-    "const CACHE = 'arrow-out-v30';",
-    "const ASSETS = ['./', './index.html', './about.html', './privacy.html', './css/styles.css', './js/game.js', './js/render.js', './js/audio.js', './js/haptics.js', './js/storage.js', './js/bgfx.js', './js/pwa.js', './js/ui.js', './js/main.js', './manifest.webmanifest', './icons/favicon.svg'];",
-    "self.addEventListener('install', (e) => {",
-    "  e.waitUntil(caches.open(CACHE).then((c) => Promise.all(ASSETS.map((a) => fetch(new Request(a, { cache: 'reload' })).then((r) => { if (!r.ok) throw new Error('precache failed: ' + a); return c.put(a, r); })))).then(() => self.skipWaiting()));",
-    "});",
-    "self.addEventListener('activate', (e) => {",
-    "  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k.startsWith('arrow-out-') && k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));",
-    "});",
-    "self.addEventListener('fetch', (e) => {",
-    "  if (e.request.method !== 'GET') return;",
-    "  e.respondWith(",
-    "    caches.match(e.request, { ignoreSearch: true }).then((hit) => hit || fetch(e.request).then((resp) => {",
-    "      const copy = resp.clone();",
-    "      if (resp && resp.ok) caches.open(CACHE).then((c) => c.put(e.request, copy));",
-    "      return resp;",
-    "    }).catch(() => caches.match('./index.html')))",
-    "  );",
-    "});"
-  ].join('\n');
+  // Copy the deployed worker, never an outdated second implementation.
+  function getServiceWorkerSource() {
+    return fetch('sw.js', { cache: 'no-store' }).then(function(response) {
+      if (!response.ok) throw new Error('Service worker unavailable');
+      return response.text();
+    }).then(function(text) {
+      if (!text.trim() || text.indexOf("addEventListener('fetch'") === -1) return null;
+      return text;
+    }).catch(function() { return null; });
+  }
 
   function isStandalone() {
     return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
@@ -294,21 +282,21 @@ const PWA = (function() {
     return out;
   }
 
-  function withPushManager(fn) {
+  function withPushManager(fn, create) {
     if (!pushSupported()) return Promise.resolve(null);
     return navigator.serviceWorker.ready.then(function(reg) {
       return reg.pushManager.getSubscription().then(function(sub) {
-        return sub || reg.pushManager.subscribe({
+        return sub || (create ? reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlB64ToUint8Array(VAPID_PUBLIC_KEY)
-        });
+        }) : null);
       });
     }).then(fn, function() { return null; });
   }
 
   // Returns the subscription JSON string, or null
   function subscribePush() {
-    return withPushManager(function(sub) { return JSON.stringify(sub); });
+    return withPushManager(function(sub) { return sub ? JSON.stringify(sub) : null; }, true);
   }
 
   // Existing subscription JSON or null (for status display only)
@@ -375,7 +363,7 @@ const PWA = (function() {
   }
 
   // Game version - kept in sync with sw.js CACHE version
-  var VERSION = 'v30';
+  var VERSION = 'v31';
 
   // --- Update flow ---
   // The page shows a small banner when a newer service worker (a new game
@@ -516,7 +504,7 @@ const PWA = (function() {
     maybeIOSBanner: maybeIOSBanner,
     installAction: installAction,
     get swActive() { return swActive; },
-    get SW_SRC() { return SW_SRC; },
+    getServiceWorkerSource: getServiceWorkerSource,
     get VERSION() { return VERSION; },
     checkForUpdates: checkForUpdates,
     notifSupported: notifSupported,

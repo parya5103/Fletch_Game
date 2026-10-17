@@ -15,11 +15,8 @@ const Game = (function() {
   // Initialize the game
   function init() {
     // Initialize modules
-    Storage.init();
     Audio.unlock();
     Haptics.checkSupport();
-    PWA.buildManifest();
-    PWA.registerSW();
     UI.init();
     
     // Set up canvas
@@ -41,6 +38,7 @@ const Game = (function() {
       Render.fitCanvas();
       UI.updateHUD();
       saveCur();
+      scheduleWin();
     }
     
     // Update UI
@@ -139,7 +137,10 @@ const Game = (function() {
     
     // Keyboard
     on(document, 'keydown', function(e) { 
-      if (e.key === 'Escape' && UI.anyOpen()) UI.closeAll(); 
+      if (e.key === 'Escape' && !e.repeat && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && UI.anyOpen()) {
+        e.preventDefault();
+        UI.closeAll();
+      }
     });
   }
 
@@ -158,6 +159,7 @@ const Game = (function() {
   }
   function handlePointerDown(e) {
     if (!gameState || gameState.over || gameState.failed || !gameState.occ) return;
+    if (UI.anyOpen() || (e.button !== undefined && e.button !== 0)) return;
     if (e.isPrimary === false) return; // ignore non-primary pointers
     e.preventDefault();
 
@@ -525,27 +527,30 @@ const Game = (function() {
     
     // Copy service worker button
     on($('btn-copy-sw'), 'click', function() {
-      var done = function() { UI.toast('Service worker code copied'); };
-      var fallbackCopy = function() {
-        var ta = document.createElement('textarea');
-        ta.value = PWA.SW_SRC;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.select();
-        try { 
-          document.execCommand('copy'); 
-          done(); 
-        } catch (e) { 
-          UI.toast('Copy failed \u2014 select the code manually'); 
-        }
-        document.body.removeChild(ta);
-      };
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(PWA.SW_SRC).then(done, fallbackCopy);
-      } else fallbackCopy();
+      PWA.getServiceWorkerSource().then(function(source) {
+        if (!source) { UI.toast('Service worker unavailable — reconnect and try again'); return; }
+        var done = function() { UI.toast('Service worker code copied'); };
+        var fallbackCopy = function() {
+          var ta = document.createElement('textarea');
+          ta.value = source;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          try {
+            document.execCommand('copy');
+            done();
+          } catch (e) {
+            UI.toast('Copy failed \u2014 select the code manually');
+          }
+          document.body.removeChild(ta);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(source).then(done, fallbackCopy);
+        } else fallbackCopy();
+      });
     });
-    
+
     // Home button
     on($('btn-home'), 'click', function() {
       Audio.ui();
@@ -558,7 +563,8 @@ const Game = (function() {
       Audio.ui();
       Audio.unlock();
       var s = Storage.getSave();
-      loadLevel(s.cur ? s.cur.level : Math.min(s.unlocked, Storage.DESIGN_LEVELS));
+      if (s.cur && s.cur.level === 'daily') loadDailyChallenge();
+      else loadLevel(s.cur ? s.cur.level : Math.min(s.unlocked, Storage.DESIGN_LEVELS));
     });
 
     // Home screen: install app (same flow as the menu entry)
@@ -597,6 +603,7 @@ const Game = (function() {
 
   // Game state management
   function loadLevel(n) {
+    lastTap = { t: 0, idx: -1 };
     UI.showScreen('game');
     // Sanitize level number so NaN/undefined can never reach level generation
     n = Math.floor(Number(n));
@@ -648,12 +655,14 @@ const Game = (function() {
   }
 
   function loadDailyChallenge() {
+    lastTap = { t: 0, idx: -1 };
     UI.showScreen('game');
     var today = new Date();
     var L = GameCore.genDailyChallenge(today);
     
     gameState = {
       level: 'daily',
+      date: L.date,
       cols: L.cols,
       rows: L.rows,
       shape: L.shape,
@@ -689,6 +698,8 @@ const Game = (function() {
     updateBonusBanner();
     
     UI.closeAll();
+    Storage.getSave().stats.totalPlays++;
+    saveCur();
   }
 
   function rebuildOcc() {
@@ -722,6 +733,7 @@ const Game = (function() {
       }
       save.cur = {
         level: gameState.level,
+        date: gameState.date || null,
         cols: gameState.cols,
         rows: gameState.rows,
         shapeIdx: shapeIdx,
@@ -735,6 +747,8 @@ const Game = (function() {
           idx: gameState.bonus.idx,
           coins: gameState.bonus.coins,
           seconds: gameState.bonus.seconds,
+          remainingMs: Math.max(0, gameState.bonus.deadline - performance.now()),
+          active: gameState.bonus.active,
           granted: gameState.bonus.granted
         } : null
       };
@@ -752,56 +766,44 @@ const Game = (function() {
     var save = Storage.getSave();
     var c = save.cur;
 
-    // Validate the shape of the saved game before touching gameState
-    if (!c || typeof c.level !== 'number' ||
+    // Reject the complete snapshot before publishing any state. Progress
+    // and cosmetics stay intact when a damaged board needs a fresh start.
+    if (!c || !(Number.isInteger(c.level) && c.level >= 1 && c.level <= Storage.DESIGN_LEVELS ||
+        c.level === 'daily' && c.date === new Date().toISOString().slice(0, 10).replace(/-/g, '')) ||
         !Array.isArray(c.arrows) || !Array.isArray(c.alive) ||
         !Array.isArray(c.shapeIdx) || !Array.isArray(c.undoIds)) return false;
-    if (typeof c.cols !== 'number' || typeof c.rows !== 'number' ||
-        !(c.cols > 0) || !(c.rows > 0)) return false;
-    if (c.arrows.length !== c.alive.length) return false;
-    if ((c.hearts | 0) <= 0) return false;
-
+    if (!GameCore.validateBoardSolution(c.cols, c.rows, c.arrows) ||
+        c.arrows.length !== c.alive.length ||
+        !Number.isInteger(c.hearts) || c.hearts < 1 || c.hearts > GameCore.MAX_HEARTS ||
+        !Number.isInteger(c.wrong) || c.wrong < 0 || c.wrong !== GameCore.MAX_HEARTS - c.hearts ||
+        !Number.isInteger(c.hintsUsed) || c.hintsUsed < 0 || c.hintsUsed > 1000000 ||
+        !c.alive.every(function(v) { return v === 0 || v === 1; })) return false;
     var N = c.cols * c.rows;
-    if (!isFinite(N) || N <= 0 || N > 400) return false;
-
-    // Validate pieces fully before committing any state. Old single-cell
-    // saves (pre-winding-paths format) fail here and are simply reloaded
-    // as a fresh level - all other progress stays untouched.
+    if (c.shapeIdx.length > N || new Set(c.shapeIdx).size !== c.shapeIdx.length ||
+        !c.shapeIdx.every(function(i) { return Number.isInteger(i) && i >= 0 && i < N; })) return false;
+    var shape = new Uint8Array(N);
+    c.shapeIdx.forEach(function(i) { shape[i] = 1; });
+    if (c.undoIds.length > 100 || new Set(c.undoIds).size !== c.undoIds.length ||
+        !c.undoIds.every(function(i) { return Number.isInteger(i) && i >= 0 && i < c.arrows.length && c.alive[i] === 0; })) return false;
     var restored = [];
-    var seen = new Int32Array(c.cols * c.rows).fill(-1);
     for (var a = 0; a < c.arrows.length; a++) {
       var A = c.arrows[a];
-      if (!A || !Array.isArray(A.cells) || !A.cells.length) return false;
-      var cs = [];
-      for (var q = 0; q < A.cells.length; q++) {
-        var cc = A.cells[q];
-        if (!cc || typeof cc.x !== 'number' || typeof cc.y !== 'number' ||
-            cc.x < 0 || cc.x >= c.cols || cc.y < 0 || cc.y >= c.rows) return false;
-        var ci2 = cc.y * c.cols + cc.x;
-        if (seen[ci2] !== -1) return false; // overlapping cells = corrupt
-        seen[ci2] = a;
-        // Consecutive path cells must be orthogonal neighbours
-        if (q > 0) {
-          var pv = cs[q - 1];
-          if (Math.abs(cc.x - pv.x) + Math.abs(cc.y - pv.y) !== 1) return false;
-        }
-        cs.push({ x: cc.x, y: cc.y });
-      }
-      var ci = (typeof A.c === 'number' && A.c >= 0) ? A.c : 0;
+      if (!A.cells.every(function(cell) { return shape[cell.y * c.cols + cell.x] === 1; })) return false;
       restored.push({
-        cells: cs,
-        dir: (A.dir | 0) & 3,
-        c: ci % GameCore.PALETTE.length,
-        step: A.step | 0,
-        alive: !!c.alive[a]
+        cells: A.cells.map(function(cell) { return { x: cell.x, y: cell.y }; }),
+        dir: A.dir,
+        c: Number.isInteger(A.c) && A.c >= 0 ? A.c % GameCore.PALETTE.length : 0,
+        step: A.step,
+        alive: c.alive[a] === 1
       });
     }
 
     gameState = {
       level: c.level,
+      date: c.date || null,
       cols: c.cols,
       rows: c.rows,
-      shape: new Uint8Array(N),
+      shape: shape,
       arrows: restored,
       occ: null,
       hearts: Math.min(GameCore.MAX_HEARTS, Math.max(0, c.hearts | 0)),
@@ -819,33 +821,30 @@ const Game = (function() {
       coinsEarned: 0
     };
 
-    for (var i = 0; i < c.shapeIdx.length; i++) {
-      var idx = c.shapeIdx[i];
-      if (idx < 0 || idx >= N) return false;
-      gameState.shape[idx] = 1;
-    }
-
     gameState.failed = gameState.hearts <= 0;
     rebuildOcc();
     resetStall();
 
-    // Restore the timed bonus objective (timer restarts fresh; the
-    // claimed/granted flags prevent any duplicate reward).
+    // Restore remaining bonus time; legacy snapshots use their original
+    // duration. Expired and already rewarded bonuses stay inactive.
     gameState.bonus = null;
-    if (c.bonus && !c.bonus.granted &&
-        typeof c.bonus.idx === 'number' && c.bonus.idx >= 0 && c.bonus.idx < restored.length &&
-        typeof c.bonus.coins === 'number' && typeof c.bonus.seconds === 'number' &&
+    if (c.bonus && !c.bonus.granted && c.bonus.active !== false &&
+        (c.bonus.remainingMs === undefined || Number.isFinite(c.bonus.remainingMs) && c.bonus.remainingMs > 0) &&
+        Number.isInteger(c.bonus.idx) && c.bonus.idx >= 0 && c.bonus.idx < restored.length &&
+        Number.isFinite(c.bonus.coins) && Number.isFinite(c.bonus.seconds) &&
         restored[c.bonus.idx].alive) {
       var bKey = (c.level === 'daily') ? 'daily' : c.level;
       var bSave = Storage.getSave();
       if (!bSave.bonusClaimed || !bSave.bonusClaimed[bKey]) {
         gameState.bonus = {
           idx: c.bonus.idx,
-          coins: Math.max(1, c.bonus.coins | 0),
+          coins: Math.min(60, Math.max(1, c.bonus.coins | 0)),
           seconds: Math.min(120, Math.max(10, c.bonus.seconds | 0)),
           active: true,
           granted: false,
-          deadline: performance.now() + Math.min(120, Math.max(10, c.bonus.seconds | 0)) * 1000
+          deadline: performance.now() + (c.bonus.remainingMs === undefined
+            ? Math.min(120, Math.max(10, c.bonus.seconds | 0)) * 1000
+            : Math.min(c.bonus.remainingMs, 120000))
         };
       }
     }
@@ -973,6 +972,7 @@ const Game = (function() {
     if (blocker === -1) {
       removeArrow(i);
     } else {
+      if (blocker < 0) return;
       gameState.hearts--;
       gameState.wrong++;
       gameState.combo = 0;
@@ -997,7 +997,9 @@ const Game = (function() {
         var save = Storage.getSave();
         save.cur = null;
         Storage.updateSave(save);
+        var failedState = gameState;
         setTimeout(function() { 
+          if (gameState !== failedState || !gameState.failed) return;
           UI.showFailDialog(); 
         }, REDUCED ? 150 : 500);
       } else if (gameState.wrong === 1) {
@@ -1119,7 +1121,7 @@ const Game = (function() {
   }
 
   function doHint() {
-    if (!gameState) return;
+    if (!gameState || gameState.over || gameState.failed) return;
     
     var h = GameCore.hintArrow(gameState.arrows, gameState.occ, gameState.cols, gameState.rows);
     if (h < 0) return;
@@ -1134,12 +1136,17 @@ const Game = (function() {
     
     UI.updateHintBtn();
     Storage.updateHintsUsed(1);
+    saveCurSoon();
     
     Render.needsRender();
     Render.ensureLoop();
   }
 
+  var rewardedState = null;
   function adForHint() {
+    if (!gameState || gameState.over || gameState.failed || rewardedState === gameState) return;
+    var state = gameState;
+    rewardedState = state;
     UI.closeAll();
     Audio.ui();
     Audio.unlock();
@@ -1155,6 +1162,8 @@ const Game = (function() {
         t--;
         if (t <= 0) {
           clearInterval(iv);
+          if (rewardedState === state) rewardedState = null;
+          if (gameState !== state || state.over || state.failed) return;
           UI.closeAll();
           doHint();
           UI.toast('Hint unlocked \u2713');
@@ -1166,7 +1175,9 @@ const Game = (function() {
     }
     
     Ads.requestRewarded(function(ok) {
-      if (ok) {
+      if (rewardedState !== state) return;
+      rewardedState = null;
+      if (ok && gameState === state && !state.over && !state.failed) {
         doHint();
         UI.toast('Hint unlocked \u2713');
       }
@@ -1211,7 +1222,8 @@ const Game = (function() {
       
       Storage.updateLevelBest(gameState.level, stars, 1);
     } else {
-      Storage.updateDailyChallenge(today, stars);
+      var dailyDate = gameState.date;
+      Storage.updateDailyChallenge(dailyDate ? new Date(dailyDate.slice(0, 4) + '-' + dailyDate.slice(4, 6) + '-' + dailyDate.slice(6, 8) + 'T00:00:00Z') : today, stars);
     }
     
     // In-game toast for achievements that just became completed
@@ -1221,7 +1233,9 @@ const Game = (function() {
     save.cur = null;
     Storage.updateSave(save);
     
+    var wonState = gameState;
     setTimeout(function() {
+      if (gameState !== wonState || !gameState.over) return;
       UI.showWinDialog();
     }, REDUCED ? 200 : 900);
   }
