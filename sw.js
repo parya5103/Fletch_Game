@@ -1,11 +1,11 @@
 /**
  * Arrow Out! Service Worker
- * Version: v31
- * Stabilization release: validated saves, state transitions and offline responses.
+ * Version: v32
+ * Dense campaign release: scalable paths, camera controls and cached rendering.
  * Handles caching for offline gameplay
  */
 
-const CACHE = 'arrow-out-v31';
+const CACHE = 'arrow-out-v32';
 // Only obsolete caches that belong to THIS game (arrow-out-*) are ever deleted,
 // so other apps served from the same origin keep their caches.
 const CACHE_PREFIX = 'arrow-out-';

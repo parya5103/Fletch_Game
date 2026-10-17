@@ -173,6 +173,12 @@
     </div>
 
     <!-- MAIN GAME BOARD -->
+    <div id="board-tools" aria-label="Board view controls">
+      <span id="board-view-label" aria-live="polite">Tap an arrow · drag to pan</span>
+      <button id="btn-zoom-out" class="btn" aria-label="Zoom out">−</button>
+      <button id="btn-zoom-in" class="btn" aria-label="Zoom in">+</button>
+      <button id="btn-board-fit" class="btn" aria-label="Show whole board">Fit</button>
+    </div>
     <main id="board-wrap">
       <canvas id="board" role="img" aria-label="Arrow puzzle board. Tap an arrow with a clear path to send it off the board."></canvas>
       <div id="combo-badge" aria-hidden="true"></div>
@@ -337,6 +343,7 @@
       </button>
       <h2 id="how-title">How to play</h2>
       <ul>
+        <li>On dense boards, tap the overview or use <b>+</b> to zoom. Drag to pan, pinch to zoom, and use <b>Fit</b> to see the whole puzzle. Hints bring a clear arrow into view.</li>
         <li><b>Tap an arrow</b> &mdash; it flies off the board in the direction it points.</li>
         <li>It only leaves if its <b>path to the edge is clear</b>. Another arrow in the way blocks it.</li>
         <li>A blocked tap <b>costs one heart</b> (&#9829;&#9829;&#9829;). Lose all three and the level restarts.</li>

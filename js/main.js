@@ -92,12 +92,32 @@ const Game = (function() {
     var canvasEl = document.getElementById('board');
     if (canvasEl) {
       if (window.PointerEvent) {
-        on(canvasEl, 'pointerdown', handlePointerDown, { passive: false });
+        on(canvasEl, 'pointerdown', gestureDown, { passive: false });
+        on(canvasEl, 'pointermove', gestureMove, { passive: false });
+        on(canvasEl, 'pointerup', gestureUp, { passive: false });
+        on(canvasEl, 'pointercancel', gestureCancel);
+        on(canvasEl, 'lostpointercapture', gestureCancel);
       } else {
         // Fallback for browsers without Pointer Events (older mobile WebViews)
-        on(canvasEl, 'touchstart', handlePointerDown, { passive: false });
-        on(canvasEl, 'mousedown', handlePointerDown, { passive: false });
+        on(canvasEl, 'touchstart', function(e) { legacyTouch(e, gestureDown); }, { passive: false });
+        on(canvasEl, 'touchmove', function(e) { legacyTouch(e, gestureMove); }, { passive: false });
+        on(canvasEl, 'touchend', function(e) { legacyTouch(e, gestureUp); }, { passive: false });
+        on(canvasEl, 'touchcancel', function(e) { legacyTouch(e, gestureCancel); }, { passive: false });
+        on(canvasEl, 'mousedown', gestureDown, { passive: false });
+        on(window, 'mousemove', gestureMove, { passive: false });
+        on(window, 'mouseup', gestureUp, { passive: false });
       }
+      on(canvasEl, 'wheel', function(e) {
+        if (UI.anyOpen()) return;
+        e.preventDefault();
+        const r = canvasEl.getBoundingClientRect(), v = Render.getView();
+        Render.zoomAt(v.zoom * Math.exp(-e.deltaY * 0.002), e.clientX - r.left, e.clientY - r.top);
+      }, { passive: false });
+      on($('btn-zoom-in'), 'click', function() {
+        const v = Render.getView(); Render.zoomAt(Math.max(v.zoom * 1.5, 44 / v.cell));
+      });
+      on($('btn-zoom-out'), 'click', function() { Render.zoomAt(Render.getView().zoom / 1.5); });
+      on($('btn-board-fit'), 'click', function() { Render.resetView(); });
       on(canvasEl, 'contextmenu', function(e) { e.preventDefault(); });
       on(canvasEl, 'dblclick', function(e) { e.preventDefault(); });
     }
@@ -148,6 +168,58 @@ const Game = (function() {
   function $(id) { return document.getElementById(id); }
   function on(el, ev, fn, opts) { if (el) el.addEventListener(ev, fn, opts); }
 
+  // Commit selection only on release. Drag, pinch, cancellation, and a
+  // second finger suppress the entire gesture, so navigation costs no heart.
+  const pointers = new Map();
+  var gestureMoved = false, pinchDistance = 0, lastTouch = -Infinity;
+  function legacyTouch(e, handler) {
+    lastTouch = performance.now();
+    e.preventDefault();
+    for (const t of e.changedTouches) handler({ pointerId: t.identifier,
+      pointerType: 'touch', clientX: t.clientX, clientY: t.clientY,
+      button: 0, preventDefault: function() {} });
+  }
+  function gestureDown(e) {
+    if (UI.anyOpen() || (e.button !== undefined && e.button !== 0) ||
+        (!e.pointerType && performance.now() - lastTouch < 700) ||
+        !Number.isFinite(e.clientX) || !Number.isFinite(e.clientY)) return;
+    e.preventDefault();
+    if (!pointers.size) gestureMoved = false;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY });
+    if (canvas.setPointerCapture && e.pointerId !== undefined) {
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* legacy synthetic touch */ }
+    }
+    if (pointers.size > 1) { gestureMoved = true; pinchDistance = 0; }
+  }
+  function gestureMove(e) {
+    const p = pointers.get(e.pointerId);
+    if (!p || !Number.isFinite(e.clientX) || !Number.isFinite(e.clientY)) return;
+    e.preventDefault();
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    p.x = e.clientX; p.y = e.clientY;
+    if (Math.hypot(p.x - p.startX, p.y - p.startY) > 8) gestureMoved = true;
+    if (pointers.size === 1 && gestureMoved) Render.pan(dx, dy);
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      const distance = Math.hypot(a.x - b.x, a.y - b.y);
+      const r = canvas.getBoundingClientRect();
+      if (pinchDistance > 0) Render.zoomAt(Render.getView().zoom * distance / pinchDistance,
+        (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top);
+      pinchDistance = distance;
+    }
+  }
+  function gestureUp(e) {
+    const p = pointers.get(e.pointerId);
+    if (!p) return;
+    pointers.delete(e.pointerId);
+    if (Math.hypot(e.clientX - p.startX, e.clientY - p.startY) > 8) gestureMoved = true;
+    if (!gestureMoved && !pointers.size) handlePointerDown(e);
+    pinchDistance = 0;
+  }
+  function gestureCancel(e) {
+    pointers.delete(e.pointerId); gestureMoved = true; pinchDistance = 0;
+  }
+
   // Handle pointer/touch/mouse down on canvas
   var lastTap = { t: 0, idx: -1 };
   function pointerPos(e) {
@@ -171,7 +243,14 @@ const Game = (function() {
     var p = pointerPos(e);
     if (!p || !isFinite(p.x) || !isFinite(p.y)) return;
     var x = p.x - rect.left, y = p.y - rect.top;
-    var col = Math.floor(x / cellSize), row = Math.floor(y / cellSize);
+    var point = Render.screenToCell(x, y);
+    if (!point) return;
+    var v = Render.getView();
+    if (v.cell * v.zoom < 24) {
+      Render.zoomAt(44 / v.cell, x, y);
+      return;
+    }
+    var col = point.x, row = point.y;
 
     // Reject out-of-bounds grid coordinates
     if (col < 0 || row < 0 || col >= gameState.cols || row >= gameState.rows) return;
@@ -1127,6 +1206,7 @@ const Game = (function() {
     if (h < 0) return;
     
     gameState.hintIdx = h;
+    Render.focusPiece(h);
     gameState.hintsUsed++;
     resetStall();
     

@@ -17,13 +17,74 @@ const Render = (function() {
   function setPalette(colors) {
     if (colors && colors.length) {
       activePalette = colors.slice();
-      needsRender = true;
-      ensureLoop();
+      invalidate();
     }
   }
   
   var canvas, ctx, view, needsRender, loopOn, lastT;
   var gameState = null;
+  var camera = { zoom: 1, x: 0, y: 0 };
+  var layer, layerCtx, layerKey = '', dpr = 1;
+  var bounds = new WeakMap();
+
+  function invalidate() { layerKey = ''; needsRender = true; ensureLoop(); }
+  function clampCamera() {
+    const min = view.side * (1 - camera.zoom);
+    camera.x = Math.max(min, Math.min(0, camera.x));
+    camera.y = Math.max(min, Math.min(0, camera.y));
+    const label = document.getElementById('board-view-label');
+    if (label) label.textContent = view.cell * camera.zoom < 24
+      ? 'Overview · tap to zoom' : 'Tap an arrow · drag to pan';
+  }
+  function zoomAt(zoom, x = view.side / 2, y = view.side / 2) {
+    if (!view.cell) return;
+    zoom = Math.max(1, Math.min(Math.max(1, 64 / view.cell), zoom));
+    const factor = zoom / camera.zoom;
+    camera.x = x - (x - camera.x) * factor;
+    camera.y = y - (y - camera.y) * factor;
+    camera.zoom = zoom;
+    clampCamera(); invalidate();
+  }
+  function pan(dx, dy) {
+    camera.x += dx; camera.y += dy;
+    clampCamera(); invalidate();
+  }
+  function resetView() {
+    camera = { zoom: 1, x: 0, y: 0 };
+    clampCamera(); invalidate();
+  }
+  function screenToCell(x, y) {
+    if (!view.cell || !Number.isFinite(x) || !Number.isFinite(y) ||
+        x < 0 || y < 0 || x >= view.side || y >= view.side) return null;
+    return { x: Math.floor((x - camera.x) / camera.zoom / view.cell),
+      y: Math.floor((y - camera.y) / camera.zoom / view.cell) };
+  }
+  function focusPiece(i) {
+    const a = gameState && gameState.arrows[i];
+    if (!a || !view.cell) return;
+    const h = a.cells[a.cells.length - 1];
+    camera.zoom = Math.max(camera.zoom, 44 / view.cell);
+    camera.x = view.side / 2 - (h.x + 0.5) * view.cell * camera.zoom;
+    camera.y = view.side / 2 - (h.y + 0.5) * view.cell * camera.zoom;
+    clampCamera(); invalidate();
+  }
+  function visible(a) {
+    let b = bounds.get(a);
+    if (!b) {
+      b = { minX: Infinity, minY: Infinity, maxX: 0, maxY: 0 };
+      for (const c of a.cells) {
+        b.minX = Math.min(b.minX, c.x); b.minY = Math.min(b.minY, c.y);
+        b.maxX = Math.max(b.maxX, c.x + 1); b.maxY = Math.max(b.maxY, c.y + 1);
+      }
+      bounds.set(a, b);
+    }
+    const cell = view.cell * camera.zoom;
+    return b.maxX * cell + camera.x >= 0 && b.maxY * cell + camera.y >= 0 &&
+      b.minX * cell + camera.x <= view.side && b.minY * cell + camera.y <= view.side;
+  }
+  function worldTransform() {
+    ctx.setTransform(dpr * camera.zoom, 0, 0, dpr * camera.zoom, dpr * camera.x, dpr * camera.y);
+  }
 
   function init(element) {
     canvas = element;
@@ -36,6 +97,9 @@ const Render = (function() {
 
   function setGameState(state) {
     gameState = state;
+    camera = { zoom: 1, x: 0, y: 0 };
+    bounds = new WeakMap();
+    layerKey = '';
   }
 
   function fitCanvas() {
@@ -52,7 +116,7 @@ const Render = (function() {
     }
     var side = Math.max(1, Math.floor(Math.min(w, h)));
     var ratio = window.devicePixelRatio;
-    var dpr = Number.isFinite(ratio) && ratio > 0 ? Math.min(ratio, 2) : 1;
+    dpr = Number.isFinite(ratio) && ratio > 0 ? Math.min(ratio, 2) : 1;
     
     canvas.style.width = side + 'px';
     canvas.style.height = side + 'px';
@@ -62,6 +126,13 @@ const Render = (function() {
     
     view.side = side;
     view.cell = side / gameState.cols;
+    if (!layer) {
+      layer = document.createElement('canvas');
+      layerCtx = layer.getContext('2d');
+    }
+    layer.width = canvas.width; layer.height = canvas.height;
+    layerKey = '';
+    clampCamera();
     needsRender = true;
     ensureLoop();
   }
@@ -185,7 +256,7 @@ const Render = (function() {
     // from every normal palette color (the glow underneath reinforces it).
     if (isSpecial) color = '#fbbf24';
     // Thin responsive shaft: visible on phones, reads as a path not a pipe
-    var lw = Math.max(2.5, cell * 0.11);
+    var lw = Math.max(0.45, cell * 0.11);
 
     ctx.save();
     ctx.globalAlpha = alpha;
@@ -235,7 +306,7 @@ const Render = (function() {
 
     // Light interior core: outlined-path look, delicate white line
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-    ctx.lineWidth = Math.max(1, lw * 0.28);
+    ctx.lineWidth = lw * 0.28;
     ctx.stroke();
 
     // Arrowhead: solid filled triangle in the path color. Only the two
@@ -248,7 +319,7 @@ const Render = (function() {
     ctx.beginPath();
     headSidesAppend(P, cell);
     ctx.strokeStyle = shadeColor(color, -45);
-    ctx.lineWidth = Math.max(1.5, lw * 0.9);
+    ctx.lineWidth = lw * 0.9;
     ctx.stroke();
 
     // Hint halo: white pulse around the whole hinted arrow
@@ -358,7 +429,7 @@ const Render = (function() {
     var baseArc = endArc - cell * 0.36;  // arrowhead base on the track
     if (!(baseArc > startArc)) return;
     var color = P.gold ? '#fbbf24' : activePalette[P.c % activePalette.length];
-    var lw = Math.max(2.5, cell * 0.11);
+    var lw = Math.max(0.45, cell * 0.11);
     var du = DIRS[P.dir][0], dv = DIRS[P.dir][1];
     var px = -dv, py = du, hw = cell * 0.20;
 
@@ -398,7 +469,7 @@ const Render = (function() {
     ctx.lineWidth = lw;
     ctx.stroke();
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-    ctx.lineWidth = Math.max(1, lw * 0.28);
+    ctx.lineWidth = lw * 0.28;
     ctx.stroke();
 
     // Arrowhead at the moving tip, pointing exactly along the exit dir
@@ -418,7 +489,7 @@ const Render = (function() {
     ctx.moveTo(tip[0], tip[1]);
     ctx.lineTo(base[0] - px * hw, base[1] - py * hw);
     ctx.strokeStyle = shadeColor(color, -45);
-    ctx.lineWidth = Math.max(1.5, lw * 0.9);
+    ctx.lineWidth = lw * 0.9;
     ctx.stroke();
 
     ctx.restore();
@@ -536,10 +607,12 @@ const Render = (function() {
   }
 
   function render(now) {
-    if (!gameState || !canvas) return;
+    if (!gameState || !canvas || !layer || !view.cell) return;
     
     var side = view.side, cell = view.cell;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, side, side);
+    worldTransform();
     var cols = gameState.cols;
 
     // Board backdrop: ONE clean, subtle rounded panel behind the puzzle
@@ -563,26 +636,47 @@ const Render = (function() {
       ctx.fill();
     }
 
-    // Draw the winding arrow pieces
+    // Static arrows are rasterized once per state/camera change into a
+    // viewport-sized layer (bounded memory even at maximum zoom).
     var bonusIdx = (gameState.bonus && gameState.bonus.active) ? gameState.bonus.idx : -1;
+    var dynamic = [];
+    var key = '';
+    for (var i = 0; i < gameState.arrows.length; i++) {
+      var active = i === gameState.hintIdx || i === bonusIdx ||
+        (gameState.pop[i] && now - gameState.pop[i] < 200) ||
+        (gameState.shake[i] && now - gameState.shake[i] < 320);
+      dynamic[i] = !!active;
+      key += gameState.arrows[i].alive ? (active ? 'd' : 's') : '-';
+    }
+    if (layerKey !== key) {
+      var displayCtx = ctx;
+      ctx = layerCtx;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, layer.width, layer.height);
+      worldTransform();
+      for (var i = 0; i < gameState.arrows.length; i++) {
+        var A = gameState.arrows[i];
+        if (A.alive && !dynamic[i] && visible(A)) drawPiece(A, cell, 1, 1, false, false, 0, 0);
+      }
+      ctx = displayCtx;
+      layerKey = key;
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.drawImage(layer, 0, 0, side, side);
+    worldTransform();
     for (var i = 0; i < gameState.arrows.length; i++) {
       var A = gameState.arrows[i];
-      if (!A.alive) continue;
-      var alpha = 1, scale = 1, ox = 0, oy = 0;
-
-      // undo pop-in
+      if (!A.alive || !dynamic[i] || !visible(A)) continue;
+      var alpha = 1, scale = 1, ox = 0;
       if (gameState.pop[i] && now - gameState.pop[i] < 200) {
         var pp = (now - gameState.pop[i]) / 200;
-        scale = 0.4 + 0.6 * pp;
-        alpha = pp;
+        scale = 0.4 + 0.6 * pp; alpha = pp;
       }
-      // blocked shake
       if (gameState.shake[i] && now - gameState.shake[i] < 320) {
         var sp = (now - gameState.shake[i]) / 320;
         ox = Math.sin((now - gameState.shake[i]) / 26) * cell * 0.07 * (1 - sp);
       }
-
-      drawPiece(A, cell, alpha, scale, i === gameState.hintIdx, i === bonusIdx, ox, oy);
+      drawPiece(A, cell, alpha, scale, i === gameState.hintIdx, i === bonusIdx, ox, 0);
     }
 
     // snake exits (on top)
@@ -604,6 +698,12 @@ const Render = (function() {
   }
 
   return {
+    zoomAt: zoomAt,
+    pan: pan,
+    resetView: resetView,
+    screenToCell: screenToCell,
+    focusPiece: focusPiece,
+    getView: function() { return { ...camera, cell: view.cell, side: view.side }; },
     init: init,
     setGameState: setGameState,
     fitCanvas: fitCanvas,
