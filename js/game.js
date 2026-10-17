@@ -195,8 +195,10 @@ const GameCore = (function() {
   // that exit ray can be blocked - a piece sitting in the straight
   // projection of some body segment does not block anything.
   function pieceBlocker(occ, pieces, W, H, pi) {
-    var P = pieces[pi];
-    if (!P || !P.alive || !P.cells || !P.cells.length) return -1;
+    var P = pieces && pieces[pi];
+    // -2 means invalid input, distinct from a clear exit (-1).
+    if (!validDimensions(W, H) || !occ || occ.length !== W * H ||
+        !P || !P.alive || !validPiece(P, W, H)) return -2;
     var d = P.dir, dx = DIRS[d][0], dy = DIRS[d][1];
     var head = P.cells[P.cells.length - 1];
     var cx = head.x + dx, cy = head.y + dy;
@@ -608,48 +610,52 @@ const GameCore = (function() {
     };
   }
 
-  // Validate that a board has a valid solution: pieces must not overlap,
-  // and removing them in DESCENDING placement (step) order must clear
-  // every piece without ever being blocked.
+  function validDimensions(W, H) {
+    return Number.isInteger(W) && Number.isInteger(H) && W > 0 && H > 0 && W <= 20 && H <= 20;
+  }
+
+  function validPiece(P, W, H) {
+    if (!P || !Number.isInteger(P.dir) || P.dir < 0 || P.dir > 3 ||
+        !Array.isArray(P.cells) || P.cells.length < 2 || P.cells.length > W * H) return false;
+    for (var k = 0; k < P.cells.length; k++) {
+      var c = P.cells[k], prev = P.cells[k - 1];
+      if (!c || !Number.isInteger(c.x) || !Number.isInteger(c.y) ||
+          c.x < 0 || c.y < 0 || c.x >= W || c.y >= H) return false;
+      if (prev && Math.abs(c.x - prev.x) + Math.abs(c.y - prev.y) !== 1) return false;
+    }
+    return dirFrom(P.cells[P.cells.length - 2], P.cells[P.cells.length - 1]) === P.dir;
+  }
+
+  // Validate geometry, then solve using the same head-corridor rule as
+  // gameplay. Removing a clear arrow can only free cells, so greedy
+  // removal is complete: if none can exit, the remaining board is stuck.
   function validateBoardSolution(W, H, arrows) {
-    if (!arrows || !arrows.length) return false;
-    var N = W * H;
-    var occ = new Int32Array(N).fill(-1);
+    if (!validDimensions(W, H) || !Array.isArray(arrows) ||
+        !arrows.length || arrows.length > W * H / 2) return false;
+    var occ = new Int32Array(W * H).fill(-1);
+    var pieces = [], steps = new Set();
     for (var i = 0; i < arrows.length; i++) {
-      var cs = arrows[i].cells;
-      if (!cs || !cs.length) return false;
-      for (var k = 0; k < cs.length; k++) {
-        var x = cs[k].x, y = cs[k].y;
-        if (x < 0 || y < 0 || x >= W || y >= H) return false;
-        var idx = y * W + x;
-        if (occ[idx] !== -1) return false; // overlapping pieces = invalid
+      var P = arrows[i];
+      if (!validPiece(P, W, H) || !Number.isInteger(P.step) || P.step < 0 || steps.has(P.step)) return false;
+      steps.add(P.step);
+      for (var c of P.cells) {
+        var idx = c.y * W + c.x;
+        if (occ[idx] !== -1) return false;
         occ[idx] = i;
       }
+      pieces.push({ cells: P.cells, dir: P.dir, alive: true });
     }
-    // Removal in descending step order: when piece k leaves, exactly the
-    // pieces placed before it (lower steps) are still on the board, which
-    // is the set its exit was verified against at placement time. A piece
-    // never blocks ITSELF (its own cells travel with it), so its own
-    // entries in occ are ignored while sweeping the exit corridor.
-    var order = [];
-    for (var j = 0; j < arrows.length; j++) order.push(j);
-    order.sort(function (a, b) { return arrows[b].step - arrows[a].step; });
-    for (var o = 0; o < order.length; o++) {
-      var pi = order[o];
-      var P = arrows[pi];
-      var d = P.dir, dx = DIRS[d][0], dy = DIRS[d][1];
-      var blocked = false;
-      for (var c2 = 0; c2 < P.cells.length && !blocked; c2++) {
-        var cx = P.cells[c2].x + dx, cy = P.cells[c2].y + dy;
-        while (cx >= 0 && cx < W && cy >= 0 && cy < H) {
-          if (occ[cy * W + cx] !== -1 && occ[cy * W + cx] !== pi) { blocked = true; break; }
-          cx += dx; cy += dy;
-        }
+    var left = pieces.length;
+    while (left) {
+      var moved = false;
+      for (var j = 0; j < pieces.length; j++) {
+        if (!pieces[j].alive || pieceBlocker(occ, pieces, W, H, j) !== -1) continue;
+        pieces[j].alive = false;
+        for (var cell of pieces[j].cells) occ[cell.y * W + cell.x] = -1;
+        left--;
+        moved = true;
       }
-      if (blocked) return false;
-      for (var c3 = 0; c3 < P.cells.length; c3++) {
-        occ[P.cells[c3].y * W + P.cells[c3].x] = -1;
-      }
+      if (!moved) return false;
     }
     return true;
   }
@@ -657,6 +663,7 @@ const GameCore = (function() {
   // Find a guaranteed removable piece (for hints): the highest-step alive
   // piece that can exit right now.
   function hintArrow(arrows, occ, W, H) {
+    if (!Array.isArray(arrows)) return -1;
     for (var i = arrows.length - 1; i >= 0; i--) {
       var P = arrows[i];
       if (!P || !P.alive) continue;

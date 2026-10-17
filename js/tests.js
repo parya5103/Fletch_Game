@@ -247,11 +247,10 @@ const Tests = (function() {
         'iOS check not working');
       
       // Test SW source
-      var swSrc = PWA.SW_SRC;
-      addResult('PWA.SW_SRC contains service worker code',
-        swSrc && swSrc.length > 100,
-        'Service worker source not available');
-      
+      addResult('PWA exposes the deployed service worker source loader',
+        typeof PWA.getServiceWorkerSource === 'function',
+        'Service worker source loader unavailable');
+
     } catch(e) {
       addResult('PWA module tests', false, e.message);
     }
@@ -278,12 +277,13 @@ const Tests = (function() {
       UI.closeAll();
       addResult('UI.closeAll runs without error', true, '');
       
-      // Test stars HTML
-      var stars = UI.starsHTML(3, 3);
-      addResult('UI.starsHTML generates correct HTML',
-        stars && stars.includes('on') && stars.includes('\u2605'),
-        'Stars HTML generation failed');
-      
+      // Exercise the public HUD API instead of a private HTML helper.
+      UI.updateHUD();
+      var state = Game.getState();
+      addResult('UI HUD reflects the active level',
+        !!state && document.getElementById('hud-level').textContent.includes(String(state.level)),
+        'Level label does not reflect game state');
+
     } catch(e) {
       addResult('UI module tests', false, e.message);
     }
@@ -322,12 +322,18 @@ const Tests = (function() {
     console.log('\n========== ARROW OUT! TEST SUITE ==========');
     
     testGameCore();
-    testStorage();
-    testAudio();
-    testHaptics();
+    var originalSave = JSON.parse(JSON.stringify(Storage.getSave()));
+    try { Storage.resetAll(); testStorage(); }
+    finally { Storage.resetAll(); Storage.updateSave(originalSave); }
+    var audioEnabled = Audio.enabled, hapticsEnabled = Haptics.getEnabled();
+    try { testAudio(); testHaptics(); }
+    finally { Audio.enabled = audioEnabled; Haptics.setEnabled(hapticsEnabled); }
     testPWA();
     testUI();
     testRender();
+    Render.init(document.getElementById('board'));
+    Render.setGameState(Game.getState());
+    Render.fitCanvas();
     
     var final = getResults();
     console.log('\n========== TEST RESULTS ==========');

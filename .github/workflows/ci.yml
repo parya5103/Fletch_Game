@@ -37,3 +37,9 @@ jobs:
 
       - name: Game logic smoke tests
         run: node scripts/ci-test.js
+
+      - name: State, storage, audio and PWA regressions
+        run: node scripts/regression-test.js
+
+      - name: Independent full campaign and daily validation
+        run: timeout 180s node scripts/validate-levels.js

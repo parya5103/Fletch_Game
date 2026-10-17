@@ -27,10 +27,10 @@ A mobile-first **tap-away arrow puzzle** game — an **installable PWA**, zero d
 |---|---|---|
 | 1–10 | 9×9 → 10×10 onboarding | 9–15 |
 | 11–50 | 9×9 → 11×11 easy | 12–24 |
-| 51–200 | 10×10 → 11×11 medium | 13–24 |
+| 51–200 | 10×10 → 11×11 medium | 11–22 |
 | 201–500 | 11×11 → 12×12 hard | 14–23 |
-| 501–800 | 11×11 → 12×12 expert | 14–22 |
-| 801–1000 | **12×12 master** | **13–19** |
+| 501–800 | 11×11 → 12×12 expert | 13–25 |
+| 801–1000 | **12×12 master** | **12–22** |
 
 Every piece is a long winding corridor (2–16 cells), so even a 9×9 board is a dense maze. A spike level every 10th adds extra pieces; every 50th level is a distinctive ring layout. Timed bonus objectives appear on levels ending in 5.
 
@@ -105,11 +105,17 @@ npx http-server .
 python3 -m http.server 8000
 ```
 
-Run the CI smoke tests locally:
+Run the automated checks locally (Node 20+; no dependencies):
 
 ```bash
 node scripts/ci-test.js
+node scripts/regression-test.js
+timeout 180s node scripts/validate-levels.js
 ```
+
+The independent validator loads production code, checks geometry and occupancy, solves every campaign level in three seeded removal orders, checks hints at each step, initializes every level through the game controller, and tests 366 daily seeds. Pass an optional JSON output path to save per-level results. Historical `audit/*validation.js` and `audit/level_test.js` entry points now run this same validator. Older checked-in audit reports are historical and are superseded by `audit/stabilization-2026-10-17.md`.
+
+The developer-only `js/tests.js` browser suite is not loaded by the game. Run it on a local QA profile; it exercises storage with temporary fixtures and restores the original save.
 
 ## Deploy on GitHub Pages
 
