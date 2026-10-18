@@ -2,6 +2,8 @@
 
 ## Scope and evidence
 
+This is the page-review checkpoint at commit `676f654`. The later user-requested notification replacement supersedes notification descriptions and final test counts here; see [local reminder audit](local-reminders-2026-10-18.md) and the canonical README for the final architecture.
+
 Reviewed [PR #8](https://github.com/parya5103/Fletch_Game/pull/8), original head `61b1833fcc7056ef848395345107bbaeb350e8b1`, against current merged main `bc6af03745dda5402b18d5bb2ecf97fe3257dcd9`. Main is an ancestor of the PR. Fixes stay on its existing `adsense-readiness-pages` branch; no game generator, controller, renderer, save schema or notification-provider implementation changed.
 
 No tracked `KNOWLEDGE.md`, `knowledge.md`, `AGENTS.md` or separate canonical agent guide was found in main, the PR or repository history. The existing [README](../README.md) is the canonical project overview; it was updated in place. This dated report records review evidence.

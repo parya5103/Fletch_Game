@@ -3,8 +3,6 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const vm = require('node:vm');
 const { harness, source } = require('./qa-harness');
-const settle = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
-function deferred() { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; }
 function button(h, id) {
   const events = {};
   return h.elements[id] = { checked: false, disabled: false, events,
@@ -34,42 +32,15 @@ test('reminders default off; existing explicit preferences and progress survive'
   }
 });
 
-test('notification opt-out captures its endpoint before unsubscribing and reports failed deletion', async () => {
-  const h = harness(), toggle = button(h, 'chk-notifs'), lookup = deferred(), calls = [], toasts = [];
-  h.ui.toast = text => toasts.push(text);
-  h.box.PWA = { getPushSubscriptionJson: () => lookup.promise,
-    deletePushSubscription: async json => { calls.push(['delete', json]); return false; },
-    unsubscribePush: async () => { calls.push(['unsubscribe']); return true; } };
-  h.G.test.setupEventListeners(); toggle.events.change();
-  await settle(); assert.equal(calls.length, 0, 'must capture subscription before removal');
-  assert.equal(toggle.disabled, true);
-  lookup.resolve('synthetic-subscription'); await settle();
-  assert.deepEqual(calls, [['delete', 'synthetic-subscription'], ['unsubscribe']]);
-  assert.equal(toggle.disabled, false); assert.equal(h.ST.getSave().settings.notifications, false);
-  assert(toasts.some(t => /send list|removal|cleanup/i.test(t)), 'failed deletion must be visible');
+test('Settings opens the dedicated reminder screen and refreshes its status', () => {
+  const h=harness(), control=button(h,'btn-reminders'); let refreshes=0, opened;
+  h.box.Reminders={refreshUI:()=>refreshes++};h.ui.openDlg=id=>{opened=id;};
+  h.G.test.setupEventListeners();control.events.click();
+  assert.equal(opened,'dlg-reminders');assert.equal(refreshes,1);
 });
-
-test('notification toggle serializes requests and recovers after a rejected API', async () => {
-  const h = harness(), toggle = button(h, 'chk-notifs'), subscribe = deferred(); let creates = 0;
-  h.box.PWA = { notifPermission: () => 'granted', subscribePush: () => { creates++; return subscribe.promise; },
-    submitPushSubscription: async () => true };
-  h.G.test.setupEventListeners(); toggle.checked = true;
-  toggle.events.change(); toggle.events.change(); await settle();
-  assert.equal(creates, 1); assert.equal(toggle.disabled, true);
-  subscribe.resolve('synthetic-subscription'); await settle(); assert.equal(toggle.disabled, false);
-  h.box.PWA.subscribePush = async () => { throw Error('synthetic API failure'); };
-  toggle.events.change(); await settle(); assert.equal(toggle.disabled, false);
-});
-
-test('late subscription status cannot overwrite Off or imply server delivery', async () => {
-  const h = harness(), pending = deferred();
-  h.box.PWA = { notifPermission: () => 'granted', getPushSubscriptionJson: () => pending.promise };
-  h.elements['st-notif'] = { textContent: '' }; button(h, 'chk-notifs');
-  const ui = realUI(h); h.ST.getSave().settings.notifications = true; ui.updateNotifUI();
-  h.ST.getSave().settings.notifications = false; ui.updateNotifUI();
-  pending.resolve('synthetic'); await settle(); assert.equal(h.elements['st-notif'].textContent, 'Off');
-  h.ST.getSave().settings.notifications = true; ui.updateNotifUI(); await settle();
-  assert.match(h.elements['st-notif'].textContent, /browser subscribed/i);
+test('notification status delegates to the single local reminder implementation', () => {
+  const h=harness();let refreshed=0;h.box.Reminders={refreshUI:()=>refreshed++};
+  realUI(h).updateNotifUI();assert.equal(refreshed,1);
 });
 
 test('theme changes preserve the home navigation class', () => {
@@ -145,46 +116,6 @@ test('a redirected core asset cannot activate a broken service worker update', a
   vm.runInContext(source('sw.js'), box);
   handlers.install({ waitUntil: p => { pending = p; } });
   await assert.rejects(pending, /precache failed/); assert.equal(activated, false);
-});
-
-async function senderScenario(cleanupStatus = 204) {
-  const workflow = source('.github/workflows/notify.yml');
-  const script = workflow.split("cat > send.js <<'EOF'\n")[1].split('\n          EOF')[0].replace(/^          /gm, '');
-  const rows = ['ok', 'gone404', 'gone410', 'retry'].map(id => ({ subscription: { endpoint: 'https://push.example.test/' + id } }));
-  const logs = [], deleted = []; let finish;
-  const done = new Promise(resolve => { finish = resolve; });
-  const box = vm.createContext({ Date, JSON, URL, encodeURIComponent,
-    console: { log: message => logs.push(message) },
-    process: { env: { VAPID_PRIVATE: 'synthetic-private', SERVICE_KEY: 'synthetic-service', SUPABASE_URL: 'https://database.example.test' }, exit: finish },
-    require: name => { assert.equal(name, 'web-push'); return {
-      setVapidDetails() {}, sendNotification: async sub => {
-        if (sub.endpoint.endsWith('ok')) return;
-        const err = Error('provider response contains ' + sub.endpoint + ' synthetic-private');
-        err.statusCode = sub.endpoint.endsWith('gone404') ? 404 : sub.endpoint.endsWith('gone410') ? 410 : 429;
-        throw err;
-      }
-    }; },
-    fetch: async (url, options = {}) => {
-      if (options.method === 'DELETE') {
-        deleted.push(new URL(url).searchParams.get('endpoint'));
-        return { ok: cleanupStatus === 204, status: cleanupStatus };
-      }
-      return { ok: true, json: async () => rows };
-    }
-  });
-  vm.runInContext(script, box); const code = await done;
-  return { code, logs: logs.join('\n'), deleted };
-}
-test('push sender removes only expired endpoints without exposing subscriptions or provider errors', async () => {
-  const result = await senderScenario();
-  assert.deepEqual(result.deleted, ['eq.https://push.example.test/gone404', 'eq.https://push.example.test/gone410']);
-  assert.equal(result.code, 0);
-  assert(!/push\.example|synthetic-private|provider response/.test(result.logs));
-});
-test('push sender reports failed expired-roster cleanup without claiming deletion', async () => {
-  const result = await senderScenario(503);
-  assert.equal(result.code, 1); assert.match(result.logs, /cleanup failed.*503/i);
-  assert(!/push\.example|synthetic-private/.test(result.logs));
 });
 
 test('timed bonus is paid once across undo, replay and persisted restore', () => {

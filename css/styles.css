@@ -1339,3 +1339,12 @@ h2 svg.ic { width: 24px; height: 24px; vertical-align: -4px; }
 body:not(.at-home) #install-banner, body:not(.at-home) #update-banner { display: none; }
 #bonus-banner { position: static; transform: none; display: none; flex: 0 0 auto; align-self: center; margin: 4px 8px; }
 #bonus-banner.show { display: flex; transform: none; }
+
+/* Non-modal local reminder; never blocks or changes the puzzle. */
+.reminder-banner { position: fixed; z-index: 160; top: max(12px, env(safe-area-inset-top)); left: 12px; right: 12px; max-width: 440px; margin: auto; padding: 12px 16px; border: 1px solid #748ffc; border-radius: 16px; background: #141b3d; color: #e8ecff; box-shadow: 0 4px 24px #0008; }
+.reminder-banner[hidden] { display: none; }
+.reminder-banner p { margin: 0 0 8px; }
+#dlg-reminders .card { overflow-wrap: anywhere; }
+#dlg-reminders select { width: 100%; min-height: 44px; padding: 8px; background: #141b3d; color: #e8ecff; border: 1px solid #748ffc; border-radius: 10px; font: inherit; }
+#dlg-reminders input[type="checkbox"] { width: 24px; height: 24px; flex-shrink: 0; margin: 10px; }
+#dlg-reminders .row { min-height: 44px; }

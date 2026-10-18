@@ -19,6 +19,7 @@ const Game = (function() {
     Audio.unlock();
     Haptics.checkSupport();
     UI.init();
+    if (typeof Reminders !== 'undefined') Reminders.init();
     
     // Set up canvas
     canvas = document.getElementById('board');
@@ -316,64 +317,12 @@ const Game = (function() {
       if (save.music) UI.toast('Music on \u266a');
     });
     
-    // Daily reminders toggle. The browser permission prompt is only ever
-    // triggered from this deliberate user action, never on page load.
-    // Turning it ON subscribes this device to Web Push and auto-saves the
-    // subscription to the developer's Supabase roster table (js/pwa.js),
-    // so every player is done with one tap - no copy-paste.
-    var notificationBusy = false;
-    on($('chk-notifs'), 'change', async function() {
-      var toggle = $('chk-notifs');
-      if (notificationBusy) return;
-      notificationBusy = true;
-      toggle.disabled = true;
-      var save = Storage.getSave();
-      var want = toggle.checked;
-      save.settings.notifications = want;
-      Storage.persist();
-      UI.updateNotifUI();
-      try {
-        if (!want) {
-          // Capture the endpoint before removing the browser subscription.
-          // Attempt both removals even when the roster request fails.
-          var json = await PWA.getPushSubscriptionJson();
-          if (json) {
-            var results = await Promise.all([
-              PWA.deletePushSubscription(json).catch(function() { return false; }),
-              PWA.unsubscribePush().catch(function() { return false; })
-            ]);
-            if (!results[1]) UI.toast('Could not unsubscribe — retry or block notifications in browser settings');
-            else if (!results[0]) UI.toast('Reminders off in this browser; send list removal could not be confirmed');
-            else UI.toast('Reminders off');
-          }
-          return;
-        }
-        var perm = PWA.notifPermission();
-        if (perm !== 'granted' && perm !== 'denied' && perm !== 'unsupported') {
-          perm = await PWA.requestNotifPermission();
-        }
-        if (perm !== 'granted') {
-          UI.toast(perm === 'denied' ? 'Blocked in browser notification settings' : 'Notifications not enabled here');
-          return;
-        }
-        var subscription = await PWA.subscribePush();
-        if (!subscription) {
-          UI.toast('Push not available in this browser');
-          return;
-        }
-        var ok = await PWA.submitPushSubscription(subscription);
-        UI.toast(ok
-          ? 'Daily reminders on — see you soon!'
-          : 'Could not save reminders — check your connection, then toggle off and on');
-      } catch (e) {
-        UI.toast('Could not update reminders — retry or use browser notification settings');
-      } finally {
-        notificationBusy = false;
-        toggle.disabled = false;
-        UI.updateNotifUI();
-      }
+    on($('btn-reminders'), 'click', function() {
+      Audio.ui(); UI.closeAll();
+      if (typeof Reminders !== 'undefined') Reminders.refreshUI();
+      UI.openDlg('dlg-reminders');
     });
-    
+
     // Share result (win dialog)
     on($('btn-share-win'), 'click', function() {
       Audio.ui();
@@ -606,6 +555,7 @@ const Game = (function() {
       var btnReset = $('btn-reset');
       if (btnReset) btnReset.textContent = 'Reset all progress';
       Storage.resetAll();
+      if (typeof Reminders !== 'undefined') Reminders.reset();
       UI.closeAll();
       loadLevel(1);
       UI.toast('Progress reset');

@@ -42,6 +42,7 @@ jobs:
         run: |
           node scripts/regression-test.js
           node scripts/audit-test.js
+          node scripts/reminders-test.js
 
       - name: Dense boards, camera, touch and save compatibility
         run: |

@@ -391,7 +391,7 @@ console.log('# storage: save validation, migration and economy');
   }
 }
 
-console.log('# service worker: push payload + notification click validation');
+console.log('# service worker: local notification click validation');
 {
   const swSrc = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
 
@@ -429,59 +429,12 @@ console.log('# service worker: push payload + notification click validation');
   vm.createContext(sb);
   vm.runInContext(swSrc, sb, { filename: 'sw.js' });
 
-  check('sw.js registers push + notificationclick handlers without crashing',
-    typeof handlers.push === 'function' && typeof handlers.notificationclick === 'function');
-
-  const firePush = (jsonData, broken) => handlers.push({
-    waitUntil: () => {},
-    data: (jsonData === undefined && !broken)
-      ? null
-      : { json: () => { if (broken) throw new Error('malformed json'); return jsonData; } }
-  });
+  check('remote push delivery removed; safe local click handler retained',
+    !handlers.push && typeof handlers.notificationclick === 'function');
   const fireClick = (data) => handlers.notificationclick({
-    notification: { close: () => {}, data },
-    waitUntil: () => {}
+    notification: { close: () => {}, data }, waitUntil: () => {}
   });
-  const last = (arr) => arr[arr.length - 1];
-
-  // Malformed / missing / wrong-type payloads: ignored, never crash
-  firePush(null, true);
-  check('push with malformed JSON is ignored without crashing', shown.length === 0);
-  firePush(undefined);
-  check('push with no data is ignored', shown.length === 0);
-  firePush([{ title: 'x' }]);
-  firePush('string');
-  firePush(12345);
-  check('non-object push payloads are ignored', shown.length === 0);
-
-  // Valid payload: shown with validated, bounded fields
-  firePush({ title: 'Daily Challenge ready', body: 'Play today', data: { url: './?daily=1' } });
-  check('valid push payload shows a notification', shown.length === 1);
-  check('notification title passed through', last(shown).title === 'Daily Challenge ready');
-  check('notification body passed through', last(shown).opts.body === 'Play today');
-  check('notification icon is always the bundled local icon', last(shown).opts.icon === './icons/icon-192.png');
-  check('click URL resolved to a same-origin absolute URL', last(shown).opts.data.url === SCOPE + '?daily=1');
-
-  firePush({ title: 'x'.repeat(500), body: 'y'.repeat(500) });
-  check('oversized title/body truncated to bounds', last(shown).title.length === 80 && last(shown).opts.body.length === 200);
-
-  firePush({ title: 'T', body: 12345 });
-  check('wrong-type body omitted, no crash', !('body' in last(shown).opts));
-
-  firePush({ title: 'T', icon: 'https://evil.example/x.png' });
-  check('payload-supplied icon is ignored (local icon enforced)', last(shown).opts.icon === './icons/icon-192.png');
-
-  firePush({ title: 'T', data: { url: 'javascript:alert(1)' } });
-  check('javascript: click URL rejected', last(shown).opts.data.url === null);
-
-  firePush({ title: 'T', data: { url: 'https://evil.example/' } });
-  check('cross-origin click URL rejected', last(shown).opts.data.url === null);
-
-  firePush({ title: 'T', data: { url: '../../etc' } });
-  check('scope-escaping click URL rejected', last(shown).opts.data.url === null);
-
-  firePush({ title: 'T' });
-  check('default tag prevents duplicate stacked notifications', last(shown).opts.tag === 'arrow-out');
+  const last = arr => arr[arr.length - 1];
 
   // notificationclick: unsafe/missing URLs fall back to the app scope
   fireClick({ url: 'javascript:alert(1)' });
@@ -500,6 +453,9 @@ console.log('# service worker: push payload + notification click validation');
   selfMock.clients.matchAll = () => syncThen([{ url: SCOPE, focus: () => { focused.push(SCOPE); return syncThen(); } }]);
   fireClick({ url: './' });
   check('existing window is focused instead of opening a new one', focused.length === 1 && last(opened) === SCOPE + '?daily=1');
+  selfMock.clients.matchAll = () => syncThen([{ url: SCOPE + 'index.html?daily=1', focus: () => { focused.push('current-game'); return syncThen(); } }]);
+  fireClick({ url: './' });
+  check('reminder focuses an existing index.html puzzle without resetting it', last(focused) === 'current-game');
 }
 
 console.log('# skins shop sanity');

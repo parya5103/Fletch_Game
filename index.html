@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Arrow Out!" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' data:; connect-src 'self' https://usszcnaaylbsgqaehsgp.supabase.co; object-src 'none'; base-uri 'none'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'" />
   <title>Arrow Out! &mdash; Premium Arrow Puzzle</title>
   
   <!-- Preload critical resources -->
@@ -306,6 +306,10 @@
       </nav>
     </div>
   </div>
+  <aside id="reminder-banner" class="reminder-banner" role="status" aria-live="polite" hidden>
+    <p>Your puzzle is waiting. Return whenever you are ready.</p>
+    <button class="btn small" id="btn-reminder-dismiss" type="button">Dismiss reminder</button>
+  </aside>
   <!-- ===== MAIN MENU ===== -->
   <div class="overlay" id="dlg-menu" role="dialog" aria-modal="true" aria-labelledby="menu-title">
     <div class="card">
@@ -325,6 +329,32 @@
         <button class="btn" id="btn-settings-menu" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Settings</button>
         <button class="btn" id="btn-shop-menu" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg> Shop</button>
       </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="dlg-reminders" role="dialog" aria-modal="true" aria-labelledby="reminders-title">
+    <div class="card">
+      <button class="btn icon close-x" data-close type="button" aria-label="Close reminder settings">&times;</button>
+      <h2 id="reminders-title">Notifications &amp; reminders</h2>
+      <p class="sub">Free local reminders. No account, server or subscription.</p>
+      <p id="reminder-limit">Checks run only while this game page can execute. A closed, suspended or battery-restricted browser cannot schedule reminders. Return to the open game for an in-game fallback. This replaces the old five-daily push service.</p>
+      <div class="stack">
+        <label class="row" for="chk-notifs">Enable in-game reminders <input type="checkbox" id="chk-notifs" aria-describedby="reminder-limit" /></label>
+        <label for="reminder-minutes">Remind me after no interaction for</label>
+        <select id="reminder-minutes">
+          <option value="60">1 hour</option><option value="90">1½ hours</option><option value="120">2 hours</option>
+        </select>
+        <p id="system-reminder-help">Optional system notifications can alert you while this tab is in the background and still running. Your browser needs permission to display them. Android/OS restrictions may suppress or delay display; some browsers require an installed PWA. No closed-browser delivery is promised.</p>
+        <button class="btn" id="btn-notif-permission" type="button" aria-describedby="system-reminder-help">Allow system notifications</button>
+        <label class="row" for="chk-system-notifs">Also use system notifications <input type="checkbox" id="chk-system-notifs" aria-describedby="system-reminder-help" /></label>
+        <p id="reminder-permission"></p>
+        <p id="reminder-status" role="status" aria-live="polite"></p>
+        <button class="btn small" id="btn-notif-test" type="button">Send test notification</button>
+        <p id="reminder-test-status" role="status" aria-live="polite"></p>
+        <p id="reminder-legacy" hidden></p>
+        <button class="btn small" id="btn-reminder-cleanup" type="button" hidden>Retry old push cleanup</button>
+      </div>
+      <p>At most one reminder per inactivity period. Interacting starts a new period; system tests are limited to one per minute. Permission is requested only by the Allow button, once; if dismissed or blocked, use your browser’s site settings. Disabling reminders closes local notifications.</p>
     </div>
   </div>
 
@@ -404,13 +434,7 @@
           </label>
         </div>
 
-        <div class="row">
-          <span style="font-size:15px;">Daily reminders (5/day)</span>
-          <label class="switch" aria-label="Daily reminders">
-            <input type="checkbox" id="chk-notifs" />
-            <span class="track"></span>
-          </label>
-        </div>
+        <button class="btn" id="btn-reminders" type="button">Notification &amp; reminder settings</button>
       </div>
       
       <div class="status-list">
@@ -598,6 +622,7 @@
   <script src="js/bgfx.js"></script>
   <script src="js/pwa.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/reminders.js"></script>
   <script src="js/render.js"></script>
   <script src="js/main.js"></script>
 </body>

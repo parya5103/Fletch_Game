@@ -162,7 +162,7 @@ test('service worker assets exist and failed precache cannot activate; cache iso
   box.caches.open=async()=>{throw Error('cache unavailable');};
   assert.equal(await (await request('js/main.js')).text(),'asset');
 });
-test('reading push status never subscribes; explicit subscribe does', async () => {
+test('PWA retains safe worker-copy fallback without remote subscription methods', async () => {
   let subscriptions=0;const noop=()=>{};
   const registration={pushManager:{getSubscription:async()=>null,subscribe:async()=>{subscriptions++;return {endpoint:'synthetic'};}}};
   const box=vm.createContext({console,Uint8Array,Promise,URL,atob,Storage:{getSave:()=>({})},
@@ -171,8 +171,7 @@ test('reading push status never subscribes; explicit subscribe does', async () =
     window:{PushManager:function(){},Notification:{permission:'granted'},addEventListener:noop,matchMedia:()=>({matches:false})},
     Notification:{permission:'granted'},location:{protocol:'https:',hostname:'example.test'},setTimeout:noop});
   vm.runInContext(source('js/pwa.js')+'\nglobalThis.P=PWA;',box);
-  assert.equal(await box.P.getPushSubscriptionJson(),null);assert.equal(subscriptions,0);
-  assert(await box.P.subscribePush());assert.equal(subscriptions,1);
+  assert.equal(box.P.subscribePush,undefined);assert.equal(box.P.submitPushSubscription,undefined);assert.equal(subscriptions,0);
   box.fetch=async()=>new Response('',{status:200});assert.equal(await box.P.getServiceWorkerSource(),null);
   box.fetch=async()=>new Response('not found',{status:404});assert.equal(await box.P.getServiceWorkerSource(),null);
   box.fetch=async()=>new Response(source('sw.js'));assert.equal(await box.P.getServiceWorkerSource(),source('sw.js'));

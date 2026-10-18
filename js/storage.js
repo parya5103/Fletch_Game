@@ -52,6 +52,9 @@ const Storage = (function() {
       settings: {
         reducedMotion: false,
         notifications: false,
+        reminderMinutes: 90,
+        systemNotifications: false,
+        notificationPrompted: false,
         seenOnboarding: false
       }
     };
@@ -232,6 +235,9 @@ const Storage = (function() {
     if (!d.settings || typeof d.settings !== 'object' || Array.isArray(d.settings)) d.settings = defaultSave().settings;
     d.settings.reducedMotion = toBool(d.settings.reducedMotion, false);
     d.settings.notifications = toBool(d.settings.notifications, false);
+    d.settings.reminderMinutes = [60, 90, 120].includes(d.settings.reminderMinutes) ? d.settings.reminderMinutes : 90;
+    d.settings.systemNotifications = toBool(d.settings.systemNotifications, false);
+    d.settings.notificationPrompted = toBool(d.settings.notificationPrompted, false);
     d.settings.seenOnboarding = toBool(d.settings.seenOnboarding, false);
 
     return d;

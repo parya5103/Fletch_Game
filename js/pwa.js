@@ -231,139 +231,8 @@ const PWA = (function() {
     });
   }
 
-  // --- Notifications (real Web Push, backend-free) ---
-  // The game is a static site, so the "push server" is a scheduled
-  // GitHub Actions workflow (.github/workflows/notify.yml) that sends
-  // five daily reminders at fixed IST times through the Web Push API. The VAPID
-  // public key below pairs with the repo secret PUSH_VAPID_PRIVATE_KEY.
-  // Each player's subscription is auto-saved to a free Supabase roster
-  // table (intended restricted writes for players and service-role reads;
-  // actual policies require owner verification) - no copy-paste, no per-player setup.
-  //  - the permission prompt only ever fires from the deliberate
-  //    Settings toggle, never on page load
-  //  - subscribePush() returns the subscription JSON or null
-  //  - sw.js validates every incoming push payload and click URL
-  var VAPID_PUBLIC_KEY = 'BCZi4Grxq_wVF9j-pIP7buv5lwCGfSdNCrDmRaeuojmIwkCQCK1o2NdqIIqamu4nuW1Yn3doDR31W1opJzR_9H4';
-
-  function notifSupported() {
-    return typeof Notification !== 'undefined';
-  }
-
-  function pushSupported() {
-    return 'serviceWorker' in navigator && 'PushManager' in window;
-  }
-
-  function notifPermission() {
-    if (!notifSupported()) return 'unsupported';
-    try { return Notification.permission; } catch (e) { return 'denied'; }
-  }
-
-  function requestNotifPermission() {
-    if (!notifSupported()) return Promise.resolve('unsupported');
-    try {
-      var p = Notification.requestPermission();
-      if (p && typeof p.then === 'function') return p;
-      // Legacy callback-style API (older Safari)
-      return new Promise(function(resolve) {
-        Notification.requestPermission(function(res) { resolve(res); });
-      });
-    } catch (e) {
-      return Promise.resolve('denied');
-    }
-  }
-
-  // base64url -> Uint8Array for the applicationServerKey option
-  function urlB64ToUint8Array(b64) {
-    var s = b64.replace(/-/g, '+').replace(/_/g, '/');
-    while (s.length % 4) s += '=';
-    var raw = atob(s);
-    var out = new Uint8Array(raw.length);
-    for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
-    return out;
-  }
-
-  function withPushManager(fn, create) {
-    if (!pushSupported()) return Promise.resolve(null);
-    return navigator.serviceWorker.ready.then(function(reg) {
-      return reg.pushManager.getSubscription().then(function(sub) {
-        return sub || (create ? reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlB64ToUint8Array(VAPID_PUBLIC_KEY)
-        }) : null);
-      });
-    }).then(fn, function() { return null; });
-  }
-
-  // Returns the subscription JSON string, or null
-  function subscribePush() {
-    return withPushManager(function(sub) { return sub ? JSON.stringify(sub) : null; }, true);
-  }
-
-  // Existing subscription JSON or null (for status display only)
-  function getPushSubscriptionJson() {
-    return withPushManager(function(sub) { return sub ? JSON.stringify(sub) : null; });
-  }
-
-  function unsubscribePush() {
-    if (!pushSupported()) return Promise.resolve(false);
-    return navigator.serviceWorker.ready.then(function(reg) {
-      return reg.pushManager.getSubscription();
-    }).then(function(sub) {
-      return sub ? sub.unsubscribe().catch(function() { return false; }) : false;
-    }).catch(function() { return false; });
-  }
-
-  // --- Supabase: subscription auto-submit (backend-free push roster) ---
-  // Every player who turns on Daily reminders gets their push subscription
-  // saved here automatically - no copy-paste, no repo secrets per player.
-  // Intended RLS restricts anonymous subscription writes and reserves roster
-  // reads for the sender service key. Verify grants, duplicate-upsert and
-  // deletion policies externally; this client cannot establish authorization.
-  var SUPABASE_URL = 'https://usszcnaaylbsgqaehsgp.supabase.co';
-  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3pjbmFheWxic2dxYWVoc2dwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4ODY4ODMsImV4cCI6MjEwNzQ2Mjg4M30.6LQPGdiJ8ggDgCdJdTXmxQNkBjV0fA0_vXYHehExMzc';
-
-  function supabaseHeaders(extra) {
-    var h = {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-      'Content-Type': 'application/json'
-    };
-    if (extra) {
-      for (var k in extra) {
-        if (Object.prototype.hasOwnProperty.call(extra, k)) h[k] = extra[k];
-      }
-    }
-    return h;
-  }
-
-  // Upsert this device's push subscription. Returns true on success.
-  function submitPushSubscription(subJson) {
-    var sub = null;
-    try { sub = JSON.parse(subJson); } catch (e) { return Promise.resolve(false); }
-    if (!sub || typeof sub.endpoint !== 'string' || !sub.endpoint) return Promise.resolve(false);
-    // merge-duplicates: toggling reminders off/on for the same device
-    // updates the existing row instead of hitting the primary key.
-    return fetch(SUPABASE_URL + '/rest/v1/push_subscriptions', {
-      method: 'POST',
-      headers: supabaseHeaders({ 'Prefer': 'resolution=merge-duplicates' }),
-      body: JSON.stringify({ endpoint: sub.endpoint, subscription: sub })
-    }).then(function(resp) { return resp.ok; }, function() { return false; });
-  }
-
-  // Best-effort removal when reminders are toggled off (privacy: off =
-  // the developer's send list forgets this device). Returns true on success.
-  function deletePushSubscription(subJson) {
-    var sub = null;
-    try { sub = JSON.parse(subJson); } catch (e) { return Promise.resolve(false); }
-    if (!sub || typeof sub.endpoint !== 'string' || !sub.endpoint) return Promise.resolve(false);
-    return fetch(SUPABASE_URL + '/rest/v1/push_subscriptions?endpoint=eq.' + encodeURIComponent(sub.endpoint), {
-      method: 'DELETE',
-      headers: supabaseHeaders()
-    }).then(function(resp) { return resp.ok; }, function() { return false; });
-  }
-
   // Game version - kept in sync with sw.js CACHE version
-  var VERSION = 'v36';
+  var VERSION = 'v37';
 
   // --- Update flow ---
   // The page shows a small banner when a newer service worker (a new game
@@ -506,15 +375,7 @@ const PWA = (function() {
     get swActive() { return swActive; },
     getServiceWorkerSource: getServiceWorkerSource,
     get VERSION() { return VERSION; },
-    checkForUpdates: checkForUpdates,
-    notifSupported: notifSupported,
-    pushSupported: pushSupported,
-    notifPermission: notifPermission,
-    requestNotifPermission: requestNotifPermission,
-    subscribePush: subscribePush,
-    getPushSubscriptionJson: getPushSubscriptionJson,
-    unsubscribePush: unsubscribePush,
-    submitPushSubscription: submitPushSubscription,
-    deletePushSubscription: deletePushSubscription
+    checkForUpdates: checkForUpdates
+
   };
 })();
