@@ -129,11 +129,19 @@ test('Off while a permission prompt is pending cannot silently re-enable system 
   const allowing=f.R.allowSystem();f.R.setEnabled(false);f.notification.permission='granted';resolve('granted');await allowing;
   assert.equal(f.h.ST.getSave().settings.notifications,false);assert.equal(f.h.ST.getSave().settings.systemNotifications,false);
 });
-test('Off during native display closes the notification after the in-flight request settles',async()=>{
-  const f=fixture({hidden:true});let resolve;
-  f.reg.showNotification=()=>new Promise(r=>{resolve=r;});f.advance(90*MINUTE);
-  const checking=f.R.check();await settle();f.R.setEnabled(false);resolve();await checking;await settle();
-  assert(f.closed.includes('arrow-out-local'));assert.equal(f.elements['reminder-banner'].hidden,true);
+test('Off during reminder or test display closes notifications created after the first close attempt',async()=>{
+  for(const manual of [false,true])for(const mode of ['all','system','permission']){
+    const f=fixture({hidden:true});let resolve,visible=false;
+    f.reg.showNotification=()=>new Promise(r=>{resolve=()=>{visible=true;r();};});
+    f.reg.getNotifications=async()=>visible?[{close(){visible=false;}}]:[];
+    f.advance(90*MINUTE);const checking=manual?f.R.testSystem():f.R.check();await settle();
+    if(mode==='all')f.R.setEnabled(false);
+    else if(mode==='system')f.h.ST.getSave().settings.systemNotifications=false;
+    else f.notification.permission='denied';
+    await settle();resolve();await checking;await settle();
+    assert.equal(visible,false,`late display must close: manual=${manual}, mode=${mode}`);
+    assert.equal(f.elements['reminder-banner'].hidden,true);
+  }
 });
 
 test('stale activity flushes cannot overwrite another tab’s delivery or test claim',async()=>{

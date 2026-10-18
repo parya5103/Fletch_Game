@@ -84,7 +84,7 @@ const Reminders = (function() {
     if (!writeClaims()) return false; // no persistent cross-tab claim -> no system notification
     try {
       await reg.showNotification('Arrow Out!', options(false));
-      if (!prefs().notifications || read().activityAt !== episode) await closeLocalNotifications();
+      if (!prefs().notifications || !prefs().systemNotifications || permission() !== 'granted' || read().activityAt !== episode) await closeLocalNotifications();
     } catch (_) {
       if (prefs().notifications && read().activityAt === episode) { state.pending = true; writeClaims(); }
     }
@@ -137,7 +137,13 @@ const Reminders = (function() {
       const reg = await registration();
       if (!reg || !reg.showNotification || !prefs().notifications || !prefs().systemNotifications || permission() !== 'granted') return false;
       memory.lastTestAt = Date.now(); if (!writeClaims()) return false;
-      try { await reg.showNotification('Arrow Out! test', options(true)); return true; }
+      try {
+        await reg.showNotification('Arrow Out! test', options(true));
+        if (!prefs().notifications || !prefs().systemNotifications || permission() !== 'granted') {
+          await closeLocalNotifications(); return false;
+        }
+        return true;
+      }
       catch (_) { return false; }
     }).catch(() => false);
   }
