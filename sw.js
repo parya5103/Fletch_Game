@@ -1,11 +1,11 @@
 /**
  * Arrow Out! Service Worker
- * Version: v34
+ * Version: v35
  * Audit fixes: notification privacy, saved settings and interrupted game restoration.
  * Handles caching for offline gameplay
  */
 
-const CACHE = 'arrow-out-v34';
+const CACHE = 'arrow-out-v35';
 // Only obsolete caches that belong to THIS game (arrow-out-*) are ever deleted,
 // so other apps served from the same origin keep their caches.
 const CACHE_PREFIX = 'arrow-out-';
@@ -14,6 +14,7 @@ const CORE_ASSETS = [
   './index.html',
   './about.html',
   './privacy.html',
+  './contact.html',
   './css/styles.css',
   './js/game.js',
   './js/render.js',

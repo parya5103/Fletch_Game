@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Contact Arrow Out! — report a technical problem, send feedback or suggestions, ask privacy questions, or ask about advertising. The form opens a pre-filled GitHub issue." />
+  <meta name="theme-color" content="#0d1230" />
+  <meta name="robots" content="index, follow" />
+  <title>Contact Us &mdash; Arrow Out!</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 24px 16px 48px;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(180deg, #1b2550 0%, #0d1230 55%, #090d20 100%);
+      background-attachment: fixed;
+      color: #e8ecff; font-size: 16px; line-height: 1.65;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    a { color: #748ffc; }
+    h1 { font-size: 26px; margin: 0 0 6px; }
+    h2 { font-size: 18px; margin: 26px 0 8px; color: #a5b4fc; }
+    .sub { color: #93a0c8; font-size: 14px; margin: 0 0 22px; }
+    p, li { font-size: 15.5px; }
+    ul { padding-left: 20px; }
+    .btn {
+      display: inline-block; margin-top: 20px;
+      background: #748ffc; color: #0b1026; text-decoration: none; font-weight: 700;
+      padding: 10px 18px; border-radius: 14px; font-size: 15px;
+      border: none; cursor: pointer; font-family: inherit;
+    }
+    .muted { color: #8a97b8; font-size: 13px; margin-top: 28px; }
+    .opt { color: #93a0c8; font-weight: 400; }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #a5b4fc; }
+    .field input, .field textarea {
+      width: 100%; padding: 10px 12px; font: inherit; font-size: 15px; color: #e8ecff;
+      background: #141b3d; border: 1px solid #2a3564; border-radius: 12px;
+    }
+    .field input:focus, .field textarea:focus { outline: 2px solid #748ffc; outline-offset: 1px; }
+    .field textarea { min-height: 130px; resize: vertical; }
+    .ferr { color: #fda4af; font-size: 13px; margin: 6px 0 0; }
+    .form-status { font-size: 14px; margin: 14px 0 0; min-height: 20px; }
+    .form-status.ok { color: #86efac; }
+    .form-status.err { color: #fda4af; }
+    .hp { position: absolute; left: -6400px; top: -6400px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Arrow Out! &mdash; Contact Us</h1>
+    <p class="sub">Technical problems &middot; feedback &middot; suggestions &middot; privacy requests &middot; advertising questions</p>
+
+    <h2>What you can contact us about</h2>
+    <ul>
+      <li><b>Technical problems</b> &mdash; a bug, a level that seems impossible, save-data trouble, or anything broken on your device or browser.</li>
+      <li><b>Feedback and suggestions</b> &mdash; what you enjoy, what frustrates you, and what you would like to see next.</li>
+      <li><b>Privacy questions or requests</b> &mdash; anything about the <a href="privacy.html">Privacy Policy</a> or your data.</li>
+      <li><b>Advertising questions</b> &mdash; enquiries about advertising on Arrow Out!.</li>
+    </ul>
+
+    <h2>How messaging works</h2>
+    <p>This website has no mail server or message backend, so this page does something honest instead: the form below opens a <b>pre-filled issue</b> on the Arrow Out! GitHub repository. That issue tracker is where messages are actually read and answered.</p>
+    <ul>
+      <li>You need a free GitHub account to submit the issue (sign up at <a href="https://github.com/signup">github.com/signup</a>).</li>
+      <li>GitHub issues are <b>public</b>. Never include passwords, payment details or other sensitive personal information.</li>
+      <li>Nothing leaves your device until you press <b>Submit new issue</b> on GitHub &mdash; the form only prepares the message in your browser.</li>
+      <li>Name and email are optional. If you add an email, replies arrive as comments on your issue.</li>
+    </ul>
+
+    <h2>Send a message</h2>
+    <noscript>
+      <p>JavaScript is off. The form still works: it opens GitHub&rsquo;s new-issue page with your subject and message pre-filled (the optional name and email are skipped without JavaScript).</p>
+    </noscript>
+    <form id="contact-form" method="get" action="https://github.com/parya5103/Fletch_Game/issues/new" target="_blank">
+      <div class="field">
+        <label for="f-name">Name <span class="opt">(optional)</span></label>
+        <input id="f-name" maxlength="80" autocomplete="name" />
+      </div>
+      <div class="field">
+        <label for="f-email">Email <span class="opt">(optional)</span></label>
+        <input id="f-email" type="email" maxlength="120" autocomplete="email" aria-describedby="ferr-email" />
+        <p class="ferr" id="ferr-email" hidden></p>
+      </div>
+      <div class="field">
+        <label for="f-subject">Subject</label>
+        <input id="f-subject" name="title" maxlength="100" required aria-describedby="ferr-subject" />
+        <p class="ferr" id="ferr-subject" hidden></p>
+      </div>
+      <div class="field">
+        <label for="f-message">Message</label>
+        <textarea id="f-message" name="body" maxlength="5000" required aria-describedby="ferr-message"></textarea>
+        <p class="ferr" id="ferr-message" hidden></p>
+      </div>
+      <div class="hp" aria-hidden="true">
+        <label for="f-website">Website</label>
+        <input id="f-website" name="website" tabindex="-1" autocomplete="off" />
+      </div>
+      <button class="btn" type="submit">Prepare message &rarr;</button>
+      <p id="form-status" class="form-status" role="status" aria-live="polite"></p>
+      <p id="fallback" hidden>Did the new tab not open? <a id="fallback-link" href="https://github.com/parya5103/Fletch_Game/issues/new">Open your prepared issue here</a>.</p>
+    </form>
+
+    <p>You can also browse or open issues directly at <a href="https://github.com/parya5103/Fletch_Game/issues">github.com/parya5103/Fletch_Game/issues</a>.</p>
+
+    <a class="btn" href="index.html">&larr; Back to the game</a>
+    <p class="muted">Arrow Out! is an offline-first PWA. See the <a href="about.html">About</a> and <a href="privacy.html">Privacy Policy</a> pages.</p>
+  </div>
+
+  <script>
+    (function() {
+      'use strict';
+      function byId(id) { return document.getElementById(id); }
+      function setStatus(msg, ok) {
+        var el = byId('form-status');
+        el.textContent = msg;
+        el.className = 'form-status ' + (ok ? 'ok' : 'err');
+      }
+      function setError(id, msg) {
+        var el = byId(id);
+        el.textContent = msg;
+        el.hidden = !msg;
+      }
+      function clearErrors() {
+        setError('ferr-email', '');
+        setError('ferr-subject', '');
+        setError('ferr-message', '');
+      }
+      function firstInvalid() {
+        var ids = ['f-subject', 'f-message', 'f-email'];
+        for (var i = 0; i < ids.length; i++) {
+          if (byId('ferr-' + ids[i].slice(2)).textContent) return byId(ids[i]);
+        }
+        return null;
+      }
+      function validate() {
+        clearErrors();
+        var email = byId('f-email').value.trim();
+        var subject = byId('f-subject').value.trim();
+        var message = byId('f-message').value.trim();
+        if (!subject) setError('ferr-subject', 'Please add a short subject.');
+        if (!message) setError('ferr-message', 'Please write your message.');
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) setError('ferr-email', 'That email address does not look right.');
+        return firstInvalid();
+      }
+      function buildIssueUrl(subject, message) {
+        var name = byId('f-name').value.trim();
+        var email = byId('f-email').value.trim();
+        var lines = [];
+        if (name) lines.push('Name: ' + name);
+        if (email) lines.push('Email: ' + email);
+        if (lines.length) lines.push('');
+        lines.push(message);
+        lines.push('');
+        lines.push('---');
+        lines.push('Sent from the Arrow Out! contact page');
+        return 'https://github.com/parya5103/Fletch_Game/issues/new?title=' +
+          encodeURIComponent('[Contact] ' + subject) +
+          '&body=' + encodeURIComponent(lines.join('\n'));
+      }
+      var form = byId('contact-form');
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (byId('f-website').value) {
+          setStatus('Thanks - your message is on its way.', true);
+          return;
+        }
+        var bad = validate();
+        if (bad) {
+          setStatus('Please fix the highlighted fields, then try again.', false);
+          if (typeof bad.focus === 'function') bad.focus();
+          return;
+        }
+        var subject = byId('f-subject').value.trim();
+        var message = byId('f-message').value.trim();
+        var url = buildIssueUrl(subject, message);
+        var link = byId('fallback-link');
+        link.href = url;
+        byId('fallback').hidden = false;
+        var opened = window.open(url, '_blank');
+        if (!opened) {
+          setStatus('Your browser blocked the new tab. Use the link below to open your prepared issue.', false);
+        } else {
+          setStatus('Your issue is ready in the new tab. Press "Submit new issue" on GitHub to send it.', true);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
