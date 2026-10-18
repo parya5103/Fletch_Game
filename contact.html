@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Contact Arrow Out! — report a technical problem, send feedback or suggestions, ask privacy questions, or ask about advertising. The form opens a pre-filled GitHub issue." />
+  <meta name="theme-color" content="#0d1230" />
+  <meta name="referrer" content="no-referrer" />
+  <meta name="robots" content="index, follow" />
+  <title>Contact Us &mdash; Arrow Out!</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 24px 16px 48px;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(180deg, #1b2550 0%, #0d1230 55%, #090d20 100%);
+      background-attachment: fixed;
+      color: #e8ecff; font-size: 16px; line-height: 1.65;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    a { color: #748ffc; overflow-wrap: anywhere; }
+    h1 { font-size: 26px; margin: 0 0 6px; }
+    h2 { font-size: 18px; margin: 26px 0 8px; color: #a5b4fc; }
+    .sub { color: #93a0c8; font-size: 14px; margin: 0 0 22px; }
+    p, li { font-size: 15.5px; }
+    ul { padding-left: 20px; }
+    .btn {
+      display: inline-block; margin-top: 20px;
+      background: #748ffc; color: #0b1026; text-decoration: none; font-weight: 700;
+      padding: 10px 18px; border-radius: 14px; font-size: 15px;
+      border: none; cursor: pointer; font-family: inherit;
+    }
+    .muted { color: #8a97b8; font-size: 13px; margin-top: 28px; }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #a5b4fc; }
+    .field input, .field textarea {
+      width: 100%; padding: 10px 12px; font: inherit; font-size: 15px; color: #e8ecff;
+      background: #141b3d; border: 1px solid #2a3564; border-radius: 12px;
+    }
+    .field input:focus, .field textarea:focus { outline: 2px solid #748ffc; outline-offset: 1px; }
+    .field textarea { min-height: 130px; resize: vertical; }
+    .ferr { color: #fda4af; font-size: 13px; margin: 6px 0 0; }
+    .form-status { font-size: 14px; margin: 14px 0 0; min-height: 20px; }
+    .form-status.ok { color: #86efac; }
+    .form-status.err { color: #fda4af; }
+    :focus-visible { outline: 2px solid #a5b4fc; outline-offset: 3px; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>Arrow Out! &mdash; Contact Us</h1>
+    <p class="sub">Technical problems &middot; feedback &middot; suggestions &middot; privacy requests &middot; advertising questions</p>
+
+    <h2>What you can contact us about</h2>
+    <ul>
+      <li><b>Technical problems</b> &mdash; a bug, a level that seems impossible, save-data trouble, or anything broken on your device or browser.</li>
+      <li><b>Feedback and suggestions</b> &mdash; what you enjoy, what frustrates you, and what you would like to see next.</li>
+      <li><b>Privacy questions or requests</b> &mdash; anything about the <a href="privacy.html">Privacy Policy</a> or your data.</li>
+      <li><b>Advertising questions</b> &mdash; enquiries about advertising on Arrow Out!.</li>
+    </ul>
+
+    <h2>How messaging works</h2>
+    <p>This site has no mail server or private message backend. This form prepares a draft for the Arrow Out! GitHub issue tracker. Preparing a draft with JavaScript enabled keeps it on this page until you choose to open GitHub.</p>
+    <ul id="public-warning">
+      <li><b>GitHub issues are public.</b> Do not include an email address, full name, passwords, payment details, notification subscription values or other private information in the subject or message.</li>
+      <li>Opening the prepared link sends its subject and message to GitHub in the URL, <b>before you submit an issue</b>. The URL may remain in browser history and GitHub logs. See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>.</li>
+      <li>A GitHub account is required to post. Your GitHub username and the issue text become public when you submit it. Replies are issue comments; this page does not send email.</li>
+      <li>For privacy questions, describe the problem without personal details. <b>This page provides no private channel for sensitive deletion or access requests.</b> Do not post identifiers in a public issue.</li>
+    </ul>
+
+    <h2>Prepare a public issue</h2>
+    <noscript>
+      <p>JavaScript is off. Submitting this form goes directly to GitHub in this tab and sends the subject and message in the URL immediately. It does not post an issue; review it on GitHub before submitting. For long messages, <a href="https://github.com/parya5103/Fletch_Game/issues/new">open a blank issue</a> and type there.</p>
+    </noscript>
+    <form id="contact-form" method="get" action="https://github.com/parya5103/Fletch_Game/issues/new" aria-describedby="public-warning">
+      <div class="field">
+        <label for="f-subject">Subject</label>
+        <input id="f-subject" name="title" maxlength="100" required aria-describedby="ferr-subject" />
+        <p class="ferr" id="ferr-subject" hidden></p>
+      </div>
+      <div class="field">
+        <label for="f-message">Message</label>
+        <textarea id="f-message" name="body" maxlength="5000" required aria-describedby="ferr-message"></textarea>
+        <p class="ferr" id="ferr-message" hidden></p>
+      </div>
+      <button class="btn" type="submit">Prepare draft &rarr;</button>
+      <p id="form-status" class="form-status" role="status" aria-live="polite"></p>
+      <p id="fallback" hidden><a id="fallback-link" href="https://github.com/parya5103/Fletch_Game/issues/new" rel="noreferrer">Open prepared draft on GitHub</a> (sends the text to GitHub in this tab). Review and submit there to post publicly.</p>
+    </form>
+
+    <p>You can also browse or open issues directly at <a href="https://github.com/parya5103/Fletch_Game/issues">github.com/parya5103/Fletch_Game/issues</a>.</p>
+
+    <a class="btn" href="index.html">&larr; Back to the game</a>
+    <p class="muted">Arrow Out! is an offline-first PWA. See the <a href="about.html">About</a> and <a href="privacy.html">Privacy Policy</a> pages.</p>
+  </main>
+
+  <script>
+    (function() {
+      'use strict';
+      function byId(id) { return document.getElementById(id); }
+      function setStatus(msg, ok) {
+        var el = byId('form-status');
+        el.textContent = msg;
+        el.className = 'form-status ' + (ok ? 'ok' : 'err');
+      }
+      function setError(id, msg) {
+        var el = byId('ferr-' + id);
+        var field = byId('f-' + id);
+        el.textContent = msg;
+        el.hidden = !msg;
+        if (msg) field.setAttribute('aria-invalid', 'true');
+        else field.removeAttribute('aria-invalid');
+      }
+      function clearDraft() {
+        byId('fallback').hidden = true;
+        byId('fallback-link').href = form.action;
+        byId('form-status').textContent = '';
+      }
+      function validate() {
+        var first = null;
+        ['subject', 'message'].forEach(function(id) {
+          var field = byId('f-' + id);
+          var msg = !field.value.trim() ? 'Please add a ' + id + '.' :
+            field.value.length > field.maxLength ? 'Please shorten the ' + id + '.' : '';
+          setError(id, msg);
+          if (msg && !first) first = field;
+        });
+        return first;
+      }
+      var form = byId('contact-form');
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        clearDraft();
+        var bad = validate();
+        if (!bad) {
+          var url = new URL(form.action);
+          // URLSearchParams encodes delimiters, Unicode and malformed UTF-16
+          // safely. Keep the complete encoded URL below common server limits.
+          url.searchParams.set('title', '[Contact] ' + byId('f-subject').value.trim());
+          url.searchParams.set('body', byId('f-message').value.trim());
+          if (url.href.length > 7000) {
+            setError('message', 'This draft is too long for a GitHub link. Shorten it, or open a blank issue and type there.');
+            bad = byId('f-message');
+          } else {
+            byId('fallback-link').href = url.href;
+            byId('fallback').hidden = false;
+            setStatus('Draft prepared on this page. Nothing has been sent. Use the link below to open GitHub, then review and submit your public issue there.', true);
+          }
+        }
+        if (bad) {
+          setStatus('Please fix the highlighted fields, then try again.', false);
+          bad.focus();
+        }
+      });
+      form.addEventListener('input', function() {
+        clearDraft();
+        setError('subject', '');
+        setError('message', '');
+      });
+      // Native required/maxlength validation remains available without JS;
+      // with JS, custom errors also reject whitespace and oversized URLs.
+      form.noValidate = true;
+    })();
+  </script>
+</body>
+</html>

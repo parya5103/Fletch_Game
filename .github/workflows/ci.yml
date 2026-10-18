@@ -42,11 +42,15 @@ jobs:
         run: |
           node scripts/regression-test.js
           node scripts/audit-test.js
+          node scripts/reminders-test.js
 
       - name: Dense boards, camera, touch and save compatibility
         run: |
           node scripts/density-test.js
           node scripts/cosmetics-test.js
+
+      - name: Public pages, Contact privacy and documentation links
+        run: node scripts/pages-test.js
 
       - name: Independent full campaign and daily validation
         run: timeout 180s node scripts/validate-levels.js

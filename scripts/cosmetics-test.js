@@ -9,7 +9,9 @@ test('legacy saves retain progress, current board, settings and every purchased 
     best:{500:{stars:3,plays:12}},cur:JSON.parse(source('scripts/fixtures/legacy-board.json')),
     settings:{notifications:true,reducedMotion:true,seenOnboarding:true},daily:{lastDate:'2026-10-17',completed:true,stars:2}};
   const h = harness({'arrowOut.v2':JSON.stringify(old)}), save=h.ST.getSave();
-  for(const key of ['unlocked','coins','skin','owned','best','cur','settings','daily']) assert.equal(JSON.stringify(save[key]),JSON.stringify(old[key]),key);
+  for(const key of ['unlocked','coins','skin','owned','best','cur','daily']) assert.equal(JSON.stringify(save[key]),JSON.stringify(old[key]),key);
+  for(const [key,value] of Object.entries(old.settings)) assert.equal(save.settings[key],value,'settings.'+key);
+  assert.equal(save.settings.reminderMinutes,90);assert.equal(save.settings.systemNotifications,false);
   assert.equal(save.boardSkin,'default');assert.equal(save.ownedBoards.default,true);
   h.ST.persist();assert.equal(harness(h.data).ST.getSave().skin,'ice');
   assert(h.G.test.tryRestore());

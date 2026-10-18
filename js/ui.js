@@ -445,37 +445,8 @@ const UI = (function() {
     updateNotifUI();
   }
 
-  // Sync the settings dialog Notifications toggle + its status line.
-  // The browser permission is reported honestly; the game stays fully
-  // playable whatever the state.
-  var notifStatusRequest = 0;
   function updateNotifUI() {
-    var request = ++notifStatusRequest;
-    var save = Storage.getSave();
-    var pref = !!(save.settings && save.settings.notifications);
-    var chk = $('chk-notifs');
-    if (chk) chk.checked = pref;
-    var st = $('st-notif');
-    if (st) {
-      var perm = PWA.notifPermission();
-      var txt;
-      if (perm === 'unsupported') txt = 'Not supported here';
-      else if (perm === 'denied') txt = 'Blocked in browser settings';
-      else if (!pref) txt = 'Off';
-      else {
-        // Preference is on; refine once we know whether a push
-        // subscription actually exists (subtle async, no flicker).
-        txt = 'On \u2014 setup pending';
-        if (typeof PWA.getPushSubscriptionJson === 'function') {
-          PWA.getPushSubscriptionJson().then(function(sub) {
-            if (sub && request === notifStatusRequest && Storage.getSave().settings.notifications) {
-              st.textContent = 'On \u2014 browser subscribed';
-            }
-          }).catch(function() {});
-        }
-      }
-      st.textContent = txt;
-    }
+    if (typeof Reminders !== 'undefined') Reminders.refreshUI();
   }
 
   // Achievements

@@ -17,7 +17,7 @@
       color: #e8ecff; font-size: 16px; line-height: 1.65;
     }
     .wrap { max-width: 720px; margin: 0 auto; }
-    a { color: #748ffc; }
+    a { color: #748ffc; overflow-wrap: anywhere; }
     h1 { font-size: 26px; margin: 0 0 6px; }
     h2 { font-size: 18px; margin: 26px 0 8px; color: #a5b4fc; }
     .sub { color: #93a0c8; font-size: 14px; margin: 0 0 22px; }
@@ -32,43 +32,46 @@
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <main class="wrap">
     <h1>About Arrow Out!</h1>
     <p class="sub">A free, offline-first tap-away puzzle &middot; 1000 levels &middot; no sign-up &middot; ad-free today</p>
 
-    <p>Arrow Out! is a mobile-first logic puzzle. Every board is a dense maze of winding arrows, and your job is simple to learn and hard to master: <b>tap arrows away in the right order until the board is empty</b>.</p>
+    <p>Arrow Out! is a browser-based arrow puzzle game. Every board is a dense maze of winding arrows, and your job is simple to learn and hard to master: <b>tap arrows away in the right order until the board is empty</b>. It runs directly in supported mobile and desktop browsers &mdash; no downloads, no sign-up.</p>
+
+    <h2>Our goal</h2>
+    <p>We want Arrow Out! to be an enjoyable, accessible, mobile-friendly puzzle experience: quick to open, comfortable to play one-handed on a phone, and just as playable on a desktop browser. It is an independent project with a simple deal &mdash; free to play, progress stays on your device, no sign-up. The game is continuously improved: the automated CI suite regenerates all 1000 campaign levels and checks three removal orders, plus 366 daily seeds. Recorded browser checks cover selected desktop engines and mobile viewport sizes; they do not establish compatibility with every browser or physical device.</p>
 
     <h2>How to play</h2>
     <ul>
       <li><b>Tap an arrow</b> &mdash; it slithers off the board in the direction its head points.</li>
       <li>An arrow only launches if its <b>path to the edge is clear</b> &mdash; any other arrow in the corridor blocks it.</li>
-      <li>A blocked tap costs one of your <b>3 hearts</b>. Lose them all and the level restarts (levels are never unsolvable &mdash; there is always a way through).</li>
+      <li>A blocked tap costs one of your <b>3 hearts</b>. Lose them all and a failure dialog lets you retry. Generated boards are checked for a complete solution.</li>
       <li>Clear <b>every arrow</b> to win. Stars reward clean runs: 3 stars for no mistakes and no hints.</li>
       <li><b>Hints:</b> 3 free per level. <b>Undo</b> brings back your last launch. <b>Restart</b> resets the board.</li>
     </ul>
 
     <h2>What makes it different</h2>
     <ul>
-      <li><b>Every level is guaranteed solvable</b> &mdash; boards are built in reverse and verified by an automated test suite on every release.</li>
+      <li><b>Every level is guaranteed solvable</b> &mdash; campaign boards are built in reverse, validated during generation, and checked in CI.</li>
       <li><b>1000 handcrafted-feeling levels</b> &mdash; boards grow from 12&times;12 to dense 65&times;65, with 20 to 600 real arrow paths. Zoom and pan to inspect dense puzzles.</li>
       <li><b>Daily Challenge</b> &mdash; a fresh puzzle every date; keep your streak alive.</li>
       <li><b>Timed bonus objectives</b> &mdash; golden bonus pieces on levels ending in 5 pay extra coins if you clear them before the timer.</li>
-      <li><b>Skins shop</b> &mdash; coins are earned only by playing; 16 arrow palettes to unlock.</li>
+      <li><b>Skins shop</b> &mdash; coins come from play and daily login rewards; unlock 5 board themes and 17 arrow cosmetics (colour palettes and six distinct designs), including free defaults, with live previews before you buy.</li>
       <li><b>Achievements and statistics</b> &mdash; everything tracked privately on your device.</li>
     </ul>
 
     <h2>FAQ</h2>
     <ul>
-      <li><b>Is it free?</b> Yes &mdash; no purchases. The game is ad-free today; optional rewarded ads (a short ad for an extra hint) may be added later &mdash; the <a href="privacy.html">Privacy Policy</a> explains what that would mean.</li>
-      <li><b>Does it work offline?</b> Yes. After the first load, Arrow Out! is an installable web app (PWA) that plays fully offline on phones and desktops.</li>
-      <li><b>Do I need an account?</b> No. Progress saves automatically on your device and restores itself.</li>
+      <li><b>Is it free?</b> Yes &mdash; no real-money purchases. The game is ad-free today; extra hints currently use a labelled five-second demo; real rewarded ads may be added later &mdash; the <a href="privacy.html">Privacy Policy</a> explains what that would mean.</li>
+      <li><b>Does it work offline?</b> Yes. After a successful service-worker installation has cached the game files, gameplay works offline in browsers that support it. Opening or posting a GitHub issue requires a connection. Local reminders work without an external service.</li>
+      <li><b>Do I need an account?</b> No. Progress saves automatically in browser storage when available. Blocking or clearing storage can prevent progress from being restored.</li>
       <li><b>How do I install it?</b> On Android/Chrome: tap Install in the game menu. On iPhone/iPad: Share &rarr; Add to Home Screen.</li>
-      <li><b>What are daily reminders?</b> Optional notifications (off by default). Turn them on in Settings and the game reminds you 4&ndash;5 times a day &mdash; you can turn them off any time. See the <a href="privacy.html">Privacy Policy</a>.</li>
-      <li><b>Where do I report a bug?</b> Open an issue at <a href="https://github.com/parya5103/Fletch_Game/issues">github.com/parya5103/Fletch_Game/issues</a>.</li>
+      <li><b>What are daily reminders?</b> Optional notifications (off by default). Open Settings &rarr; Notification &amp; reminder settings to choose 1, 1&frac12; or 2 hours of inactivity. In-game reminders need the page open; optional system notifications need explicit permission and a running page. Closed or suspended browsers cannot schedule these reminders. You can turn them off any time. See the <a href="privacy.html">Privacy Policy</a>.</li>
+      <li><b>Where do I report a bug?</b> Use the <a href="contact.html">Contact page</a>, or open an issue at <a href="https://github.com/parya5103/Fletch_Game/issues">github.com/parya5103/Fletch_Game/issues</a>.</li>
     </ul>
 
     <a class="btn" href="index.html">Play Arrow Out! &rarr;</a>
-    <p class="muted">Built as a zero-dependency PWA &mdash; no frameworks, no trackers, runs entirely in your browser.</p>
-  </div>
+    <p class="muted">Built as a zero-dependency PWA &mdash; no frameworks, no trackers, runs entirely in your browser. Questions or ideas? <a href="contact.html">Contact us</a>.</p>
+  </main>
 </body>
 </html>
