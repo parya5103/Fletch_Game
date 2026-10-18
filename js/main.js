@@ -77,6 +77,10 @@ const Game = (function() {
 
   // Set up event listeners
   function setupEventListeners() {
+    // Resume audio inside the gesture, before button/canvas actions run.
+    on(document, 'pointerdown', Audio.unlock, { capture: true, passive: true });
+    on(document, 'touchend', Audio.unlock, { capture: true, passive: true });
+    on(document, 'keydown', Audio.unlock, { capture: true });
     // Canvas input
     var canvasEl = document.getElementById('board');
     if (canvasEl) {
@@ -1361,7 +1365,8 @@ const Game = (function() {
   function applySkin() {
     var save = Storage.getSave();
     var skin = GameCore.SKINS[save.skin] || GameCore.SKINS.default;
-    Render.setPalette(skin.colors);
+    Render.setSkin(skin);
+    Render.setBoardSkin(save.boardSkin);
   }
 
   function maybeShowOnboarding() {

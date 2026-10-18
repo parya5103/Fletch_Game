@@ -211,81 +211,80 @@ const UI = (function() {
     if (sub) sub.innerHTML = 'You get <b>3 free hints</b> per level. Watch a short ad to reveal one more.';
   }
 
-  // --- Shop (coins + cosmetic skins, all free - earned through play) ---
+  // Preview is local to the shop: closing it never equips or spends coins.
+  var shopCategory = 'boards', shopPreview = null;
   function buildShopGrid() {
     var grid = $('shop-grid');
     if (!grid) return;
     grid.textContent = '';
-    
     var save = Storage.getSave();
-    var coinsEl = $('shop-coins');
-    if (coinsEl) coinsEl.innerHTML = ICON.coin + ' ' + save.coins + ' coins';
-    
-    var skins = GameCore.SKINS;
-    Object.keys(skins).forEach(function(id) {
-      var skin = skins[id];
-      var owned = !!save.owned[id];
-      var equipped = save.skin === id;
-      
-      var item = document.createElement('div');
-      item.className = 'skin-item' + (equipped ? ' equipped' : '');
-      
-      // Color dots preview
-      var dots = '';
-      for (var ci = 0; ci < skin.colors.length; ci++) {
-        dots += '<span class="skin-dot" style="background:' + skin.colors[ci] + '"></span>';
-      }
-      
-      item.innerHTML =
-        '<div class="skin-name">' + (skin.isNew ? '<span style="color:#fbbf24;letter-spacing:0.5px;">NEW</span> &middot; ' : '') + skin.name + '</div>' +
-        '<div class="skin-dots">' + dots + '</div>' +
-        '<div class="skin-status">' +
-          (equipped ? '\u2713 Equipped' : owned ? 'Owned' : skin.price + ' coins') +
-        '</div>';
-      
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'btn small' + (equipped ? '' : owned ? ' primary' : '');
-      btn.textContent = equipped ? 'Equipped' : owned ? 'Equip' : (save.coins >= skin.price ? 'Buy' : 'Locked');
-      btn.disabled = equipped;
-      if (!equipped) {
-        (function(sid, price, isOwned) {
-          on(btn, 'click', function() {
-            var s = Storage.getSave();
-            if (isOwned) {
-              s.skin = sid;
-              Storage.updateSave(s);
-              applySkinToRenderer();
-              toast(skins[sid].name + ' equipped \u2713');
-              Audio.ui();
-              buildShopGrid();
-              return;
-            }
-            if (Storage.spendCoins(price)) {
-              s = Storage.getSave();
-              s.owned[sid] = true;
-              s.skin = sid;
-              Storage.updateSave(s);
-              applySkinToRenderer();
-              toast(skins[sid].name + ' unlocked!');
-              Audio.success();
-              buildShopGrid();
-            } else {
-              toast('Not enough coins \u2014 win levels to earn more!');
-              Audio.error();
-            }
-          });
-        })(id, skin.price, owned);
-      }
-      item.appendChild(btn);
-      grid.appendChild(item);
+    $('shop-coins').textContent = save.coins + ' coins';
+    ['boards', 'arrows'].forEach(function(category) {
+      var tab = $('shop-tab-' + category);
+      tab.setAttribute('aria-selected', String(shopCategory === category));
+      tab.tabIndex = shopCategory === category ? 0 : -1;
+      tab.onclick = function() { shopCategory = category; shopPreview = null; buildShopGrid(); tab.focus(); };
+      tab.onkeydown = function(e) {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Home' || e.key === 'End') {
+          e.preventDefault(); $('shop-tab-' + (category === 'boards' ? 'arrows' : 'boards')).click();
+        }
+      };
+    });
+    grid.setAttribute('aria-labelledby', 'shop-tab-' + shopCategory);
+    var catalog = GameCore.COSMETICS[shopCategory];
+    var ownership = shopCategory === 'boards' ? save.ownedBoards : save.owned;
+    var equippedId = shopCategory === 'boards' ? save.boardSkin : save.skin;
+    var previewId = shopPreview || equippedId, previewItem = catalog[previewId];
+    var preview = $('shop-preview');
+    preview.setAttribute('data-board-skin', shopCategory === 'boards' ? previewId : save.boardSkin);
+    Render.drawPreview(preview, shopCategory === 'arrows' ? previewItem : GameCore.SKINS[save.skin]);
+    $('shop-preview-label').textContent = (shopPreview ? 'Previewing: ' : 'Equipped: ') + previewItem.name;
+    var ids = Object.keys(catalog);
+    if (shopCategory === 'arrows') {
+      var featured = ['default', 'ice', 'ember', 'lightning', 'cyber', 'royal'];
+      ids = featured.concat(ids.filter(function(id) { return featured.indexOf(id) < 0; }));
+    }
+    ids.forEach(function(id) {
+      var item = catalog[id], owned = ownership[id] === true, equipped = equippedId === id;
+      var card = document.createElement('article');
+      card.className = 'skin-item' + (equipped ? ' equipped' : '') + (shopPreview === id ? ' previewing' : '');
+      card.dataset.skin = id;
+      var name = document.createElement('h3'); name.className = 'skin-name'; name.textContent = item.name; card.appendChild(name);
+      var sample = document.createElement('canvas'); sample.width = 360; sample.height = 192;
+      sample.className = 'skin-sample'; sample.setAttribute('aria-label', item.name + ' preview');
+      sample.setAttribute('role', 'img');
+      sample.setAttribute('data-board-skin', shopCategory === 'boards' ? id : save.boardSkin);
+      Render.drawPreview(sample, shopCategory === 'arrows' ? item : GameCore.SKINS[save.skin]); card.appendChild(sample);
+      var desc = document.createElement('p'); desc.className = 'skin-description'; desc.textContent = item.description; card.appendChild(desc);
+      var status = document.createElement('div'); status.className = 'skin-status';
+      status.textContent = (equipped ? 'Equipped' : owned ? 'Owned' : 'Locked · ' + item.price + ' coins') + (shopPreview === id ? ' · Previewing' : '');
+      card.appendChild(status);
+      var show = document.createElement('button'); show.type = 'button'; show.className = 'btn'; show.textContent = 'Preview';
+      show.setAttribute('aria-label', 'Preview ' + item.name);
+      show.onclick = function() { shopPreview = id; buildShopGrid(); $('shop-preview-label').focus({preventScroll:true}); $('shop-preview').scrollIntoView({block:'nearest'}); };
+      card.appendChild(show);
+      var action = document.createElement('button'); action.type = 'button'; action.className = 'btn primary';
+      action.textContent = equipped ? 'Equipped' : owned ? 'Equip' : 'Buy · ' + item.price;
+      action.setAttribute('aria-label', (owned ? 'Equip ' : 'Buy ') + item.name); action.disabled = equipped;
+      action.onclick = function() {
+        action.disabled = true;
+        var result = Storage.cosmeticAction(shopCategory, id, true);
+        if (result === 'insufficient') toast('Not enough coins — win levels to earn more.');
+        else if (result === 'storage') toast('Could not save. No coins spent. Free up device storage and try again.');
+        else if (result === 'purchased' || result === 'equipped') {
+          applySkinToRenderer(); toast(item.name + ' equipped'); Audio.ui();
+        }
+        buildShopGrid();
+        var next = grid.querySelector('[data-skin="' + id + '"] button'); if (next) next.focus();
+      };
+      card.appendChild(action); grid.appendChild(card);
     });
   }
 
   function applySkinToRenderer() {
     var save = Storage.getSave();
-    var skin = GameCore.SKINS[save.skin] || GameCore.SKINS.default;
-    Render.setPalette(skin.colors);
+    Render.setSkin(GameCore.SKINS[save.skin] || GameCore.SKINS.default);
+    Render.setBoardSkin(save.boardSkin);
   }
 
   // --- Daily login reward calendar ---
@@ -320,6 +319,7 @@ const UI = (function() {
   }
 
   function closeAll() {
+    shopPreview = null;
     var list = document.querySelectorAll('.overlay.show');
     for (var i = 0; i < list.length; i++) {
       list[i].classList.remove('show');

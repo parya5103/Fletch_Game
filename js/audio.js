@@ -23,6 +23,17 @@ const Audio = (function() {
     return ac;
   }
 
+  // Safari may report "interrupted" after backgrounding or a phone call.
+  // Optional audio must never produce an unhandled rejection or block input.
+  function changeState(c, method) {
+    if (!c || typeof c[method] !== 'function') return;
+    try { var result = c[method](); if (result && result.catch) result.catch(function() {}); } catch (e) {}
+  }
+  function unlock() {
+    var c = getCtx();
+    if (c && (c.state === 'suspended' || c.state === 'interrupted')) changeState(c, 'resume');
+  }
+
   // Reusable numeric validation helpers (module boundary)
   var MIN_FREQ = 20, MAX_FREQ = 20000;
   function clampNum(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
@@ -152,19 +163,12 @@ const Audio = (function() {
     get enabled() { return enabled; },
     set enabled(v) { 
       enabled = v; 
-      if (!v && ac && ac.state === 'running') ac.suspend();
-      else if (v && ac && ac.state === 'suspended') ac.resume();
+      if (!v && ac && ac.state === 'running') changeState(ac, 'suspend');
+      else if (v) unlock();
     },
-    unlock: function() { 
-      var c = getCtx(); 
-      if (c && c.state === 'suspended') c.resume(); 
-    },
-    suspend: function() { 
-      if (ac && ac.state === 'running') ac.suspend(); 
-    },
-    resume: function() { 
-      if (enabled && ac && ac.state === 'suspended') ac.resume(); 
-    },
+    unlock: unlock,
+    suspend: function() { if (ac && ac.state === 'running') changeState(ac, 'suspend'); },
+    resume: unlock,
     play: playSound,
     fly: function(dir, combo) {
       // Defensive default at the module boundary: dir must be a finite 0-3

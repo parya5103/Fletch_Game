@@ -124,9 +124,9 @@ test('zero viewport and invalid pixel ratio do not produce invalid canvas dimens
   const h = harness(), wrap={clientWidth:0,clientHeight:0}, canvas={style:{},getContext:()=>({setTransform(){}})};
   h.box.document.getElementById=()=>wrap; h.box.document.createElement=()=>({getContext:()=>({})}); h.box.requestAnimationFrame=()=>{};
   vm.runInContext(source('js/render.js')+'\nglobalThis.R=Render;',h.box);
-  h.box.R.init(canvas); h.box.R.setGameState({cols:9});h.box.R.fitCanvas(); assert.equal(h.box.R.getCellSize(),0);
+  h.box.R.init(canvas); h.box.R.setGameState({cols:9,rows:9});h.box.R.fitCanvas(); assert.equal(h.box.R.getCellSize(),0);
   wrap.clientWidth=100;wrap.clientHeight=80;h.box.window.devicePixelRatio=Infinity;h.box.R.fitCanvas();
-  assert.equal(canvas.width,80);assert(Number.isFinite(h.box.R.getCellSize()));
+  assert.equal(canvas.width,100);assert.equal(canvas.height,80);assert(Number.isFinite(h.box.R.getCellSize()));
 });
 
 test('service worker assets exist and failed precache cannot activate; cache isolation and offline response types', async () => {

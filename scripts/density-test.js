@@ -96,7 +96,7 @@ test('every one of 600 arrows is individually selectable at 320px and 390px', ()
       assert(p); assert.equal(s.occ[p.y*s.cols+p.x],i);
     }
     assert.equal(R.screenToCell(-1,0),null); assert.equal(R.screenToCell(Infinity,0),null);
-    R.pan(-1e6,-1e6); let v=R.getView(); assert.equal(v.x,v.side*(1-v.zoom));
+    R.pan(-1e6,-1e6); let v=R.getView(); assert.equal(v.x,v.width-s.cols*v.cell*v.zoom);
     R.pan(1e6,1e6); v=R.getView(); assert.equal(v.x,0);
     R.resetView(); assert.equal(R.getView().zoom,1);
   }

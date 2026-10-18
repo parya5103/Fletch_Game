@@ -212,7 +212,7 @@ const PWA = (function() {
       // In non-deployable context, service worker won't work
       // but we can still try for testing
       try {
-        navigator.serviceWorker.register('sw.js').then(function() {
+        navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function() {
           swActive = true;
         }).catch(function() { 
           swActive = false; 
@@ -223,7 +223,7 @@ const PWA = (function() {
       return;
     }
     
-    navigator.serviceWorker.register('sw.js').then(function(reg) {
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function(reg) {
       swActive = true;
       watchForUpdates(reg);
     }).catch(function() { 
@@ -363,7 +363,7 @@ const PWA = (function() {
   }
 
   // Game version - kept in sync with sw.js CACHE version
-  var VERSION = 'v33';
+  var VERSION = 'v34';
 
   // --- Update flow ---
   // The page shows a small banner when a newer service worker (a new game
