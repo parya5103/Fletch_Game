@@ -232,7 +232,7 @@ const PWA = (function() {
   }
 
   // Game version - kept in sync with sw.js CACHE version
-  var VERSION = 'v37';
+  var VERSION = 'v38';
 
   // --- Update flow ---
   // The page shows a small banner when a newer service worker (a new game

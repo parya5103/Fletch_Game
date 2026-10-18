@@ -1,7 +1,7 @@
 /** Local, best-effort reminders. The page schedules checks; the worker has no timer. */
 'use strict';
 const Reminders = (function() {
-  const KEY = 'arrowOut.reminders.v1', TAG = 'arrow-out-local';
+  const KEY = 'arrowOut.reminders.v1', CLAIMS = 'arrowOut.reminderClaims.v1', TAG = 'arrow-out-local';
   let initialized = false, busy = false, prompting = false, cleanupBusy = false;
   let storageAvailable = true, lastWrite = 0, legacyWarning = '';
   let memory = { activityAt: Date.now(), notifiedFor: 0, lastTestAt: 0, pending: false };
@@ -17,22 +17,33 @@ const Reminders = (function() {
   }
   function read() {
     try {
-      const value = JSON.parse(localStorage.getItem(KEY) || 'null'), now = Date.now();
+      const value = JSON.parse(localStorage.getItem(KEY) || 'null');
+      const claims = JSON.parse(localStorage.getItem(CLAIMS) || 'null'), now = Date.now();
       storageAvailable = true;
-      if (value && typeof value === 'object') {
-        for (const key of ['activityAt', 'notifiedFor', 'lastTestAt']) {
-          if (Number.isSafeInteger(value[key]) && value[key] >= 0 && value[key] <= now)
-            memory[key] = Math.max(memory[key], value[key]);
+      if (value && Number.isSafeInteger(value.activityAt) && value.activityAt >= 0 && value.activityAt <= now)
+        memory.activityAt = Math.max(memory.activityAt, value.activityAt);
+      if (claims && typeof claims === 'object') {
+        for (const key of ['notifiedFor', 'lastTestAt']) {
+          if (Number.isSafeInteger(claims[key]) && claims[key] >= 0 && claims[key] <= now)
+            memory[key] = Math.max(memory[key], claims[key]);
         }
-        if (value.notifiedFor === memory.notifiedFor) memory.pending = value.pending === true;
+        memory.pending = claims.notifiedFor === memory.notifiedFor && claims.notifiedFor >= memory.activityAt && claims.pending === true;
       }
       if (memory.activityAt > now) memory = { activityAt: now, notifiedFor: 0, lastTestAt: 0, pending: false };
     } catch (_) { storageAvailable = false; }
     return memory;
   }
   function write() {
-    try { localStorage.setItem(KEY, JSON.stringify(memory)); storageAvailable = true; lastWrite = Date.now(); return true; }
+    try { localStorage.setItem(KEY, JSON.stringify({ activityAt: memory.activityAt })); storageAvailable = true; lastWrite = Date.now(); return true; }
     catch (_) { storageAvailable = false; return false; }
+  }
+  // Only delivery/test code holding the Web Lock writes claims. Activity
+  // flushes must never overwrite a claim made concurrently by another tab.
+  function writeClaims() {
+    try {
+      localStorage.setItem(CLAIMS, JSON.stringify({ notifiedFor: memory.notifiedFor, lastTestAt: memory.lastTestAt, pending: memory.pending }));
+      storageAvailable = true; return true;
+    } catch (_) { storageAvailable = false; return false; }
   }
   function hideBanner() { if ($('reminder-banner')) $('reminder-banner').hidden = true; }
   function activity(force) {
@@ -58,11 +69,11 @@ const Reminders = (function() {
     const state = read(), settings = prefs(), now = Date.now(), episode = state.activityAt;
     if (!settings.notifications) { hideBanner(); return false; }
     if (state.pending && !document.hidden) {
-      state.pending = false; write(); showBanner(); return true;
+      state.pending = false; if (coordinated) writeClaims(); showBanner(); return true;
     }
     if (now - episode < settings.reminderMinutes * 60000 || state.notifiedFor >= episode) return false;
     if (!document.hidden) {
-      state.notifiedFor = episode; state.pending = false; write(); showBanner(); return true;
+      state.notifiedFor = episode; state.pending = false; if (coordinated) writeClaims(); showBanner(); return true;
     }
     if (!coordinated || !storageAvailable || !settings.systemNotifications || !systemSupported() || permission() !== 'granted') return false;
     const reg = await registration();
@@ -70,12 +81,12 @@ const Reminders = (function() {
     if (!reg || typeof reg.showNotification !== 'function' || !prefs().notifications ||
         !prefs().systemNotifications || read().activityAt !== episode || permission() !== 'granted') return false;
     state.notifiedFor = episode; state.pending = false;
-    if (!write()) return false; // no persistent cross-tab claim -> no system notification
+    if (!writeClaims()) return false; // no persistent cross-tab claim -> no system notification
     try {
       await reg.showNotification('Arrow Out!', options(false));
       if (!prefs().notifications || read().activityAt !== episode) await closeLocalNotifications();
     } catch (_) {
-      if (prefs().notifications && read().activityAt === episode) { state.pending = true; write(); }
+      if (prefs().notifications && read().activityAt === episode) { state.pending = true; writeClaims(); }
     }
     return true;
   }
@@ -125,7 +136,7 @@ const Reminders = (function() {
       if (!lock || Date.now() - read().lastTestAt < 60000) return false;
       const reg = await registration();
       if (!reg || !reg.showNotification || !prefs().notifications || !prefs().systemNotifications || permission() !== 'granted') return false;
-      memory.lastTestAt = Date.now(); if (!write()) return false;
+      memory.lastTestAt = Date.now(); if (!writeClaims()) return false;
       try { await reg.showNotification('Arrow Out! test', options(true)); return true; }
       catch (_) { return false; }
     }).catch(() => false);
@@ -175,7 +186,7 @@ const Reminders = (function() {
   }
   function reset() {
     memory = { activityAt: Date.now(), notifiedFor: 0, lastTestAt: 0, pending: false };
-    try { localStorage.removeItem(KEY); } catch (_) { storageAvailable = false; }
+    try { localStorage.removeItem(KEY); localStorage.removeItem(CLAIMS); } catch (_) { storageAvailable = false; }
     hideBanner(); closeLocalNotifications(); refreshUI();
   }
   function init() {

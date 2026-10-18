@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const {test} = require('node:test');
 const vm = require('node:vm');
 const {harness, source} = require('./qa-harness');
-const MINUTE=60000, KEY='arrowOut.reminders.v1';
+const MINUTE=60000, KEY='arrowOut.reminders.v1', CLAIMS='arrowOut.reminderClaims.v1';
 const settle=async()=>{for(let i=0;i<30;i++)await Promise.resolve();};
 function locks() {
   let queue=Promise.resolve();
@@ -24,7 +24,7 @@ function fixture(options={}) {
   const add=(name,fn)=>{(events[name]||=[]).push(fn);};
   const document={hidden:!!options.hidden,getElementById:id=>elements[id]||null,addEventListener:add};
   const box=vm.createContext({console,URL,JSON,Number,Promise,Storage:h.ST,Date:class extends Date{static now(){return clock.now;}},
-    localStorage:{getItem:key=>{if(options.blocked)throw Error('blocked');return data[key]||null;},setItem(key,value){if(options.blocked)throw Error('blocked');data[key]=value;},removeItem:key=>{delete data[key];}},
+    localStorage:{getItem:key=>{if(options.blocked)throw Error('blocked');return options.staleClaims && key===CLAIMS ? null : data[key]||null;},setItem(key,value){if(options.blocked)throw Error('blocked');data[key]=value;},removeItem:key=>{delete data[key];}},
     location:{href:'https://game.example/Fletch_Game/index.html'},Notification:options.unsupported?undefined:notification,
     navigator:{locks:options.noLocks?undefined:options.locks||locks(),serviceWorker:options.noSW?undefined:{getRegistration:options.getRegistration||(async()=>reg),addEventListener:add}},
     window:{isSecureContext:!options.insecure,addEventListener:add},document,setInterval:fn=>intervals.push(fn),
@@ -134,4 +134,17 @@ test('Off during native display closes the notification after the in-flight requ
   f.reg.showNotification=()=>new Promise(r=>{resolve=r;});f.advance(90*MINUTE);
   const checking=f.R.check();await settle();f.R.setEnabled(false);resolve();await checking;await settle();
   assert(f.closed.includes('arrow-out-local'));assert.equal(f.elements['reminder-banner'].hidden,true);
+});
+
+test('stale activity flushes cannot overwrite another tab’s delivery or test claim',async()=>{
+  const data={},lock=locks(),clock={now:1792314000000};
+  const a=fixture({data,locks:lock,clock,hidden:true}),b=fixture({data,locks:lock,clock,hidden:true});
+  clock.now+=90*MINUTE;await a.R.check();assert.equal(a.shown.length,1);
+  const claim=data[CLAIMS];b.options.staleClaims=true;
+  for(const flush of b.events.pagehide)flush();
+  assert.equal(data[CLAIMS],claim,'pagehide with stale reads must not write claims');
+  b.options.staleClaims=false;await b.R.check();assert.equal(b.shown.length,0);
+  clock.now++;await a.R.testSystem();const tested=data[CLAIMS];b.options.staleClaims=true;
+  for(const flush of b.events.pagehide)flush();assert.equal(data[CLAIMS],tested);
+  b.options.staleClaims=false;assert.equal(await b.R.testSystem(),false);
 });

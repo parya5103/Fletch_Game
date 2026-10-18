@@ -24,7 +24,7 @@ const report={checks:[],errors:[],externalRequests:[]};let browser,page,server,c
   page.on('pageerror',e=>report.errors.push(e.message));page.on('request',r=>{if(new URL(r.url()).origin!==origin)report.externalRequests.push(r.url());});
   await cdp.send('Browser.setPermission',{permission:{name:'notifications'},setting:'prompt',origin});
   await page.addInitScript(()=>{
-    window.__qaNow=Date.now();Date.now=()=>window.__qaNow;
+    window.__qaNow=Number(sessionStorage.getItem('__qaReminderClock'))||Date.now();Date.now=()=>window.__qaNow;
     const original=ServiceWorkerRegistration.prototype.showNotification;
     window.__qaShows=0;
     ServiceWorkerRegistration.prototype.showNotification=function(...args){window.__qaShows++;return original.apply(this,args);};
@@ -89,6 +89,7 @@ const report={checks:[],errors:[],externalRequests:[]};let browser,page,server,c
   await page.waitForFunction(async()=>{const reg=await navigator.serviceWorker.getRegistration();return (await reg.getNotifications({tag:'arrow-out-local'})).length===0;});
   const shown=await page.evaluate(()=>window.__qaShows);await page.evaluate(()=>{window.__qaNow+=120*60000;return Reminders.check();});
   assert.equal(await page.evaluate(()=>window.__qaShows),shown);assert.equal(await page.locator('#reminder-banner').isVisible(),false);
+  await page.evaluate(()=>sessionStorage.setItem('__qaReminderClock',String(window.__qaNow)));
   await page.reload();await page.waitForFunction(()=>typeof Game!=='undefined'&&Game.getState());
   const after=await page.evaluate(()=>Storage.getSave());
   for(const key of ['coins','unlocked','skin','owned','boardSkin','ownedBoards','best','cur','daily','stats'])assert.deepEqual(after[key],before[key],key);
