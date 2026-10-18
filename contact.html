@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="description" content="Contact Arrow Out! — report a technical problem, send feedback or suggestions, ask privacy questions, or ask about advertising. The form opens a pre-filled GitHub issue." />
   <meta name="theme-color" content="#0d1230" />
+  <meta name="referrer" content="no-referrer" />
   <meta name="robots" content="index, follow" />
   <title>Contact Us &mdash; Arrow Out!</title>
   <style>
@@ -17,7 +18,7 @@
       color: #e8ecff; font-size: 16px; line-height: 1.65;
     }
     .wrap { max-width: 720px; margin: 0 auto; }
-    a { color: #748ffc; }
+    a { color: #748ffc; overflow-wrap: anywhere; }
     h1 { font-size: 26px; margin: 0 0 6px; }
     h2 { font-size: 18px; margin: 26px 0 8px; color: #a5b4fc; }
     .sub { color: #93a0c8; font-size: 14px; margin: 0 0 22px; }
@@ -30,7 +31,6 @@
       border: none; cursor: pointer; font-family: inherit;
     }
     .muted { color: #8a97b8; font-size: 13px; margin-top: 28px; }
-    .opt { color: #93a0c8; font-weight: 400; }
     .field { margin-bottom: 16px; }
     .field label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #a5b4fc; }
     .field input, .field textarea {
@@ -43,11 +43,11 @@
     .form-status { font-size: 14px; margin: 14px 0 0; min-height: 20px; }
     .form-status.ok { color: #86efac; }
     .form-status.err { color: #fda4af; }
-    .hp { position: absolute; left: -6400px; top: -6400px; }
+    :focus-visible { outline: 2px solid #a5b4fc; outline-offset: 3px; }
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <main class="wrap">
     <h1>Arrow Out! &mdash; Contact Us</h1>
     <p class="sub">Technical problems &middot; feedback &middot; suggestions &middot; privacy requests &middot; advertising questions</p>
 
@@ -60,28 +60,19 @@
     </ul>
 
     <h2>How messaging works</h2>
-    <p>This website has no mail server or message backend, so this page does something honest instead: the form below opens a <b>pre-filled issue</b> on the Arrow Out! GitHub repository. That issue tracker is where messages are actually read and answered.</p>
-    <ul>
-      <li>You need a free GitHub account to submit the issue (sign up at <a href="https://github.com/signup">github.com/signup</a>).</li>
-      <li>GitHub issues are <b>public</b>. Never include passwords, payment details or other sensitive personal information.</li>
-      <li>Nothing leaves your device until you press <b>Submit new issue</b> on GitHub &mdash; the form only prepares the message in your browser.</li>
-      <li>Name and email are optional. If you add an email, replies arrive as comments on your issue.</li>
+    <p>This site has no mail server or private message backend. This form prepares a draft for the Arrow Out! GitHub issue tracker. Preparing a draft with JavaScript enabled keeps it on this page until you choose to open GitHub.</p>
+    <ul id="public-warning">
+      <li><b>GitHub issues are public.</b> Do not include an email address, full name, passwords, payment details, notification subscription values or other private information in the subject or message.</li>
+      <li>Opening the prepared link sends its subject and message to GitHub in the URL, <b>before you submit an issue</b>. The URL may remain in browser history and GitHub logs. See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>.</li>
+      <li>A GitHub account is required to post. Your GitHub username and the issue text become public when you submit it. Replies are issue comments; this page does not send email.</li>
+      <li>For privacy questions, describe the problem without personal details. <b>This page provides no private channel for sensitive deletion or access requests.</b> Do not post identifiers in a public issue.</li>
     </ul>
 
-    <h2>Send a message</h2>
+    <h2>Prepare a public issue</h2>
     <noscript>
-      <p>JavaScript is off. The form still works: it opens GitHub&rsquo;s new-issue page with your subject and message pre-filled (the optional name and email are skipped without JavaScript).</p>
+      <p>JavaScript is off. Submitting this form goes directly to GitHub in this tab and sends the subject and message in the URL immediately. It does not post an issue; review it on GitHub before submitting. For long messages, <a href="https://github.com/parya5103/Fletch_Game/issues/new">open a blank issue</a> and type there.</p>
     </noscript>
-    <form id="contact-form" method="get" action="https://github.com/parya5103/Fletch_Game/issues/new" target="_blank">
-      <div class="field">
-        <label for="f-name">Name <span class="opt">(optional)</span></label>
-        <input id="f-name" maxlength="80" autocomplete="name" />
-      </div>
-      <div class="field">
-        <label for="f-email">Email <span class="opt">(optional)</span></label>
-        <input id="f-email" type="email" maxlength="120" autocomplete="email" aria-describedby="ferr-email" />
-        <p class="ferr" id="ferr-email" hidden></p>
-      </div>
+    <form id="contact-form" method="get" action="https://github.com/parya5103/Fletch_Game/issues/new" aria-describedby="public-warning">
       <div class="field">
         <label for="f-subject">Subject</label>
         <input id="f-subject" name="title" maxlength="100" required aria-describedby="ferr-subject" />
@@ -92,20 +83,16 @@
         <textarea id="f-message" name="body" maxlength="5000" required aria-describedby="ferr-message"></textarea>
         <p class="ferr" id="ferr-message" hidden></p>
       </div>
-      <div class="hp" aria-hidden="true">
-        <label for="f-website">Website</label>
-        <input id="f-website" name="website" tabindex="-1" autocomplete="off" />
-      </div>
-      <button class="btn" type="submit">Prepare message &rarr;</button>
+      <button class="btn" type="submit">Prepare draft &rarr;</button>
       <p id="form-status" class="form-status" role="status" aria-live="polite"></p>
-      <p id="fallback" hidden>Did the new tab not open? <a id="fallback-link" href="https://github.com/parya5103/Fletch_Game/issues/new">Open your prepared issue here</a>.</p>
+      <p id="fallback" hidden><a id="fallback-link" href="https://github.com/parya5103/Fletch_Game/issues/new" rel="noreferrer">Open prepared draft on GitHub</a> (sends the text to GitHub in this tab). Review and submit there to post publicly.</p>
     </form>
 
     <p>You can also browse or open issues directly at <a href="https://github.com/parya5103/Fletch_Game/issues">github.com/parya5103/Fletch_Game/issues</a>.</p>
 
     <a class="btn" href="index.html">&larr; Back to the game</a>
     <p class="muted">Arrow Out! is an offline-first PWA. See the <a href="about.html">About</a> and <a href="privacy.html">Privacy Policy</a> pages.</p>
-  </div>
+  </main>
 
   <script>
     (function() {
@@ -117,73 +104,62 @@
         el.className = 'form-status ' + (ok ? 'ok' : 'err');
       }
       function setError(id, msg) {
-        var el = byId(id);
+        var el = byId('ferr-' + id);
+        var field = byId('f-' + id);
         el.textContent = msg;
         el.hidden = !msg;
+        if (msg) field.setAttribute('aria-invalid', 'true');
+        else field.removeAttribute('aria-invalid');
       }
-      function clearErrors() {
-        setError('ferr-email', '');
-        setError('ferr-subject', '');
-        setError('ferr-message', '');
-      }
-      function firstInvalid() {
-        var ids = ['f-subject', 'f-message', 'f-email'];
-        for (var i = 0; i < ids.length; i++) {
-          if (byId('ferr-' + ids[i].slice(2)).textContent) return byId(ids[i]);
-        }
-        return null;
+      function clearDraft() {
+        byId('fallback').hidden = true;
+        byId('fallback-link').href = form.action;
+        byId('form-status').textContent = '';
       }
       function validate() {
-        clearErrors();
-        var email = byId('f-email').value.trim();
-        var subject = byId('f-subject').value.trim();
-        var message = byId('f-message').value.trim();
-        if (!subject) setError('ferr-subject', 'Please add a short subject.');
-        if (!message) setError('ferr-message', 'Please write your message.');
-        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) setError('ferr-email', 'That email address does not look right.');
-        return firstInvalid();
-      }
-      function buildIssueUrl(subject, message) {
-        var name = byId('f-name').value.trim();
-        var email = byId('f-email').value.trim();
-        var lines = [];
-        if (name) lines.push('Name: ' + name);
-        if (email) lines.push('Email: ' + email);
-        if (lines.length) lines.push('');
-        lines.push(message);
-        lines.push('');
-        lines.push('---');
-        lines.push('Sent from the Arrow Out! contact page');
-        return 'https://github.com/parya5103/Fletch_Game/issues/new?title=' +
-          encodeURIComponent('[Contact] ' + subject) +
-          '&body=' + encodeURIComponent(lines.join('\n'));
+        var first = null;
+        ['subject', 'message'].forEach(function(id) {
+          var field = byId('f-' + id);
+          var msg = !field.value.trim() ? 'Please add a ' + id + '.' :
+            field.value.length > field.maxLength ? 'Please shorten the ' + id + '.' : '';
+          setError(id, msg);
+          if (msg && !first) first = field;
+        });
+        return first;
       }
       var form = byId('contact-form');
       form.addEventListener('submit', function(e) {
         e.preventDefault();
-        if (byId('f-website').value) {
-          setStatus('Thanks - your message is on its way.', true);
-          return;
-        }
+        clearDraft();
         var bad = validate();
+        if (!bad) {
+          var url = new URL(form.action);
+          // URLSearchParams encodes delimiters, Unicode and malformed UTF-16
+          // safely. Keep the complete encoded URL below common server limits.
+          url.searchParams.set('title', '[Contact] ' + byId('f-subject').value.trim());
+          url.searchParams.set('body', byId('f-message').value.trim());
+          if (url.href.length > 7000) {
+            setError('message', 'This draft is too long for a GitHub link. Shorten it, or open a blank issue and type there.');
+            bad = byId('f-message');
+          } else {
+            byId('fallback-link').href = url.href;
+            byId('fallback').hidden = false;
+            setStatus('Draft prepared on this page. Nothing has been sent. Use the link below to open GitHub, then review and submit your public issue there.', true);
+          }
+        }
         if (bad) {
           setStatus('Please fix the highlighted fields, then try again.', false);
-          if (typeof bad.focus === 'function') bad.focus();
-          return;
-        }
-        var subject = byId('f-subject').value.trim();
-        var message = byId('f-message').value.trim();
-        var url = buildIssueUrl(subject, message);
-        var link = byId('fallback-link');
-        link.href = url;
-        byId('fallback').hidden = false;
-        var opened = window.open(url, '_blank');
-        if (!opened) {
-          setStatus('Your browser blocked the new tab. Use the link below to open your prepared issue.', false);
-        } else {
-          setStatus('Your issue is ready in the new tab. Press "Submit new issue" on GitHub to send it.', true);
+          bad.focus();
         }
       });
+      form.addEventListener('input', function() {
+        clearDraft();
+        setError('subject', '');
+        setError('message', '');
+      });
+      // Native required/maxlength validation remains available without JS;
+      // with JS, custom errors also reject whitespace and oversized URLs.
+      form.noValidate = true;
     })();
   </script>
 </body>
