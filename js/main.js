@@ -10,6 +10,8 @@ const Game = (function() {
   var canvas = null;
   var ctx = null;
   var saveTimer = 0;
+  // Timestamp of the last granted hint; double-taps inside 350ms are ignored
+  var lastHintAt = -10000;
   var REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   // Initialize the game
@@ -1047,6 +1049,9 @@ const Game = (function() {
         updateBonusBanner();
         clearStall();
         var save = Storage.getSave();
+        // A failed level ends the consecutive-win streak
+        if (!save.winStreak) save.winStreak = { current: 0, best: 0 };
+        save.winStreak.current = 0;
         save.cur = null;
         Storage.updateSave(save);
         var failedState = gameState;
@@ -1060,7 +1065,9 @@ const Game = (function() {
       
       Render.needsRender();
       Render.ensureLoop();
-      saveCurSoon();
+      // Heart loss must persist immediately: the 250ms debounce could
+      // drop the final heart on a quick close or refresh.
+      saveCur();
     }
   }
 
@@ -1174,6 +1181,8 @@ const Game = (function() {
 
   function doHint() {
     if (!gameState || gameState.over || gameState.failed) return;
+    // Debounce: a fast double-tap must never consume two hints
+    if (performance.now() - lastHintAt < 350) return;
     
     var h = GameCore.hintArrow(gameState.arrows, gameState.occ, gameState.cols, gameState.rows);
     if (h < 0) return;
@@ -1181,6 +1190,7 @@ const Game = (function() {
     gameState.hintIdx = h;
     Render.focusPiece(h);
     gameState.hintsUsed++;
+    lastHintAt = performance.now();
     resetStall();
     
     Audio.hint();
@@ -1274,6 +1284,23 @@ const Game = (function() {
       }
       
       Storage.updateLevelBest(gameState.level, stars, 1);
+
+      // Consecutive-win streak; persisted by the updateSave at the tail
+      if (!save.winStreak) save.winStreak = { current: 0, best: 0 };
+      save.winStreak.current += 1;
+      if (save.winStreak.current > save.winStreak.best) save.winStreak.best = save.winStreak.current;
+
+      // Sanctuary chest: one-time 50 coins for clearing a boss level
+      if (gameState.level % 25 === 0) {
+        var chestKey = String(gameState.level);
+        if (!save.chestClaimed) save.chestClaimed = {};
+        if (!save.chestClaimed[chestKey]) {
+          save.chestClaimed[chestKey] = true;
+          Storage.updateSave(save); // persist first: never grant twice
+          Storage.addCoins(50);
+          UI.toast('Sanctuary chest found! +50 coins');
+        }
+      }
     } else {
       var dailyDate = gameState.date;
       Storage.updateDailyChallenge(dailyDate ? new Date(dailyDate.slice(0, 4) + '-' + dailyDate.slice(4, 6) + '-' + dailyDate.slice(6, 8) + 'T00:00:00Z') : today, stars);
@@ -1388,6 +1415,37 @@ const Game = (function() {
     maybeShowOnboarding();
   }
 
+  // Royal Star Chest: claimable once per world at 15+ stars in that world
+  function claimStarChest(chapterId) {
+    try {
+      var ch = Math.floor(Number(chapterId));
+      if (!isFinite(ch) || ch < 1 || ch > 8) return false;
+      var save = Storage.getSave();
+      var start = (ch - 1) * 125 + 1, end = ch * 125;
+      var stars = 0;
+      for (var lv = start; lv <= end; lv++) {
+        var b = save.best[String(lv)];
+        if (b && b.stars) stars += b.stars;
+      }
+      var wid = 'w' + ch;
+      if (save.starChestClaimed && save.starChestClaimed[wid]) return false;
+      if (stars < 15) {
+        UI.toast('Earn 15 stars in this world to open the Star Chest.');
+        return false;
+      }
+      if (!save.starChestClaimed) save.starChestClaimed = {};
+      save.starChestClaimed[wid] = true;
+      Storage.updateSave(save); // persist BEFORE granting: never double-pay
+      Storage.addCoins(100);
+      Audio.success();
+      if (save.vibration) Haptics.win();
+      UI.toast('Royal Star Chest: +100 coins!');
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // Advertising (placeholder)
   var Ads = {
     enabled: false,
@@ -1420,6 +1478,7 @@ const Game = (function() {
     tapArrow: tapArrow,
     undo: undo,
     hint: hint,
+    claimStarChest: claimStarChest,
     getState: function() { return gameState; },
     Ads: Ads
   };
