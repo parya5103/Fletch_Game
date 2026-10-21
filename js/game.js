@@ -737,4 +737,3 @@ const GameCore = (function() {
     calcStars: calcStars
   };
 })();
-

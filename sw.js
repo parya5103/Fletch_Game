@@ -157,4 +157,3 @@ self.addEventListener('notificationclick', (e) => {
     }).catch(() => null)
   );
 });
-

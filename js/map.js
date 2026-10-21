@@ -864,4 +864,3 @@ const ArrowOutMap = (function () {
 
 // Expose for Node-based unit tests (scripts/map-redesign-test.js)
 if (typeof globalThis !== 'undefined') globalThis.ArrowOutMap = ArrowOutMap;
-

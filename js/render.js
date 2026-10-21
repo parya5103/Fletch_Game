@@ -781,4 +781,3 @@ const Render = (function() {
     getCellSize: function() { return view ? view.cell : 0; }
   };
 })();
-

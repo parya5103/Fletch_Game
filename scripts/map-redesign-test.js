@@ -351,4 +351,3 @@ test('Commercial map: world rail, avatar, star chest, sanctuary chests all behav
 
 console.log(`\nSummary: ${passed} passed, ${failed} failed.`);
 if (failed > 0) process.exit(1);
-

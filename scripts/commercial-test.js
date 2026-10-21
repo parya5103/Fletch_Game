@@ -445,4 +445,3 @@ if (typeof require === 'function' && typeof module !== 'undefined' && typeof pro
     if (res.failures.length > 0) process.exit(1);
   })();
 }
-

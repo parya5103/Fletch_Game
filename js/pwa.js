@@ -379,4 +379,3 @@ const PWA = (function() {
 
   };
 })();
-
