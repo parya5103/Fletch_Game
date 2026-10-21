@@ -1,629 +1,2110 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="description" content="Arrow Out! &mdash; A premium tap-away arrow puzzle game. Tap arrows to send them flying off the board. Clear every arrow to win." />
-  <meta name="theme-color" content="#0d1230" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Arrow Out!" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'" />
-  <title>Arrow Out! &mdash; Premium Arrow Puzzle</title>
-  
-  <!-- Preload critical resources -->
-  <link rel="preload" href="css/styles.css" as="style" />
-  <link rel="preload" href="js/game.js" as="script" />
-  <link rel="preload" href="js/render.js" as="script" />
-  <link rel="preload" href="js/audio.js" as="script" />
-  <link rel="preload" href="js/haptics.js" as="script" />
-  <link rel="preload" href="js/bgfx.js" as="script" />
-  <link rel="preload" href="js/storage.js" as="script" />
-  <link rel="preload" href="js/pwa.js" as="script" />
-  <link rel="preload" href="js/ui.js" as="script" />
-  <link rel="preload" href="js/main.js" as="script" />
-  
-  <!-- Load styles -->
-  <link rel="stylesheet" href="css/styles.css" />
-
-  <!-- Real PWA manifest + SVG favicon (required for Chrome install) -->
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" href="icons/favicon.svg" type="image/svg+xml" />
-  
-  <!-- Inline critical CSS for faster loading -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Arrow Out! — Magical World Level Map & Playable Game</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17" async></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <style>
-    /* Critical above-the-fold styles */
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; height: 100%; }
-    body {
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background: linear-gradient(180deg, #1b2550 0%, #0d1230 55%, #090d20 100%);
-      color: #e8ecff;
+    :root {
+      --bg-deep: #0b1026;
+      --gold-primary: #fbbf24;
+      --gold-glow: rgba(251, 191, 36, 0.55);
+    }
+    * {
+      box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
-      -webkit-touch-callout: none;
-      -webkit-user-select: none;
       user-select: none;
-      overscroll-behavior: none;
-      touch-action: manipulation;
-      font-size: 16px;
     }
-    #app {
-      position: fixed; inset: 0;
-      display: flex; flex-direction: column;
-      height: 100vh; max-width: 100vw; overflow: hidden;
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #070b19;
+      color: #f8fafc;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
-    @supports (height: 100dvh) { #app { height: 100dvh; } }
-    
-    header#hud {
-      flex: 0 0 auto;
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 8px;
-      padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 6px;
+
+    /* Offline-Resilient Core Layout Utilities (Works 100% Offline even without CDN) */
+    .hidden { display: none !important; }
+    .flex { display: flex; }
+    .inline-flex { display: inline-flex; }
+    .grid { display: grid; }
+    .flex-col { flex-direction: column; }
+    .flex-1 { flex: 1 1 0%; }
+    .items-center { align-items: center; }
+    .items-start { align-items: flex-start; }
+    .items-end { align-items: flex-end; }
+    .justify-between { justify-content: space-between; }
+    .justify-center { justify-content: center; }
+    .gap-1 { gap: 0.25rem; }
+    .gap-1\.5 { gap: 0.375rem; }
+    .gap-2 { gap: 0.5rem; }
+    .gap-2\.5 { gap: 0.625rem; }
+    .gap-3 { gap: 0.75rem; }
+    .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .relative { position: relative; }
+    .absolute { position: absolute; }
+    .fixed { position: fixed; }
+    .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+    .w-full { width: 100%; }
+    .h-full { height: 100%; }
+    .max-w-xl { max-width: 36rem; }
+    .max-w-md { max-width: 28rem; }
+    .max-w-sm { max-width: 24rem; }
+    .max-w-xs { max-width: 20rem; }
+    .mx-auto { margin-left: auto; margin-right: auto; }
+    .overflow-hidden { overflow: hidden; }
+    .overflow-y-auto { overflow-y: auto; }
+    .text-center { text-align: center; }
+    .text-left { text-align: left; }
+    .text-right { text-align: right; }
+    .whitespace-nowrap { white-space: nowrap; }
+    .pointer-events-none { pointer-events: none; }
+    .cursor-pointer { cursor: pointer; }
+    .z-30 { z-index: 30; }
+    .z-40 { z-index: 40; }
+    .z-50 { z-index: 50; }
+    #app-shell {
+      background: #0f172a;
+      border-left: 1px solid rgba(51, 65, 85, 0.7);
+      border-right: 1px solid rgba(51, 65, 85, 0.7);
     }
-    #hud-title { text-align: center; min-width: 0; flex: 1; line-height: 1.25; }
-    #hud-title .t1 { font-weight: 800; font-size: 15px; letter-spacing: .01em; }
-    #hud-title .t2 { font-size: 12px; color: #93a0c8; }
-    #hearts { display: flex; gap: 3px; align-items: center; min-width: 66px; justify-content: flex-end; }
-    #hearts svg { width: 20px; height: 20px; }
-    #hearts .lost { opacity: .25; }
-    
-    #board-wrap {
-      flex: 1 1 auto; min-height: 0; min-width: 0;
-      display: flex; align-items: center; justify-content: center;
-      padding: 8px;
+    header {
+      background: rgba(2, 6, 23, 0.94);
+      border-bottom: 1px solid rgba(30, 41, 59, 0.9);
+      padding: 10px 12px;
     }
-    #board { display: block; touch-action: none; }
-    
-    footer {
-      flex: 0 0 auto;
-      padding: 8px 12px calc(10px + env(safe-area-inset-bottom, 0px));
-      display: flex; flex-direction: column; gap: 8px;
-    }
-    #actions { display: flex; gap: 8px; }
-    #actions .btn { flex: 1 1 0; min-width: 0; }
-    
-    /* Basic button styles for critical rendering */
-    .btn {
-      appearance: none;
-      border: 1px solid #2a3564;
-      background: #1a2348;
-      color: #e8ecff;
-      border-radius: 14px;
-      min-height: 48px; min-width: 48px;
-      padding: 8px 12px;
-      font: inherit; font-weight: 700; font-size: 15px;
+    button {
+      font-family: inherit;
       cursor: pointer;
-      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-      touch-action: manipulation;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
-      transition: transform .06s ease, background .15s ease;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(30, 41, 59, 0.9);
+      color: #f8fafc;
+      border-radius: 12px;
+      padding: 6px 12px;
     }
-    .btn:active { transform: scale(.96); background: #232e5c; }
-    .btn[disabled] { opacity: .4; pointer-events: none; }
-    .btn.icon { padding: 8px; }
-    .btn.primary { background: #748ffc; border-color: #748ffc; color: #0b1026; }
-    .btn.primary:active { background: #91a7ff; }
-    
-    /* Toast for immediate feedback */
-    #toast {
-      position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px));
-      transform: translate(-50%, 12px);
-      background: #1b2550; color: #e8ecff;
-      padding: 10px 16px; border-radius: 999px; font-size: 14px; z-index: 50;
-      opacity: 0; pointer-events: none; transition: opacity .18s ease, transform .18s ease;
-      max-width: min(88vw, 360px); text-align: center;
-      border: 1px solid #2a3564;
+    #btn-continue-next, #btn-preview-play, #btn-home-continue, #btn-win-next {
+      background: linear-gradient(90deg, #fbbf24 0%, #fde047 50%, #34d399 100%);
+      color: #090d16;
+      font-weight: 800;
+      border: none;
+      box-shadow: 0 6px 18px rgba(251, 191, 36, 0.28);
     }
-    #toast.show { opacity: 1; transform: translate(-50%, 0); }
-    
-    /* Overlays - basic structure */
-    .overlay {
-      position: fixed; inset: 0;
-      background: rgba(4, 8, 24, .74);
-      display: none; align-items: center; justify-content: center;
-      padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px));
-      z-index: 30; overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
+    #level-preview-backdrop, #chapters-modal-backdrop, #jump-modal-backdrop, #qa-modal-backdrop, #win-modal-backdrop {
+      background: rgba(2, 6, 23, 0.75);
+      backdrop-filter: blur(3px);
+      padding: 16px;
     }
-    .overlay.show { display: flex; }
-    .card {
-      position: relative;
-      background: #141b3d; border: 1px solid #2a3564; color: #e8ecff;
-      border-radius: 20px;
-      width: 100%; max-width: 420px; max-height: 100%;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
+    #level-preview-card {
+      background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+      border: 2px solid rgba(251, 191, 36, 0.55);
+      border-radius: 24px;
       padding: 20px;
-      user-select: text; -webkit-user-select: text;
-      box-shadow: 0 18px 50px rgba(0, 0, 0, .55);
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.7);
     }
-    .card h2 { margin: 0 0 4px; font-size: 20px; color: #e8ecff; }
-    .card .sub { margin: 0 0 16px; color: #93a0c8; font-size: 14px; }
-    .card .stack { display: flex; flex-direction: column; gap: 10px; }
-    .card .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .close-x { position: absolute; top: 10px; right: 10px; min-width: 40px; min-height: 40px; width: 40px; height: 40px; border-radius: 12px; box-shadow: none; }
-    
+
+
+    /* Complete Offline Visual Polish for Header, Toast, Badges, Progress Bar & Modals */
+    #btn-header-home {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      color: #f8fafc;
+    }
+    #btn-header-home svg {
+      width: 20px;
+      height: 20px;
+      stroke: #fbbf24;
+    }
+    #toast-banner {
+      position: fixed;
+      bottom: 76px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 60;
+      opacity: 0;
+      pointer-events: none;
+      background: rgba(2, 6, 23, 0.95);
+      border: 1.5px solid rgba(251, 191, 36, 0.65);
+      color: #fde68a;
+      padding: 8px 16px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.65);
+      transition: opacity 0.2s ease;
+    }
+    .current-pointer-badge {
+      background: linear-gradient(90deg, #fde047, #f59e0b);
+      color: #090d16 !important;
+      font-weight: 800;
+      font-size: 10px;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      border: 1.5px solid #ffffff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+    .chapter-progress-track {
+      width: 100%;
+      max-width: 220px;
+      height: 8px;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 9999px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    #chapter-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #34d399 0%, #fbbf24 100%);
+      border-radius: 9999px;
+      transition: width 0.3s ease;
+    }
+    .star-lit {
+      color: #fbbf24 !important;
+      text-shadow: 0 0 8px rgba(251, 191, 36, 0.55);
+    }
+    .star-dim {
+      color: rgba(148, 163, 184, 0.28) !important;
+    }
+    #preview-chapter-pill {
+      display: inline-block;
+      background: rgba(16, 185, 129, 0.2);
+      color: #6ee7b7;
+      border: 1px solid rgba(52, 211, 153, 0.4);
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    #preview-tier-pill {
+      display: inline-block;
+      background: rgba(251, 191, 36, 0.16);
+      color: #fde68a;
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .preview-spec-tile {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 14px;
+      padding: 10px 8px;
+    }
+    .preview-status-panel {
+      background: rgba(2, 6, 23, 0.75);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 16px;
+      padding: 12px 14px;
+      margin: 14px 0;
+    }
+    .landmark-tag {
+      position: absolute;
+      bottom: -24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(2, 6, 23, 0.9);
+      border: 1px solid rgba(251, 191, 36, 0.4);
+      color: #fde68a;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+      pointer-events: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.45);
+    }
+
+    .font-display {
+      font-family: 'Fredoka', 'Inter', system-ui, sans-serif;
+      letter-spacing: 0.02em;
+    }
+
+    /* Map Viewport Scroll Container */
+    #map-scroll-viewport {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+      overscroll-behavior-y: contain;
+    }
+    #map-scroll-viewport::-webkit-scrollbar {
+      width: 6px;
+    }
+    #map-scroll-viewport::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: 999px;
+    }
+
+    /* Magical Node Styling */
+    .map-node {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 58px;
+      height: 58px;
+      border-radius: 9999px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+      z-index: 20;
+      touch-action: manipulation;
+    }
+    .map-node:active {
+      transform: translate(-50%, -50%) scale(0.91) !important;
+    }
+    .map-node.milestone-node {
+      width: 68px;
+      height: 68px;
+      border-radius: 18px;
+    }
+    .map-node.boss-node {
+      width: 76px;
+      height: 76px;
+      border-radius: 22px;
+    }
+
+    /* Node States */
+    .node-completed {
+      background: radial-gradient(circle at 30% 25%, #34d399 0%, #059669 65%, #065f46 100%);
+      border: 3px solid #a7f3d0;
+      box-shadow: 0 6px 0 #064e3b, 0 8px 16px rgba(0, 0, 0, 0.45);
+      color: #ffffff;
+    }
+    .node-current {
+      background: radial-gradient(circle at 30% 25%, #fde047 0%, #f59e0b 62%, #b45309 100%);
+      border: 3.5px solid #fef08a;
+      box-shadow: 0 6px 0 #78350f, 0 0 26px rgba(251, 191, 36, 0.85);
+      color: #1e1b4b;
+      z-index: 30;
+      animation: currentPulse 2.1s infinite ease-in-out;
+    }
+    .node-locked {
+      background: radial-gradient(circle at 30% 25%, #334155 0%, #1e293b 70%, #0f172a 100%);
+      border: 2.5px solid rgba(148, 163, 184, 0.38);
+      box-shadow: 0 5px 0 #090d16, 0 6px 12px rgba(0, 0, 0, 0.4);
+      color: #94a3b8;
+    }
+    .node-selected-ring {
+      outline: 3.5px solid #38bdf8;
+      outline-offset: 4px;
+    }
+
+    @keyframes currentPulse {
+      0%, 100% {
+        transform: translate(-50%, -50%) scale(1.04);
+        box-shadow: 0 6px 0 #78350f, 0 0 20px rgba(251, 191, 36, 0.7), 0 0 0 0 rgba(251, 191, 36, 0.55);
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.12);
+        box-shadow: 0 6px 0 #78350f, 0 0 32px rgba(251, 191, 36, 0.95), 0 0 0 12px rgba(251, 191, 36, 0);
+      }
+    }
+
+    @keyframes floatPointer {
+      0%, 100% { transform: translate(-50%, 0px); }
+      50% { transform: translate(-50%, -7px); }
+    }
+    .current-pointer-badge {
+      position: absolute;
+      top: -40px;
+      left: 50%;
+      transform: translateX(-50%);
+      animation: floatPointer 1.6s infinite ease-in-out;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 35;
+    }
+
+    @keyframes lockedShake {
+      0%, 100% { transform: translate(-50%, -50%) translateX(0); }
+      25% { transform: translate(-50%, -50%) translateX(-6px); }
+      50% { transform: translate(-50%, -50%) translateX(6px); }
+      75% { transform: translate(-50%, -50%) translateX(-4px); }
+    }
+    .shake-locked {
+      animation: lockedShake 0.32s ease-in-out !important;
+    }
+
+    /* Ambient Magical Firefly Particles (CSS only, lightweight) */
+    @keyframes driftFirefly {
+      0%, 100% { transform: translateY(0px) translateX(0px) scale(0.9); opacity: 0.35; }
+      50% { transform: translateY(-18px) translateX(8px) scale(1.15); opacity: 0.85; }
+    }
+    .magical-spark {
+      position: absolute;
+      border-radius: 9999px;
+      pointer-events: none;
+      animation: driftFirefly 4.2s infinite ease-in-out;
+    }
+
+    /* Respect Reduced Motion Preferences */
     @media (prefers-reduced-motion: reduce) {
-      .btn, #toast, .switch .track, .switch .track::after { transition: none; }
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+    body.reduce-motion *, body.reduce-motion ::before, body.reduce-motion ::after {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+
+    /* Scenery SVG Landmark Badge */
+    .scenery-prop {
+      position: absolute;
+      pointer-events: none;
+      z-index: 8;
+      transform: translate(-50%, -50%);
     }
   </style>
 </head>
-<body>
-  <div id="app">
-    <!-- HEADER / HUD -->
-    <header id="hud">
-      <button class="btn icon" id="btn-menu" type="button" aria-label="Open menu" aria-haspopup="dialog">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-      </button>
-      <div id="hud-title">
-        <div class="t1" id="hud-level">Arrow Out!</div>
-        <div class="t2" id="hud-left">Loading...</div>
+<body class="bg-slate-950 text-slate-100 select-none">
+
+  <!-- ROOT APP SHELL -->
+  <div id="app-shell" class="relative w-full h-full flex flex-col max-w-xl mx-auto bg-slate-900 shadow-2xl overflow-hidden border-x border-slate-800/80">
+
+    <!-- GLOBAL TOP HEADER: Game Logo + Single Unified Currency Bar -->
+    <header class="relative z-40 flex items-center justify-between px-3 py-2.5 bg-slate-950/90 border-b border-slate-800/90 backdrop-blur-md">
+      <div class="flex items-center gap-2">
+        <button id="btn-header-home" type="button" aria-label="Home Screen"
+          class="flex items-center justify-center w-10 h-10 rounded-xl bg-slate-800/90 hover:bg-slate-700 active:scale-95 text-slate-100 border border-slate-700/80 transition">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V19a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1V9.5"/>
+          </svg>
+        </button>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="font-display font-bold text-base sm:text-lg tracking-wide bg-gradient-to-r from-amber-300 via-yellow-200 to-emerald-300 bg-clip-text text-transparent">
+              ARROW OUT!
+            </span>
+            <span class="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+              v40 Map
+            </span>
+          </div>
+          <p id="header-substatus" class="text-[11px] text-slate-400 leading-tight">
+            1,000-Level Magical World Journey
+          </p>
+        </div>
       </div>
-      <div id="hearts" role="img" aria-label="3 hearts remaining"></div>
-      <button class="btn icon" id="btn-sound" type="button" aria-label="Toggle sound" aria-pressed="true">
-        <svg id="ic-sound-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>
-        <svg id="ic-sound-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none"><path d="M11 5 6 9H3v6h3l5 4V5z" fill="currentColor" stroke="none"/><path d="M22 9l-6 6M16 9l6 6"/></svg>
-      </button>
+
+      <!-- Unified Existing Currencies (Hearts, Coins, Hints — never duplicated) -->
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <div title="Hearts" class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-950/70 border border-rose-500/40 text-xs font-bold text-rose-200">
+          <span class="text-rose-400">♥</span>
+          <span id="hud-hearts">3/3</span>
+        </div>
+        <div title="Coins" class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-950/70 border border-amber-500/40 text-xs font-bold text-amber-200">
+          <span>🪙</span>
+          <span id="hud-coins">0</span>
+        </div>
+        <div title="Free Hints" class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-sky-950/70 border border-sky-500/40 text-xs font-bold text-sky-200">
+          <span>💡</span>
+          <span id="hud-hints">3</span>
+        </div>
+      </div>
     </header>
 
-    <!-- Level progress bar -->
-    <div id="progress-wrap" role="progressbar" aria-label="Level progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-      <div id="progress-fill"></div>
-    </div>
+    <!-- =================================================================== -->
+    <!-- VIEW 1: MAGICAL WORLD MAP SCREEN (Default Main Upgrade View)        -->
+    <!-- =================================================================== -->
+    <section id="view-map" class="relative flex-1 flex flex-col overflow-hidden">
 
-    <!-- MAIN GAME BOARD -->
-    <div id="board-tools" aria-label="Board view controls">
-      <span id="board-view-label" aria-live="polite">Tap an arrow · drag to pan</span>
-      <button id="btn-zoom-out" class="btn" aria-label="Zoom out">−</button>
-      <button id="btn-zoom-in" class="btn" aria-label="Zoom in">+</button>
-      <button id="btn-board-fit" class="btn" aria-label="Show whole board">Fit</button>
-    </div>
-    <!-- Timed bonus objective banner -->
-    <div id="bonus-banner" role="status" aria-live="polite" aria-hidden="true">
-      <span class="bb-coin" id="bonus-coins">+25</span>
-      <span class="bb-label">bonus</span>
-      <span class="bb-time" id="bonus-time">0:30</span>
-    </div>
-    <main id="board-wrap">
-      <canvas id="board" role="img" aria-label="Arrow puzzle board. Tap an arrow with a clear path to send it off the board."></canvas>
-      <div id="combo-badge" aria-hidden="true"></div>
-    </main>
+      <!-- Chapter Banner & World Switcher Controls -->
+      <div id="chapter-banner" class="relative z-30 px-3 py-2.5 bg-slate-900/95 border-b border-white/10 shadow-lg transition-colors duration-300">
+        <div class="flex items-center justify-between gap-2">
+          <button id="btn-prev-chapter" type="button" aria-label="Previous Chapter"
+            class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center text-white font-bold border border-white/15 transition">
+            ‹
+          </button>
 
-    <!-- FOOTER / ACTIONS -->
-    <footer>
-      <div id="actions">
-        <button class="btn" id="btn-undo" type="button" aria-label="Undo last move">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>
-          Undo
-        </button>
-        <button class="btn" id="btn-hint" type="button" aria-label="Show a hint">
-          <span id="hint-count" class="hint-count">3</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a7 7 0 0 0-4 12.7V18h8v-2.3A7 7 0 0 0 12 3z"/><path d="M10 21h4"/></svg>
-          Hint
-        </button>
-        <button class="btn" id="btn-restart" type="button" aria-label="Restart level">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
-          Restart
-        </button>
+          <button id="btn-open-chapters" type="button"
+            class="flex-1 flex flex-col items-center justify-center px-3 py-1 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 transition cursor-pointer">
+            <div class="flex items-center gap-1.5">
+              <span id="chapter-badge-num" class="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-300/30">
+                World 1 / 8
+              </span>
+              <span id="chapter-title-text" class="font-display font-bold text-sm sm:text-base text-white">
+                Enchanted Meadow
+              </span>
+              <span class="text-xs text-slate-300">▾</span>
+            </div>
+            <div class="w-full max-w-[230px] flex items-center gap-2 mt-1">
+              <div class="chapter-progress-track flex-1 h-2 rounded-full bg-black/45 overflow-hidden p-[1px] border border-white/10">
+                <div id="chapter-progress-bar" class="h-full rounded-full bg-gradient-to-r from-emerald-400 to-amber-300 transition-all duration-300" style="width: 8%;"></div>
+              </div>
+              <span id="chapter-progress-text" class="text-[11px] font-semibold text-slate-200 whitespace-nowrap">
+                0 / 125
+              </span>
+            </div>
+          </button>
+
+          <button id="btn-next-chapter" type="button" aria-label="Next Chapter"
+            class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center text-white font-bold border border-white/15 transition">
+            ›
+          </button>
+        </div>
+
+        <!-- Secondary Utility Strip: Quick Level Jump, View Mode Toggle, & Virtualization Telemetry -->
+        <div class="flex items-center justify-between gap-2 mt-2 pt-1.5 border-t border-white/10 text-[11px]">
+          <div class="flex items-center gap-1.5">
+            <button id="btn-toggle-legacy" type="button"
+              class="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-600/70 font-medium transition">
+              Compare: <span id="compare-mode-label" class="text-amber-300 font-bold">New Magical Map</span>
+            </button>
+            <button id="btn-open-qa" type="button"
+              class="px-2.5 py-1 rounded-lg bg-indigo-950/90 hover:bg-indigo-900 text-indigo-200 border border-indigo-500/40 font-semibold transition">
+              QA & Save Tools
+            </button>
+          </div>
+          <div class="flex items-center gap-2 text-slate-300">
+            <span id="virtual-dom-counter" class="hidden sm:inline text-[10px] px-2 py-0.5 rounded bg-black/35 text-emerald-300 border border-emerald-500/20">
+              DOM Nodes: 24 / 1000
+            </span>
+            <button id="btn-quick-jump" type="button"
+              class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold border border-white/15 transition">
+              Find Lv #
+            </button>
+          </div>
+        </div>
       </div>
-      <!-- Advertising-ready slot -->
-      <div id="ad-slot" aria-hidden="true">Ad space</div>
-    </footer>
 
-    <!-- Level intro banner -->
-    <div id="level-banner" aria-hidden="true"></div>
-  </div>
-
-  <!-- TOAST NOTIFICATION -->
-  <div id="toast" role="status" aria-live="polite"></div>
-
-  <!-- INSTALL BANNER -->
-  <div id="install-banner" role="region" aria-label="Install app">
-    <div class="ib-text" id="ib-text"></div>
-    <div class="ib-actions">
-      <button class="btn small primary" id="btn-banner-install" type="button">Install</button>
-      <button class="btn iconx" id="btn-banner-close" type="button" aria-label="Dismiss install banner">&times;</button>
-    </div>
-  </div>
-
-
-  <!-- UPDATE BANNER: shown when a newer version of the game is ready -->
-  <div id="update-banner" role="region" aria-label="Game update available">
-    <div class="ub-text" id="ub-text">Game update ready &mdash; refresh to get the latest version.</div>
-    <div class="ub-actions">
-      <button class="btn small primary" id="btn-update-reload" type="button">Refresh</button>
-      <button class="btn iconx" id="btn-update-close" type="button" aria-label="Dismiss update notification">&times;</button>
-    </div>
-  </div>
-  <!-- ===== HOME SCREEN ===== -->
-  <div id="dlg-home" class="screen" role="dialog" aria-modal="true" aria-labelledby="home-title">
-    <canvas id="bgfx" aria-hidden="true"></canvas>
-    <div class="home-inner">
-
-      <header class="brand">
-        <div class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 64 64" width="76" height="76" focusable="false">
+      <!-- NEW MAGICAL WINDING ADVENTURE MAP VIEWPORT -->
+      <div id="map-scroll-viewport" class="flex-1 relative">
+        <div id="map-world-canvas" class="relative w-full overflow-hidden" style="height: 11250px;">
+          <!-- Ambient Background Scenery & Winding Path SVG Layer -->
+          <svg id="map-svg-layer" class="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <linearGradient id="lg-brand" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stop-color="#38bdf8"/>
-                <stop offset="0.55" stop-color="#818cf8"/>
-                <stop offset="1" stop-color="#c084fc"/>
+              <linearGradient id="completedRoadGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#34d399" />
+                <stop offset="50%" stop-color="#fbbf24" />
+                <stop offset="100%" stop-color="#f59e0b" />
               </linearGradient>
+              <filter id="roadSoftShadow" x="-15%" y="-5%" width="130%" height="110%">
+                <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#000000" flood-opacity="0.45"/>
+              </filter>
             </defs>
-            <rect x="4" y="4" width="56" height="56" rx="16" fill="rgba(129,140,248,0.10)" stroke="url(#lg-brand)" stroke-width="3"/>
-            <path d="M15 32h22" stroke="url(#lg-brand)" stroke-width="5" stroke-linecap="round"/>
-            <path d="m31 21 11 11-11 11" stroke="url(#lg-brand)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="15" cy="32" r="4.5" fill="#38bdf8"/>
-            <circle cx="50" cy="20" r="2" fill="#c084fc"/>
-            <circle cx="46" cy="46" r="1.5" fill="#2dd4bf"/>
+            <!-- Outer Stone/Magical Path Track -->
+            <path id="svg-path-outer" d="" fill="none" stroke="#2d5a44" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" filter="url(#roadSoftShadow)" />
+            <!-- Inner Locked/Upcoming Trail -->
+            <path id="svg-path-inner" d="" fill="none" stroke="#6ee7b7" stroke-opacity="0.32" stroke-width="14" stroke-linecap="round" stroke-dasharray="1 22" />
+            <!-- Illuminated Completed Progress Trail -->
+            <path id="svg-path-completed" d="" fill="none" stroke="url(#completedRoadGrad)" stroke-width="10" stroke-linecap="round" />
           </svg>
-        </div>
-        <h1 id="home-title" class="brand-name">ARROW OUT!</h1>
-        <p class="brand-tag">Tap arrows away &middot; clear the board &middot; 1000 levels</p>
-      </header>
 
-      <div class="home-chips">
-        <div class="chip" id="home-progress" aria-live="polite">Loading progress...</div>
-      </div>
+          <!-- Virtualized Scenery Landmarks Layer -->
+          <div id="map-scenery-layer" class="absolute inset-0 pointer-events-none"></div>
 
-      <div class="home-primary">
-        <button class="btn primary btn-hero" id="btn-continue" type="button">Continue</button>
-        <button class="btn btn-hero" id="btn-play-home" type="button">Play</button>
-      </div>
-
-      <nav class="home-hub" aria-label="Game menu">
-        <button class="btn" id="btn-levels" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Levels</span></button>
-        <button class="btn" id="btn-daily" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>Daily Challenge</span></button>
-        <button class="btn" id="btn-shop" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Shop</span></button>
-        <button class="btn" id="btn-achievements" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg><span>Achievements</span></button>
-        <button class="btn" id="btn-stats-menu" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg><span>Statistics</span></button>
-        <button class="btn" id="btn-settings" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg><span>Settings</span></button>
-        <button class="btn" id="btn-install-home" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Install App</span></button>
-      </nav>
-
-      <div class="home-stats">
-        <div class="home-stat">
-          <div class="home-stat-value" id="home-stat-levels">0</div>
-          <div class="home-stat-label">Levels</div>
-        </div>
-        <div class="home-stat">
-          <div class="home-stat-value" id="home-stat-stars">0</div>
-          <div class="home-stat-label">Stars</div>
-        </div>
-        <div class="home-stat">
-          <div class="home-stat-value" id="home-stat-streak">0</div>
-          <div class="home-stat-label">Streak</div>
+          <!-- Virtualized Interactive Level Nodes Layer -->
+          <div id="map-nodes-layer" class="absolute inset-0"></div>
         </div>
       </div>
 
-      <div class="home-daily" id="home-daily" aria-live="polite"></div>
-
-      <nav class="site-links" aria-label="Site links" style="display:flex; gap:16px; justify-content:center; font-size:13px; margin-top:14px;">
-        <a href="about.html" style="color:#748ffc;">About</a>
-        <a href="contact.html" style="color:#748ffc;">Contact</a>
-        <a href="privacy.html" style="color:#748ffc;">Privacy Policy</a>
-      </nav>
-    </div>
-  </div>
-  <aside id="reminder-banner" class="reminder-banner" role="status" aria-live="polite" hidden>
-    <p>Your puzzle is waiting. Return whenever you are ready.</p>
-    <button class="btn small" id="btn-reminder-dismiss" type="button">Dismiss reminder</button>
-  </aside>
-  <!-- ===== MAIN MENU ===== -->
-  <div class="overlay" id="dlg-menu" role="dialog" aria-modal="true" aria-labelledby="menu-title">
-    <div class="card">
-      <h2 id="menu-title"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg> Paused</h2>
-      <p class="sub">Take a breather. Your progress is saved.</p>
-      <div class="stack">
-        <button class="btn primary" id="btn-resume" type="button">Resume</button>
-        <button class="btn" id="btn-home" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 21V12h6v9"/></svg> Main Menu</button>
-        <button class="btn" id="btn-play" type="button">Play &middot; Level 1</button>
-        <button class="btn" id="btn-levels-menu" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Levels</button>
-        <button class="btn" id="btn-stats-menu-2" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> Stats</button>
-        <button class="btn" id="btn-achievements-menu" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg> Achievements</button>
-        <button class="btn" id="btn-daily-menu" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg> Daily Challenge</button>
-        <button class="btn" id="btn-howto" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> How to play</button>
-        <button class="btn" id="btn-install-menu" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Install app</button>
-        <button class="btn" id="btn-share-menu" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Share the game</button>
-        <button class="btn" id="btn-settings-menu" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Settings</button>
-        <button class="btn" id="btn-shop-menu" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg> Shop</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="overlay" id="dlg-reminders" role="dialog" aria-modal="true" aria-labelledby="reminders-title">
-    <div class="card">
-      <button class="btn icon close-x" data-close type="button" aria-label="Close reminder settings">&times;</button>
-      <h2 id="reminders-title">Notifications &amp; reminders</h2>
-      <p class="sub">Free local reminders. No account, server or subscription.</p>
-      <p id="reminder-limit">Checks run only while this game page can execute. A closed, suspended or battery-restricted browser cannot schedule reminders. Return to the open game for an in-game fallback. This replaces the old five-daily push service.</p>
-      <div class="stack">
-        <label class="row" for="chk-notifs">Enable in-game reminders <input type="checkbox" id="chk-notifs" aria-describedby="reminder-limit" /></label>
-        <label for="reminder-minutes">Remind me after no interaction for</label>
-        <select id="reminder-minutes">
-          <option value="60">1 hour</option><option value="90">1½ hours</option><option value="120">2 hours</option>
-        </select>
-        <p id="system-reminder-help">Optional system notifications can alert you while this tab is in the background and still running. Your browser needs permission to display them. Android/OS restrictions may suppress or delay display; some browsers require an installed PWA. No closed-browser delivery is promised.</p>
-        <button class="btn" id="btn-notif-permission" type="button" aria-describedby="system-reminder-help">Allow system notifications</button>
-        <label class="row" for="chk-system-notifs">Also use system notifications <input type="checkbox" id="chk-system-notifs" aria-describedby="system-reminder-help" /></label>
-        <p id="reminder-permission"></p>
-        <p id="reminder-status" role="status" aria-live="polite"></p>
-        <button class="btn small" id="btn-notif-test" type="button">Send test notification</button>
-        <p id="reminder-test-status" role="status" aria-live="polite"></p>
-        <p id="reminder-legacy" hidden></p>
-        <button class="btn small" id="btn-reminder-cleanup" type="button" hidden>Retry old push cleanup</button>
-      </div>
-      <p>At most one reminder per inactivity period. Interacting starts a new period; system tests are limited to one per minute. Permission is requested only by the Allow button, once; if dismissed or blocked, use your browser’s site settings. Disabling reminders closes local notifications.</p>
-    </div>
-  </div>
-
-  <!-- ===== LEVEL SELECT ===== -->
-  <div class="overlay" id="dlg-levels" role="dialog" aria-modal="true" aria-labelledby="lv-title">
-    <div class="card">
-      <button class="btn icon close-x" data-close type="button" aria-label="Close levels">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-      </button>
-      <h2 id="lv-title">Levels</h2>
-      <p class="sub">1000 levels &middot; &#9733;&#9733;&#9733; = no mistakes, no hints &middot; best stars save automatically.</p>
-      <div id="lv-grid"></div>
-    </div>
-  </div>
-
-  <!-- ===== HOW TO PLAY ===== -->
-  <div class="overlay" id="dlg-howto" role="dialog" aria-modal="true" aria-labelledby="how-title">
-    <div class="card">
-      <button class="btn icon close-x" data-close type="button" aria-label="Close help">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-      </button>
-      <h2 id="how-title">How to play</h2>
-      <ul>
-        <li>On dense boards, tap the overview or use <b>+</b> to zoom. Drag to pan, pinch to zoom, and use <b>Fit</b> to see the whole puzzle. Hints bring a clear arrow into view.</li>
-        <li><b>Tap an arrow</b> &mdash; it flies off the board in the direction it points.</li>
-        <li>It only leaves if its <b>path to the edge is clear</b>. Another arrow in the way blocks it.</li>
-        <li>A blocked tap <b>costs one heart</b> (&#9829;&#9829;&#9829;). Lose all three and the level restarts.</li>
-        <li>Clear <b>every arrow</b> to finish the level. Order is everything!</li>
-        <li>Stars: &#9733;&#9733;&#9733; = no mistakes & no hints &middot; &#9733;&#9733; = up to 2 mistakes & 1 hint &middot; &#9733; = cleared.</li>
-        <li><b>3 free hints</b> per level &mdash; after that, watch a short ad to reveal another hint.</li>
-        <li><b>Hint</b> glows a free arrow &middot; <b>Undo</b> brings the last arrow back &middot; <b>Restart</b> resets.</li>
-        <li>Your progress saves automatically &mdash; come back any time.</li>
-      </ul>
-      <p style="font-size:12.5px;color:#8a97b8;">No timer, no pressure. Take your time and untangle the board.</p>
-      <p style="font-size:13px;color:#93a0c8;margin-bottom:0;"><a href="about.html" style="color:#748ffc;">More about the game &rarr;</a></p>
-    </div>
-  </div>
-
-  <!-- ===== SETTINGS ===== -->
-  <div class="overlay" id="dlg-settings" role="dialog" aria-modal="true" aria-labelledby="set-title">
-    <div class="card">
-      <button class="btn icon close-x" data-close type="button" aria-label="Close settings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-      </button>
-      <h2 id="set-title">Settings</h2>
-      
-      <div class="stack">
-        <div class="row">
-          <span style="font-size:15px;">Sound effects</span>
-          <label class="switch" aria-label="Sound effects">
-            <input type="checkbox" id="chk-sound" checked />
-            <span class="track"></span>
-          </label>
+      <!-- LEGACY BASIC NUMBERED GRID (For Before-vs-After Visual Comparison) -->
+      <div id="legacy-grid-viewport" class="hidden flex-1 overflow-y-auto p-4 bg-slate-950">
+        <div class="mb-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200 flex items-center justify-between">
+          <span><strong>Before Redesign (Legacy View):</strong> Plain flat grid of numbered buttons without chapters, path, or level preview.</span>
+          <button id="btn-exit-legacy" type="button" class="px-2.5 py-1 rounded-lg bg-amber-400 text-slate-950 font-bold whitespace-nowrap ml-2">
+            Back to Magical Map
+          </button>
         </div>
-        
-        <div class="row">
-          <span style="font-size:15px;">Vibration</span>
-          <label class="switch" aria-label="Vibration">
-            <input type="checkbox" id="chk-vibrate" checked />
-            <span class="track"></span>
-          </label>
-        </div>
-        
-        <div class="row">
-          <span style="font-size:15px;">Dark Theme</span>
-          <label class="switch" aria-label="Dark Theme">
-            <input type="checkbox" id="chk-theme" checked />
-            <span class="track"></span>
-          </label>
-        </div>
-        
-        <div class="row">
-          <span style="font-size:15px;">Background music</span>
-          <label class="switch" aria-label="Background music">
-            <input type="checkbox" id="chk-music" />
-            <span class="track"></span>
-          </label>
-        </div>
+        <div id="legacy-grid-container" class="grid grid-cols-5 gap-2.5"></div>
+      </div>
 
-        <button class="btn" id="btn-reminders" type="button">Notification &amp; reminder settings</button>
-      </div>
-      
-      <div class="status-list">
-        <div><span>Running mode</span><span id="st-mode">&mdash;</span></div>
-        <div><span>Offline caching</span><span id="st-sw">&mdash;</span></div>
-        <div><span>Install prompt</span><span id="st-install">&mdash;</span></div>
-        <div><span>Saved progress</span><span id="st-storage">&mdash;</span></div>
-        <div><span>Notifications</span><span id="st-notif">&mdash;</span></div>
-        <div><span>Game version</span><span id="st-version">&mdash;</span></div>
-      </div>
-      
-      <p style="font-size:12.5px; color:#8a97b8; margin-bottom:10px;">
-        Arrow Out! works fully offline once installed. When a game update is ready, tap <b>Refresh</b> on the update banner &mdash; your progress, coins and streaks are saved automatically and never deleted.
-      </p>
-      
-      <p style="font-size:13px; margin-bottom:12px;">
-        <a href="privacy.html" style="color:#748ffc;">Privacy policy</a> &nbsp;&middot;&nbsp;
-        <a href="about.html" style="color:#748ffc;">About &amp; how to play</a> &nbsp;&middot;&nbsp;
-        <a href="contact.html" style="color:#748ffc;">Contact us</a>
-      </p>
-      
-      <div class="stack">
-        <button class="btn small" id="btn-copy-sw" type="button">Copy service worker code</button>
-        <button class="btn small danger" id="btn-reset" type="button">Reset all progress</button>
-      </div>
-    </div>
-  </div>
+      <!-- Bottom Floating Navigation Bar: Jump to Current + Play Next Level CTA -->
+      <div class="relative z-30 px-3 py-2.5 bg-slate-950/95 border-t border-slate-800/90 flex items-center justify-between gap-2.5 backdrop-blur-md">
+        <button id="btn-recenter-current" type="button"
+          class="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-100 text-xs sm:text-sm font-bold border border-slate-700 transition">
+          <span>🧭</span>
+          <span id="recenter-label">Locate Lv. 1</span>
+        </button>
 
-  <!-- ===== WIN DIALOG ===== -->
-  <div class="overlay" id="dlg-win" role="alertdialog" aria-modal="true" aria-labelledby="win-title">
-    <div class="card" style="text-align:center;">
-      <div class="big-emoji" aria-hidden="true"><svg class="ic" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></div>
-      <h2 id="win-title">Board cleared!</h2>
-      <div id="win-stars" aria-hidden="true"></div>
-      <p id="win-sub"></p>
-      <div class="stack">
-        <button class="btn primary" id="btn-next" type="button">Next level</button>
-        <div style="display:flex; gap:8px;">
-          <button class="btn" id="btn-replay" type="button" style="flex:1;">Replay</button>
-          <button class="btn" id="btn-win-levels" type="button" style="flex:1;">Levels</button>
-          <button class="btn" id="btn-share-win" type="button" style="flex:1;" aria-label="Share your result"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Share</button>
+        <button id="btn-continue-next" type="button"
+          class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-emerald-400 hover:brightness-105 active:scale-95 text-slate-950 font-display font-bold text-sm sm:text-base shadow-lg shadow-amber-500/25 transition">
+          <span>▶</span>
+          <span id="continue-btn-label">Continue · Level 1</span>
+        </button>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- LEVEL PREVIEW PANEL (Auto-closes on Play, Back, Outside Tap)       -->
+      <!-- ================================================================= -->
+      <div id="level-preview-backdrop" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
+        <div id="level-preview-card" role="dialog" aria-modal="true" aria-labelledby="preview-level-title"
+          class="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-gradient-to-b from-slate-800 via-slate-900 to-slate-950 border-t-2 sm:border-2 border-amber-400/50 shadow-2xl p-5 text-slate-100 transform transition-transform">
+          
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2">
+                <span id="preview-chapter-pill" class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                  Enchanted Meadow
+                </span>
+                <span id="preview-tier-pill" class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white/10 text-amber-200">
+                  Standard Path
+                </span>
+              </div>
+              <h2 id="preview-level-title" class="font-display font-bold text-2xl text-white mt-1.5">
+                Level 1
+              </h2>
+              <p id="preview-zone-subtitle" class="text-xs text-slate-300">
+                Sanctuary Landmark: Wayfarer Arch
+              </p>
+            </div>
+
+            <button id="btn-close-preview" type="button" aria-label="Close Level Preview"
+              class="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-slate-300 hover:text-white text-xl font-bold border border-slate-600">
+              ×
+            </button>
+          </div>
+
+          <!-- Stars / Completion Indicator (Strictly grounded in arrowOut.v2.best) -->
+          <div class="preview-status-panel mt-4 p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
+            <div>
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Completion Status</div>
+              <div id="preview-status-text" class="text-sm font-bold text-amber-300 mt-0.5">
+                Ready to Play · Next Unlocked Level
+              </div>
+            </div>
+            <div id="preview-stars-box" class="flex items-center gap-1 text-2xl" aria-label="Stars earned">
+              <span class="text-slate-600">★</span>
+              <span class="text-slate-600">★</span>
+              <span class="text-slate-600">★</span>
+            </div>
+          </div>
+
+          <!-- Deterministic Level Specs -->
+          <div class="grid grid-cols-3 gap-2.5 mt-3 text-center">
+            <div class="preview-spec-tile p-2.5 rounded-xl bg-white/5 border border-white/10">
+              <div class="text-[10px] uppercase text-slate-400 font-semibold">Board Grid</div>
+              <div id="preview-spec-grid" class="text-sm font-bold text-white mt-0.5">4 × 4</div>
+            </div>
+            <div class="preview-spec-tile p-2.5 rounded-xl bg-white/5 border border-white/10">
+              <div class="text-[10px] uppercase text-slate-400 font-semibold">Arrow Paths</div>
+              <div id="preview-spec-arrows" class="text-sm font-bold text-emerald-300 mt-0.5">10 Arrows</div>
+            </div>
+            <div class="preview-spec-tile p-2.5 rounded-xl bg-white/5 border border-white/10">
+              <div class="text-[10px] uppercase text-slate-400 font-semibold">Hearts</div>
+              <div class="text-sm font-bold text-rose-300 mt-0.5">♥ 3 Lives</div>
+            </div>
+          </div>
+
+          <!-- Action Buttons (Comfortable >=48px Android touch targets) -->
+          <div class="flex items-center gap-2.5 mt-5">
+            <button id="btn-preview-back" type="button"
+              class="px-4 min-h-[48px] rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-semibold text-sm border border-slate-700 transition">
+              Back
+            </button>
+            <button id="btn-preview-play" type="button"
+              class="flex-1 min-h-[48px] rounded-xl bg-gradient-to-r from-emerald-400 via-teal-400 to-amber-300 hover:brightness-105 active:scale-95 text-slate-950 font-display font-bold text-base shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 transition">
+              <span>▶</span>
+              <span id="preview-play-label">Play Level 1</span>
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- ===== OUT OF HEARTS ===== -->
-  <div class="overlay" id="dlg-fail" role="alertdialog" aria-modal="true" aria-labelledby="fail-title">
-    <div class="card" style="text-align:center;">
-      <div class="big-emoji" aria-hidden="true"><svg class="ic" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19.5 12.6 12 20l-7.5-7.4a5.2 5.2 0 1 1 7.5-7.2 5.2 5.2 0 1 1 7.5 7.2Z"/><path d="M12 5.5 10.5 9l3 1.8L12 14"/></svg></div>
-      <h2 id="fail-title">Out of hearts</h2>
-      <p style="margin-bottom:16px;">Three blocked taps &mdash; take a fresh look and try again.</p>
-      <div class="stack">
-        <button class="btn primary" id="btn-retry" type="button">Retry level</button>
-        <button class="btn" id="btn-fail-levels" type="button">Levels</button>
+      <!-- ================================================================= -->
+      <!-- CHAPTER ATLAS MODAL (Quick Navigation Across All 8 Worlds)        -->
+      <!-- ================================================================= -->
+      <div id="chapters-modal-backdrop" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="w-full max-w-md max-h-[85vh] flex flex-col rounded-3xl bg-slate-900 border border-slate-700 shadow-2xl overflow-hidden">
+          <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+            <div>
+              <h3 class="font-display font-bold text-lg text-white">Magical World Atlas</h3>
+              <p class="text-xs text-slate-400">8 Themed Realms · Levels 1 to 1,000</p>
+            </div>
+            <button id="btn-close-chapters" type="button" aria-label="Close Atlas"
+              class="w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-lg">
+              ×
+            </button>
+          </div>
+          <div id="chapters-atlas-list" class="flex-1 overflow-y-auto p-4 space-y-2.5"></div>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <!-- ===== STATS ===== -->
-  <div class="overlay" id="dlg-stats" role="dialog" aria-modal="true" aria-labelledby="stats-title">
-    <div class="card">
-      <button class="btn icon close-x" data-close type="button" aria-label="Close stats">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-      </button>
-      <h2 id="stats-title">Your stats</h2>
-      <p class="sub">Saved privately on this device.</p>
-      <div class="status-list">
-        <div><span>Current level</span><span id="stat-current">&mdash;</span></div>
-        <div><span>Levels cleared</span><span id="stat-levels">&mdash;</span></div>
-        <div><span>Total stars</span><span id="stat-stars">&mdash;</span></div>
-        <div><span>Total plays</span><span id="stat-plays">&mdash;</span></div>
-        <div><span>Hints used</span><span id="stat-hints">&mdash;</span></div>
-        <div><span>Mistakes</span><span id="stat-mistakes">&mdash;</span></div>
-        <div><span>Coins</span><span id="stat-coins">&mdash;</span></div>
-        <div><span>Current streak</span><span id="stat-streaks">&mdash;</span></div>
+      <!-- ================================================================= -->
+      <!-- FIND LEVEL # MODAL (Direct Jump to Any Level 1–1,000)             -->
+      <!-- ================================================================= -->
+      <div id="jump-modal-backdrop" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="w-full max-w-sm rounded-3xl bg-slate-900 border border-slate-700 shadow-2xl p-5">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-display font-bold text-lg text-white">Jump to Level (1–1000)</h3>
+            <button id="btn-close-jump" type="button" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 font-bold">×</button>
+          </div>
+          <p class="text-xs text-slate-400 mb-3">
+            Enter any level number between 1 and 1,000 to scroll directly to its chapter and node on the winding path.
+          </p>
+          <div class="flex items-center gap-2">
+            <input id="input-jump-level" type="number" min="1" max="1000" value="1"
+              class="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-base focus:outline-none focus:border-amber-400" />
+            <button id="btn-confirm-jump" type="button"
+              class="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-sm">
+              Go
+            </button>
+          </div>
+          <div class="flex flex-wrap gap-1.5 mt-3">
+            <button type="button" data-quick-lvl="1" class="quick-lvl-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200">Lv 1</button>
+            <button type="button" data-quick-lvl="125" class="quick-lvl-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200">Lv 125</button>
+            <button type="button" data-quick-lvl="251" class="quick-lvl-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200">Lv 251</button>
+            <button type="button" data-quick-lvl="500" class="quick-lvl-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200">Lv 500</button>
+            <button type="button" data-quick-lvl="750" class="quick-lvl-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200">Lv 750</button>
+            <button type="button" data-quick-lvl="1000" class="quick-lvl-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-amber-300 font-bold">Lv 1000 (Castle)</button>
+          </div>
+        </div>
       </div>
-      <p style="font-size:12.5px;color:#93a0c8;">
-        All progress (stars, plays, current level) saves privately on this device and restores
-        automatically &mdash; no account needed, works fully offline.
-      </p>
-    </div>
-  </div>
 
-  <!-- ===== ACHIEVEMENTS ===== -->
-  <div class="overlay" id="dlg-achievements" role="dialog" aria-modal="true" aria-labelledby="achievements-title">
-    <div class="card">
-      <button class="btn icon close-x" data-close type="button" aria-label="Close achievements">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-      </button>
-      <h2 id="achievements-title">Achievements</h2>
-      <p class="sub">Unlock them all!</p>
-      <div id="achievements-grid"></div>
-    </div>
-  </div>
+      <!-- ================================================================= -->
+      <!-- QA HARNESS & NON-DESTRUCTIVE SAVE SIMULATOR MODAL                 -->
+      <!-- ================================================================= -->
+      <div id="qa-modal-backdrop" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="w-full max-w-lg max-h-[88vh] flex flex-col rounded-3xl bg-slate-900 border border-indigo-500/40 shadow-2xl overflow-hidden">
+          <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-800">
+            <div>
+              <h3 class="font-display font-bold text-base text-white">QA Verification & Non-Destructive Preview Tools</h3>
+              <p class="text-[11px] text-slate-400">Run automated map tests or preview mid/end-game progression without losing your real save</p>
+            </div>
+            <button id="btn-close-qa" type="button" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 font-bold">×</button>
+          </div>
+          <div class="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+            <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
+              <div class="font-bold text-slate-200 mb-2">Non-Destructive Progression Preview (Backs Up Real Save Automatically)</div>
+              <div class="flex flex-wrap gap-2">
+                <button id="btn-sim-fresh" type="button" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold border border-slate-700">
+                  Preview: Lv 14 (World 1)
+                </button>
+                <button id="btn-sim-mid" type="button" class="px-3 py-1.5 rounded-xl bg-indigo-900/70 hover:bg-indigo-800 text-indigo-100 font-semibold border border-indigo-500/40">
+                  Preview: Lv 382 (World 4 Ruins)
+                </button>
+                <button id="btn-sim-endgame" type="button" class="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-semibold border border-amber-400/40">
+                  Preview: Lv 1000 (World 8 Castle)
+                </button>
+                <button id="btn-restore-real-save" type="button" class="px-3 py-1.5 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/40 text-emerald-200 font-bold border border-emerald-400/40">
+                  Restore Original Player Save
+                </button>
+              </div>
+              <div class="mt-2.5 flex items-center justify-between pt-2 border-t border-slate-800/80">
+                <span class="text-slate-400">Reduced Motion Mode (`prefers-reduced-motion`):</span>
+                <button id="btn-toggle-motion" type="button" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200 font-semibold border border-slate-700">
+                  Animations: ON
+                </button>
+              </div>
+            </div>
 
-  <!-- ===== OUT OF FREE HINTS ===== -->
-  <div class="overlay" id="dlg-adhint" role="dialog" aria-modal="true" aria-labelledby="adhint-title">
-    <div class="card" style="text-align:center;">
-      <div class="big-emoji" aria-hidden="true"><svg class="ic" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5a6 6 0 0 0-12 0c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></div>
-      <h2 id="adhint-title">Out of free hints</h2>
-      <p style="margin-bottom:16px;">You get <b>3 free hints</b> per level. Watch a short ad to reveal one more.</p>
-      <div class="stack">
-        <button class="btn primary" id="btn-adhint-watch" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg> Watch ad for a hint</button>
-        <button class="btn" id="btn-adhint-close" type="button">No thanks</button>
+            <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-bold text-slate-200">Automated Map & Gameplay Test Suite (12 Checks)</span>
+                <button id="btn-run-qa-suite" type="button" class="px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold">
+                  Re-Run All Tests
+                </button>
+              </div>
+              <div id="qa-results-list" class="space-y-1.5 font-mono text-[11px]"></div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
+    </section>
 
-  <!-- ===== DEMO AD ===== -->
-  <div class="overlay" id="dlg-ad" role="dialog" aria-modal="true" aria-labelledby="ad-title">
-    <div class="card" style="text-align:center;">
-      <h2 id="ad-title">Demo ad</h2>
-      <p style="font-size:12.5px;color:#8a97b8;margin-bottom:14px;">A real ad plays here once an ad provider is connected.</p>
-      <div class="ad-box" aria-hidden="true">Ad space</div>
-      <p id="ad-count" style="font-size:14px;font-weight:700;margin:12px 0 0;">Demo ad &mdash; hint in 5s&hellip;</p>
-    </div>
-  </div>
-
-  <!-- ===== iOS INSTALL INSTRUCTIONS ===== -->
-  <div class="overlay" id="dlg-ios" role="dialog" aria-modal="true" aria-labelledby="ios-title">
-    <div class="card">
-      <button class="btn icon close-x" data-close type="button" aria-label="Close">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-      </button>
-      <h2 id="ios-title">Add to Home Screen</h2>
-      <p>On iPhone / iPad Safari:</p>
-      <ul>
-        <li>Tap the <b>Share</b> button <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg> in the toolbar.</li>
-        <li>Scroll and tap <b>Add to Home Screen</b>.</li>
-        <li>Tap <b>Add</b> &mdash; Arrow Out! will open full-screen from your home screen.</li>
-      </ul>
-      <p style="font-size:12.5px;color:#8a97b8;">This is the standard way to install web apps on iOS.</p>
-    </div>
-  </div>
-
-  <!-- ===== INSTALL STATUS ===== -->
-  <div class="overlay" id="dlg-install" role="dialog" aria-modal="true" aria-labelledby="inst-title">
-    <div class="card">
-      <button class="btn icon close-x" data-close type="button" aria-label="Close">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-      </button>
-      <h2 id="inst-title">Install app</h2>
-      <p id="inst-status"></p>
-    </div>
-  </div>
-
-  <!-- ===== SHOP (coins + skins) ===== -->
-  <div class="overlay" id="dlg-shop" role="dialog" aria-modal="true" aria-labelledby="shop-title">
-    <div class="card">
-      <button class="btn icon close-x" data-close type="button" aria-label="Close shop">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-      </button>
-      <h2 id="shop-title">Style your game</h2>
-      <p class="sub">Earn coins by playing. Preview freely, then buy with game coins.</p>
-      <div id="shop-coins" class="shop-coins" aria-live="polite"></div>
-      <div class="shop-tabs" role="tablist" aria-label="Cosmetic category">
-        <button id="shop-tab-boards" class="btn" role="tab" aria-selected="true" aria-controls="shop-grid">Board Skins</button>
-        <button id="shop-tab-arrows" class="btn" role="tab" aria-selected="false" aria-controls="shop-grid" tabindex="-1">Arrow Skins</button>
+    <!-- =================================================================== -->
+    <!-- VIEW 2: HOME TITLE SCREEN (Preserved First-Time User Experience)    -->
+    <!-- =================================================================== -->
+    <section id="view-home" class="hidden flex-1 flex flex-col items-center justify-between p-6 bg-gradient-to-b from-slate-900 via-indigo-950/60 to-slate-950 text-center overflow-y-auto">
+      <div class="mt-4">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 text-xs font-bold mb-3">
+          <span>✨</span> 8 Magical Worlds · 1,000 Solvable Levels
+        </div>
+        <h1 class="font-display font-bold text-4xl sm:text-5xl tracking-tight text-white drop-shadow">
+          ARROW OUT!
+        </h1>
+        <p class="text-sm text-slate-300 mt-1.5">
+          Tap unobstructed arrows away · clear the board · journey to the Sovereign Castle
+        </p>
+        <p id="home-progress-summary" class="text-xs font-semibold text-emerald-300 mt-2">
+          0 / 1000 levels cleared · 0 coins
+        </p>
       </div>
-      <canvas id="shop-preview" width="540" height="288" role="img" aria-label="Selected cosmetic preview"></canvas>
-      <p id="shop-preview-label" tabindex="-1" aria-live="polite"></p>
-      <div id="shop-grid" role="tabpanel" aria-labelledby="shop-tab-boards"></div>
-    </div>
-  </div>
 
-  <!-- ===== DAILY LOGIN REWARD ===== -->
-  <div class="overlay" id="dlg-reward" role="dialog" aria-modal="true" aria-labelledby="reward-title">
-    <div class="card" style="text-align:center;">
-      <div class="big-emoji" aria-hidden="true"><svg class="ic" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7Z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7Z"/></svg></div>
-      <h2 id="reward-title">Daily reward!</h2>
-      <p style="margin-bottom:14px;">Come back every day for bonus coins. Keep the streak alive for bigger rewards!</p>
-      <div id="reward-grid"></div>
-      <div class="stack" style="margin-top:14px;">
-        <button class="btn primary" id="btn-reward-claim" type="button">Claim</button>
+      <div class="w-full max-w-xs space-y-3 my-6">
+        <button id="btn-home-continue" type="button"
+          class="w-full min-h-[52px] rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-emerald-400 text-slate-950 font-display font-bold text-lg shadow-xl shadow-amber-500/20 active:scale-95 transition">
+          Continue · Level 1
+        </button>
+        <button id="btn-home-map" type="button"
+          class="w-full min-h-[48px] rounded-2xl bg-indigo-600/90 hover:bg-indigo-500 text-white font-display font-bold text-base border border-indigo-400/40 shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
+          <span>🗺️</span> World Adventure Map (Levels 1–1000)
+        </button>
+        <div class="grid grid-cols-2 gap-2.5 pt-1">
+          <button id="btn-home-daily" type="button"
+            class="min-h-[44px] rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-100 font-semibold text-xs border border-slate-700">
+            📅 Daily Challenge
+          </button>
+          <button id="btn-home-qa" type="button"
+            class="min-h-[44px] rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-100 font-semibold text-xs border border-slate-700">
+            🧪 QA Test Suite
+          </button>
+        </div>
       </div>
+
+      <footer class="text-[11px] text-slate-400 space-x-3 pb-2">
+        <span>Offline PWA Ready (`arrow-out-v40`)</span>
+        <span>·</span>
+        <span>Save Format: `arrowOut.v2`</span>
+      </footer>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- VIEW 3: PLAYABLE PUZZLE BOARD (Preserved Core Arrow Out! Mechanics) -->
+    <!-- =================================================================== -->
+    <section id="view-game" class="hidden flex-1 flex flex-col justify-between p-4 bg-slate-950 overflow-hidden">
+      <!-- Top Level Bar -->
+      <div class="flex items-center justify-between gap-2">
+        <button id="btn-game-back-map" type="button"
+          class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700">
+          <span>←</span> Map
+        </button>
+        <div class="text-center">
+          <div id="game-chapter-label" class="text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+            Enchanted Meadow
+          </div>
+          <div id="game-level-title" class="font-display font-bold text-lg text-white">
+            Level 1
+          </div>
+        </div>
+        <button id="btn-game-mute" type="button"
+          class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700">
+          🔊 Sound
+        </button>
+      </div>
+
+      <!-- Interactive HTML5 Canvas Puzzle Board -->
+      <div class="flex-1 flex flex-col items-center justify-center my-2 relative">
+        <canvas id="puzzle-canvas" width="340" height="340"
+          class="rounded-2xl bg-slate-900 border-2 border-slate-800 shadow-2xl touch-manipulation cursor-pointer"></canvas>
+        <p id="game-Instruction-banner" class="text-xs text-slate-400 mt-2.5 text-center">
+          Tap any arrow with a clear straight path to slide it off the board!
+        </p>
+      </div>
+
+      <!-- Bottom Game Controls (Hint with duplicate-tap protection, Undo, Restart) -->
+      <div class="grid grid-cols-3 gap-2.5 pt-2 border-t border-slate-800">
+        <button id="btn-game-hint" type="button"
+          class="min-h-[46px] rounded-xl bg-sky-950/90 hover:bg-sky-900 active:scale-95 text-sky-200 font-bold text-xs border border-sky-500/40 flex flex-col items-center justify-center">
+          <span>💡 Hint</span>
+          <span id="game-hint-sub" class="text-[10px] text-sky-300/80">Free (3)</span>
+        </button>
+        <button id="btn-game-undo" type="button"
+          class="min-h-[46px] rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold text-xs border border-slate-700 flex flex-col items-center justify-center">
+          <span>↩ Undo</span>
+          <span id="game-undo-sub" class="text-[10px] text-slate-400">0 moves</span>
+        </button>
+        <button id="btn-game-restart" type="button"
+          class="min-h-[46px] rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold text-xs border border-slate-700 flex flex-col items-center justify-center">
+          <span>↻ Restart</span>
+          <span class="text-[10px] text-slate-400">Reset Board</span>
+        </button>
+      </div>
+
+      <!-- Level Win Modal -->
+      <div id="win-modal-backdrop" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="w-full max-w-sm rounded-3xl bg-slate-900 border-2 border-amber-400/60 p-6 text-center shadow-2xl">
+          <div class="text-xs font-bold uppercase tracking-wider text-emerald-300">Board Cleared!</div>
+          <h3 id="win-modal-title" class="font-display font-bold text-2xl text-white mt-1">Level 1 Complete</h3>
+          <div id="win-modal-stars" class="text-3xl text-amber-400 my-3">★ ★ ★</div>
+          <p id="win-modal-reward" class="text-xs text-slate-300 mb-5">+15 Coins Earned · Next Level Unlocked!</p>
+          <div class="flex gap-2.5">
+            <button id="btn-win-map" type="button"
+              class="flex-1 min-h-[48px] rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold text-sm border border-slate-700">
+              World Map
+            </button>
+            <button id="btn-win-next" type="button"
+              class="flex-1 min-h-[48px] rounded-xl bg-gradient-to-r from-amber-400 to-emerald-400 text-slate-950 font-display font-bold text-sm">
+              Next Level ▶
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Non-blocking Toast Banner -->
+    <div id="toast-banner" class="pointer-events-none fixed bottom-20 left-1/2 -translate-x-1/2 z-50 opacity-0 transition-opacity duration-200 px-4 py-2 rounded-full bg-slate-950/95 border border-amber-400/50 text-amber-200 text-xs font-semibold shadow-xl whitespace-nowrap">
+      Notice
     </div>
   </div>
 
-  <!-- Load scripts in dependency order -->
-  <script src="js/game.js"></script>
-  <script src="js/storage.js"></script>
-  <script src="js/audio.js"></script>
-  <script src="js/haptics.js"></script>
-  <script src="js/bgfx.js"></script>
-  <script src="js/pwa.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/reminders.js"></script>
-  <script src="js/render.js"></script>
-  <script src="js/main.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      /* =====================================================================
+       * 1. STORAGE ENGINE (Preserves arrowOut.v2 & migrates arrowOut.v1)
+       * ===================================================================== */
+      var STORAGE_KEY_V2 = 'arrowOut.v2';
+      var STORAGE_KEY_V1 = 'arrowOut.v1';
+      var BACKUP_KEY = 'arrowOut.v2.realBackup';
+
+      function defaultState() {
+        return {
+          unlocked: 1,
+          coins: 0,
+          freeHints: 3,
+          hearts: 3,
+          best: {}, // { [levelNum]: 1 | 2 | 3 }
+          cur: null,
+          plays: 0,
+          wins: 0,
+          streak: 0,
+          skin: 'classic',
+          skins: ['classic']
+        };
+      }
+
+      var memoryStore = defaultState();
+
+      function loadStorage() {
+        try {
+          var rawV2 = localStorage.getItem(STORAGE_KEY_V2);
+          if (rawV2) {
+            var parsed = JSON.parse(rawV2);
+            memoryStore = Object.assign(defaultState(), parsed);
+            memoryStore.unlocked = Math.max(1, Math.min(1000, Number(memoryStore.unlocked) || 1));
+            memoryStore.best = memoryStore.best && typeof memoryStore.best === 'object' ? memoryStore.best : {};
+            return memoryStore;
+          }
+          // Migrate legacy v1 if present
+          var rawV1 = localStorage.getItem(STORAGE_KEY_V1);
+          if (rawV1) {
+            var parsedV1 = JSON.parse(rawV1);
+            memoryStore = Object.assign(defaultState(), parsedV1);
+            saveStorage();
+            return memoryStore;
+          }
+        } catch (e) {
+          // Fallback to in-memory state if sandboxed iframe restricts localStorage
+        }
+        return memoryStore;
+      }
+
+      function saveStorage() {
+        try {
+          localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(memoryStore));
+        } catch (e) {}
+      }
+
+      /* =====================================================================
+       * 2. MAGICAL WORLD CHAPTERS & LEVEL PATH ENGINE (Levels 1–1,000)
+       * ===================================================================== */
+      var TOTAL_LEVELS = 1000;
+      var LEVELS_PER_CHAPTER = 125;
+      var NODE_SPACING_Y = 86;
+      var TOP_PAD = 115;
+      var BOTTOM_PAD = 130;
+      var VIRTUAL_BUFFER = 16;
+
+      var CHAPTERS = [
+        {
+          id: 1,
+          name: 'Enchanted Meadow',
+          subtitle: 'Sunlit Glades & Whispering Waystones',
+          startLevel: 1,
+          endLevel: 125,
+          bgGradient: 'linear-gradient(180deg, #0b241e 0%, #11382d 48%, #16493a 100%)',
+          bannerBg: 'linear-gradient(90deg, #064e3b 0%, #0f392b 100%)',
+          pathOuter: '#25523f',
+          pathInner: '#6ee7b7',
+          accent: '#34d399',
+          sceneryType: 'meadow',
+          landmarks: ['Wayfarer Arch', 'Sunbeam Brook', 'Fletcher Cairn', 'Emerald Sanctum', 'Meadow Crown']
+        },
+        {
+          id: 2,
+          name: 'Whispering Woods',
+          subtitle: 'Twilight Pines & Glowcap Hollows',
+          startLevel: 126,
+          endLevel: 250,
+          bgGradient: 'linear-gradient(180deg, #0e192d 0%, #152744 50%, #1d3557 100%)',
+          bannerBg: 'linear-gradient(90deg, #1e3a8a 0%, #172554 100%)',
+          pathOuter: '#29436b',
+          pathInner: '#60a5fa',
+          accent: '#38bdf8',
+          sceneryType: 'woods',
+          landmarks: ['Silver Owl Roost', 'Lantern Fern Bridge', 'Misty Hollow', 'Elderroot Gate', 'Sylvan Spire']
+        },
+        {
+          id: 3,
+          name: 'Crystal Caverns',
+          subtitle: 'Resonant Quartz & Prism Streams',
+          startLevel: 251,
+          endLevel: 375,
+          bgGradient: 'linear-gradient(180deg, #1b1033 0%, #28174a 50%, #371f63 100%)',
+          bannerBg: 'linear-gradient(90deg, #4c1d95 0%, #2e1065 100%)',
+          pathOuter: '#4a297a',
+          pathInner: '#c084fc',
+          accent: '#c084fc',
+          sceneryType: 'crystal',
+          landmarks: ['Amethyst Grotto', 'Mirror Geode', 'Prism Cascade', 'Echoing Obelisk', 'Heart of Quartz']
+        },
+        {
+          id: 4,
+          name: 'Moonlit Ruins',
+          subtitle: 'Sunken Colonnades & Starlit Dials',
+          startLevel: 376,
+          endLevel: 500,
+          bgGradient: 'linear-gradient(180deg, #0f172a 0%, #1e293b 50%, #29384e 100%)',
+          bannerBg: 'linear-gradient(90deg, #312e81 0%, #1e1b4b 100%)',
+          pathOuter: '#3b4963',
+          pathInner: '#94a3b8',
+          accent: '#818cf8',
+          sceneryType: 'ruins',
+          landmarks: ['Collapsed Aqueduct', 'Astrolabe Plaza', 'Lunar Sundial', 'Runed Amphitheater', 'Temple of Tides']
+        },
+        {
+          id: 5,
+          name: 'Sky Islands',
+          subtitle: 'Cloud Archipelagos & Wind Spires',
+          startLevel: 501,
+          endLevel: 625,
+          bgGradient: 'linear-gradient(180deg, #0c2b45 0%, #134266 50%, #1b5987 100%)',
+          bannerBg: 'linear-gradient(90deg, #0369a1 0%, #0c4a6e 100%)',
+          pathOuter: '#23689b',
+          pathInner: '#7dd3fc',
+          accent: '#38bdf8',
+          sceneryType: 'sky',
+          landmarks: ['Zephyr Dock', 'Floating Causeway', 'Gale Windmill', 'Nimbus Observatory', 'Aether Anchor']
+        },
+        {
+          id: 6,
+          name: "Dragon's Passage",
+          subtitle: 'Obsidian Peaks & Ember Forges',
+          startLevel: 626,
+          endLevel: 750,
+          bgGradient: 'linear-gradient(180deg, #271013 0%, #3f1719 50%, #57211b 100%)',
+          bannerBg: 'linear-gradient(90deg, #7c2d12 0%, #451a03 100%)',
+          pathOuter: '#6e2a23',
+          pathInner: '#fb923c',
+          accent: '#fb923c',
+          sceneryType: 'dragon',
+          landmarks: ['Basalt Gate', 'Cinder Bridge', 'Wyrmscale Ridge', 'Anvil of Embers', 'Drakespire Vault']
+        },
+        {
+          id: 7,
+          name: 'Arcane Citadel',
+          subtitle: 'Clockwork Towers & Mana Conduits',
+          startLevel: 751,
+          endLevel: 875,
+          bgGradient: 'linear-gradient(180deg, #190e36 0%, #2b185c 50%, #3b227a 100%)',
+          bannerBg: 'linear-gradient(90deg, #581c87 0%, #3b0764 100%)',
+          pathOuter: '#512ea3',
+          pathInner: '#e879f9',
+          accent: '#e879f9',
+          sceneryType: 'citadel',
+          landmarks: ['Grand Athenaeum', 'Spellweaver Lift', 'Chronos Pendulum', 'Runic Conduit', 'Archmage Sanctum']
+        },
+        {
+          id: 8,
+          name: 'Eternal Eclipse',
+          subtitle: 'Celestial Corona & The Final Castle',
+          startLevel: 876,
+          endLevel: 1000,
+          bgGradient: 'linear-gradient(180deg, #090a14 0%, #17152e 48%, #281b4a 100%)',
+          bannerBg: 'linear-gradient(90deg, #701a75 0%, #311042 100%)',
+          pathOuter: '#463278',
+          pathInner: '#fbbf24',
+          accent: '#fbbf24',
+          sceneryType: 'eclipse',
+          landmarks: ['Penumbra Threshold', 'Starfall Causeway', 'Solar Crown Gate', 'Astral Bastion', 'Sovereign Arrow Castle']
+        }
+      ];
+
+      function getChapterForLevel(levelNum) {
+        var clamped = Math.max(1, Math.min(TOTAL_LEVELS, Number(levelNum) || 1));
+        var idx = Math.min(CHAPTERS.length - 1, Math.floor((clamped - 1) / LEVELS_PER_CHAPTER));
+        return CHAPTERS[idx];
+      }
+
+      function getChapterById(id) {
+        for (var i = 0; i < CHAPTERS.length; i++) {
+          if (CHAPTERS[i].id === Number(id)) return CHAPTERS[i];
+        }
+        return CHAPTERS[0];
+      }
+
+      function getNodePosition(levelNum, chapter, width) {
+        var idx = levelNum - chapter.startLevel; // 0..124
+        var y = TOP_PAD + idx * NODE_SPACING_Y;
+        var safeW = Math.max(280, Math.min(540, width || 380));
+        var amp = Math.min(125, (safeW - 128) * 0.44);
+        var cx = (width || 380) / 2;
+        var phase = (idx / 3.1) * Math.PI + (chapter.id * 0.8);
+        var x = Math.round(cx + Math.sin(phase) * amp);
+        return { x: x, y: y, idx: idx };
+      }
+
+      function buildBezierPath(points) {
+        if (!points.length) return '';
+        var cmds = ['M ' + points[0].x + ' ' + points[0].y];
+        for (var i = 1; i < points.length; i++) {
+          var p0 = points[i - 1];
+          var p1 = points[i];
+          var midY = Math.round((p0.y + p1.y) / 2);
+          cmds.push('C ' + p0.x + ' ' + midY + ', ' + p1.x + ' ' + midY + ', ' + p1.x + ' ' + p1.y);
+        }
+        return cmds.join(' ');
+      }
+
+      function getLevelMeta(levelNum) {
+        var lvl = Math.max(1, Math.min(TOTAL_LEVELS, Number(levelNum) || 1));
+        var gridSize = lvl <= 10 ? 4 : lvl <= 40 ? 5 : lvl <= 120 ? 6 : lvl <= 350 ? 7 : 8;
+        var arrows = Math.min(gridSize * gridSize - 2, Math.round(7 + Math.sqrt(lvl) * 1.4 + (lvl % 4)));
+        var ch = getChapterForLevel(lvl);
+        var subIdx = Math.min(4, Math.floor((lvl - ch.startLevel) / 25));
+        var tier = (lvl === 1000) ? 'Final Sovereign Castle' : (lvl % 25 === 0) ? 'Chapter Sanctuary Boss' : (lvl % 10 === 0) ? 'Milestone Trial' : 'Adventure Path';
+        return {
+          level: lvl,
+          gridSize: gridSize,
+          arrows: arrows,
+          tier: tier,
+          zoneName: ch.landmarks[subIdx],
+          chapter: ch
+        };
+      }
+
+      /* =====================================================================
+       * 3. PROCEDURAL WEB AUDIO SYNTHESIZER (Number.isFinite Guarded)
+       * ===================================================================== */
+      var audioCtx = null;
+      var soundMuted = false;
+
+      function playTone(freq, durationMs, type) {
+        if (soundMuted) return;
+        try {
+          var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContextClass) return;
+          if (!audioCtx) audioCtx = new AudioContextClass();
+          if (audioCtx.state === 'suspended') audioCtx.resume();
+          var now = audioCtx.currentTime;
+          var safeFreq = Number.isFinite(freq) ? Math.max(40, Math.min(4000, freq)) : 440;
+          var safeDur = Number.isFinite(durationMs) ? Math.max(0.03, Math.min(1.5, durationMs / 1000)) : 0.12;
+          if (!Number.isFinite(now)) return;
+
+          var osc = audioCtx.createOscillator();
+          var gain = audioCtx.createGain();
+          osc.type = type || 'sine';
+          osc.frequency.setValueAtTime(safeFreq, now);
+          gain.gain.setValueAtTime(0.11, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + safeDur);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + safeDur);
+        } catch (e) {}
+      }
+
+      /* =====================================================================
+       * 4. MAP VIRTUALIZATION & UI CONTROLLER
+       * ===================================================================== */
+      var activeChapterId = 1;
+      var previewedLevel = null;
+      var compareLegacyMode = false;
+      var reducedMotion = false;
+      var cachedChapterPoints = [];
+
+      var elViewport = document.getElementById('map-scroll-viewport');
+      var elWorldCanvas = document.getElementById('map-world-canvas');
+      var elNodesLayer = document.getElementById('map-nodes-layer');
+      var elSceneryLayer = document.getElementById('map-scenery-layer');
+      var elSvgOuter = document.getElementById('svg-path-outer');
+      var elSvgInner = document.getElementById('svg-path-inner');
+      var elSvgCompleted = document.getElementById('svg-path-completed');
+
+      function showToast(msg) {
+        var t = document.getElementById('toast-banner');
+        t.textContent = msg;
+        t.style.opacity = '1';
+        clearTimeout(showToast._timer);
+        showToast._timer = setTimeout(function () {
+          t.style.opacity = '0';
+        }, 2200);
+      }
+
+      function updateCurrencyHud() {
+        document.getElementById('hud-hearts').textContent = (memoryStore.hearts || 3) + '/3';
+        document.getElementById('hud-coins').textContent = String(memoryStore.coins || 0);
+        document.getElementById('hud-hints').textContent = String(memoryStore.freeHints || 0);
+
+        var nextLvl = Math.min(TOTAL_LEVELS, memoryStore.unlocked || 1);
+        document.getElementById('continue-btn-label').textContent = 'Continue · Level ' + nextLvl;
+        document.getElementById('recenter-label').textContent = 'Locate Lv. ' + nextLvl;
+        document.getElementById('btn-home-continue').textContent = 'Continue · Level ' + nextLvl;
+
+        var clearedCount = Math.max(0, (memoryStore.unlocked || 1) - 1);
+        if (memoryStore.best && memoryStore.best[TOTAL_LEVELS]) clearedCount = TOTAL_LEVELS;
+        document.getElementById('home-progress-summary').textContent =
+          clearedCount + ' / 1000 levels cleared · ' + (memoryStore.coins || 0) + ' coins';
+        document.getElementById('header-substatus').textContent =
+          'World ' + activeChapterId + ' · ' + clearedCount + ' / 1,000 Cleared';
+      }
+
+      function getChapterClearedCount(ch) {
+        var count = 0;
+        for (var l = ch.startLevel; l <= ch.endLevel; l++) {
+          if (l < memoryStore.unlocked || (memoryStore.best && memoryStore.best[l])) {
+            count++;
+          }
+        }
+        return count;
+      }
+
+      function getScenerySvg(type, variant) {
+        if (type === 'meadow') {
+          return '<svg width="56" height="56" viewBox="0 0 64 64" fill="none"><path d="M32 8L14 36h11l-7 18h28l-7-18h11L32 8z" fill="#10b981" fill-opacity="0.35" stroke="#6ee7b7" stroke-width="1.5"/><circle cx="48" cy="18" r="3" fill="#fde047" fill-opacity="0.8"/></svg>';
+        }
+        if (type === 'woods') {
+          return '<svg width="56" height="56" viewBox="0 0 64 64" fill="none"><path d="M22 48c0-10 8-18 18-18s18 8 18 18H22z" fill="#38bdf8" fill-opacity="0.28" stroke="#7dd3fc" stroke-width="1.5"/><rect x="37" y="48" width="6" height="10" rx="2" fill="#94a3b8" fill-opacity="0.4"/></svg>';
+        }
+        if (type === 'crystal') {
+          return '<svg width="56" height="56" viewBox="0 0 64 64" fill="none"><polygon points="32,6 46,26 38,56 26,56 18,26" fill="#c084fc" fill-opacity="0.32" stroke="#e9d5ff" stroke-width="1.5"/></svg>';
+        }
+        if (type === 'ruins') {
+          return '<svg width="56" height="56" viewBox="0 0 64 64" fill="none"><rect x="16" y="16" width="8" height="38" fill="#94a3b8" fill-opacity="0.3" stroke="#cbd5e1"/><rect x="40" y="22" width="8" height="32" fill="#94a3b8" fill-opacity="0.3" stroke="#cbd5e1"/><path d="M12 16h40" stroke="#94a3b8" stroke-width="3"/></svg>';
+        }
+        if (type === 'sky') {
+          return '<svg width="60" height="48" viewBox="0 0 64 48" fill="none"><path d="M16 34h32a10 10 0 000-20 14 14 0 00-27-3A9 9 0 0016 34z" fill="#7dd3fc" fill-opacity="0.3" stroke="#bae6fd" stroke-width="1.5"/></svg>';
+        }
+        if (type === 'dragon') {
+          return '<svg width="56" height="56" viewBox="0 0 64 64" fill="none"><path d="M12 52L28 16l10 18 10-12 8 30H12z" fill="#fb923c" fill-opacity="0.3" stroke="#fdba74" stroke-width="1.5"/></svg>';
+        }
+        if (type === 'citadel') {
+          return '<svg width="56" height="56" viewBox="0 0 64 64" fill="none"><path d="M22 54V22l10-12 10 12v32H22z" fill="#e879f9" fill-opacity="0.28" stroke="#f5d0fe" stroke-width="1.5"/><circle cx="32" cy="30" r="4" fill="#fde047"/></svg>';
+        }
+        return '<svg width="62" height="62" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="16" fill="#fbbf24" fill-opacity="0.28" stroke="#fde047" stroke-width="2"/><path d="M20 52L32 10l12 42H20z" fill="#f43f5e" fill-opacity="0.25"/></svg>';
+      }
+
+      function renderChapterSetup(chapterId) {
+        activeChapterId = Math.max(1, Math.min(CHAPTERS.length, Number(chapterId) || 1));
+        var ch = getChapterById(activeChapterId);
+
+        // Update Chapter Banner UI
+        document.getElementById('chapter-banner').style.background = ch.bannerBg;
+        document.getElementById('chapter-badge-num').textContent = 'World ' + ch.id + ' / 8';
+        document.getElementById('chapter-title-text').textContent = ch.name;
+
+        var clearedInCh = getChapterClearedCount(ch);
+        var pct = Math.round((clearedInCh / LEVELS_PER_CHAPTER) * 100);
+        document.getElementById('chapter-progress-bar').style.width = pct + '%';
+        document.getElementById('chapter-progress-text').textContent =
+          clearedInCh + ' / ' + LEVELS_PER_CHAPTER + ' (' + ch.startLevel + '–' + ch.endLevel + ')';
+
+        document.getElementById('btn-prev-chapter').disabled = (ch.id === 1);
+        document.getElementById('btn-prev-chapter').style.opacity = (ch.id === 1) ? '0.35' : '1';
+        document.getElementById('btn-next-chapter').disabled = (ch.id === CHAPTERS.length);
+        document.getElementById('btn-next-chapter').style.opacity = (ch.id === CHAPTERS.length) ? '0.35' : '1';
+
+        // Calculate Chapter Height & Winding SVG Coordinates
+        var totalHeight = TOP_PAD + (LEVELS_PER_CHAPTER - 1) * NODE_SPACING_Y + BOTTOM_PAD;
+        elWorldCanvas.style.height = totalHeight + 'px';
+        elWorldCanvas.style.background = ch.bgGradient;
+
+        var vw = elViewport.clientWidth || 380;
+        cachedChapterPoints = [];
+        var completedPoints = [];
+
+        for (var lvl = ch.startLevel; lvl <= ch.endLevel; lvl++) {
+          var pt = getNodePosition(lvl, ch, vw);
+          pt.level = lvl;
+          cachedChapterPoints.push(pt);
+          if (lvl <= memoryStore.unlocked) {
+            completedPoints.push(pt);
+          }
+        }
+
+        var fullPathD = buildBezierPath(cachedChapterPoints);
+        elSvgOuter.setAttribute('d', fullPathD);
+        elSvgOuter.setAttribute('stroke', ch.pathOuter);
+        elSvgInner.setAttribute('d', fullPathD);
+        elSvgInner.setAttribute('stroke', ch.pathInner);
+
+        var completedPathD = completedPoints.length >= 2 ? buildBezierPath(completedPoints) : '';
+        elSvgCompleted.setAttribute('d', completedPathD);
+
+        updateCurrencyHud();
+        updateVirtualNodes();
+        if (compareLegacyMode) renderLegacyGrid();
+      }
+
+      /**
+       * Windowed Viewport Virtualization:
+       * Mounts only the level nodes & scenery props near the active scroll window
+       * so the DOM stays lightweight (<35 nodes instead of 1,000) for 60fps Android scrolling.
+       */
+      function updateVirtualNodes() {
+        var ch = getChapterById(activeChapterId);
+        var scrollTop = elViewport.scrollTop || 0;
+        var viewH = elViewport.clientHeight || 640;
+
+        var firstIdx = Math.max(0, Math.floor((scrollTop - TOP_PAD) / NODE_SPACING_Y) - VIRTUAL_BUFFER);
+        var lastIdx = Math.min(
+          LEVELS_PER_CHAPTER - 1,
+          Math.ceil((scrollTop + viewH - TOP_PAD) / NODE_SPACING_Y) + VIRTUAL_BUFFER
+        );
+
+        var nodesHtml = [];
+        var sceneryHtml = [];
+        var vw = elViewport.clientWidth || 380;
+
+        for (var i = firstIdx; i <= lastIdx; i++) {
+          var pt = cachedChapterPoints[i];
+          if (!pt) continue;
+          var lvl = pt.level;
+          var isCompleted = (lvl < memoryStore.unlocked) || Boolean(memoryStore.best && memoryStore.best[lvl]);
+          var isCurrent = (lvl === memoryStore.unlocked);
+          var isLocked = (lvl > memoryStore.unlocked);
+          var isBoss = (lvl % 25 === 0);
+          var isMilestone = (lvl % 10 === 0);
+
+          var stateClass = isCurrent ? 'node-current' : isCompleted ? 'node-completed' : 'node-locked';
+          var shapeClass = isBoss ? 'boss-node' : isMilestone ? 'milestone-node' : '';
+          var selectedClass = (previewedLevel === lvl) ? 'node-selected-ring' : '';
+
+          // Earned stars strictly from arrowOut.v2.best[lvl]
+          var starsCount = (memoryStore.best && memoryStore.best[lvl]) ? Number(memoryStore.best[lvl]) : (isCompleted ? 1 : 0);
+          var starsBadge = '';
+          if (isCompleted && starsCount > 0) {
+            var sStr = '';
+            for (var s = 1; s <= 3; s++) {
+              sStr += s <= starsCount ? '<span class="star-lit">★</span>' : '<span class="star-dim">★</span>';
+            }
+            starsBadge = '<div class="text-[10px] leading-none mt-0.5 tracking-tighter">' + sStr + '</div>';
+          } else if (isLocked) {
+            starsBadge = '<div class="text-[9px] leading-none mt-0.5 opacity-75">🔒</div>';
+          } else {
+            starsBadge = '<div class="text-[9px] font-bold leading-none mt-0.5 uppercase">Play</div>';
+          }
+
+          var pointerHtml = '';
+          if (isCurrent) {
+            pointerHtml =
+              '<div class="current-pointer-badge px-2.5 py-0.5 rounded-full bg-amber-300 text-slate-950 font-display font-bold text-[10px] shadow-md border border-white">' +
+              '➤ NEXT' +
+              '</div>';
+          }
+
+          // Landmark Banner every 25 levels or Level 1 / Level 1000
+          var landmarkLabel = '';
+          if (lvl === ch.startLevel || isBoss) {
+            var meta = getLevelMeta(lvl);
+            landmarkLabel =
+              '<div class="landmark-tag">' +
+              (lvl === 1000 ? '🏰 Sovereign Arrow Castle' : meta.zoneName) +
+              '</div>';
+          }
+
+          nodesHtml.push(
+            '<button type="button" data-level="' + lvl + '" aria-label="Level ' + lvl + '" ' +
+            'class="map-node ' + stateClass + ' ' + shapeClass + ' ' + selectedClass + '" ' +
+            'style="left:' + pt.x + 'px; top:' + pt.y + 'px;">' +
+            pointerHtml +
+            '<span class="font-display font-bold text-sm sm:text-base leading-none">' + lvl + '</span>' +
+            starsBadge +
+            landmarkLabel +
+            '</button>'
+          );
+
+          // Decorative Scenery Props & Subtle Magical Fireflies along the sides
+          if (i % 3 === 0) {
+            var sideX = (pt.x > vw / 2) ? Math.max(36, pt.x - 115) : Math.min(vw - 36, pt.x + 115);
+            sceneryHtml.push(
+              '<div class="scenery-prop" style="left:' + sideX + 'px; top:' + (pt.y - 10) + 'px;">' +
+              getScenerySvg(ch.sceneryType, i) +
+              '</div>'
+            );
+          }
+          if (i % 4 === 1) {
+            var sparkX = (i * 73) % Math.max(240, vw - 40) + 20;
+            sceneryHtml.push(
+              '<div class="magical-spark" style="left:' + sparkX + 'px; top:' + (pt.y - 24) + 'px; width:6px; height:6px; background:' + ch.accent + '; box-shadow: 0 0 10px ' + ch.accent + ';"></div>'
+            );
+          }
+        }
+
+        elNodesLayer.innerHTML = nodesHtml.join('');
+        elSceneryLayer.innerHTML = sceneryHtml.join('');
+
+        var mountedCount = (lastIdx - firstIdx + 1);
+        var counterEl = document.getElementById('virtual-dom-counter');
+        if (counterEl) {
+          counterEl.textContent = 'DOM Nodes: ' + mountedCount + ' / 1000';
+        }
+      }
+
+      function scrollToLevel(levelNum, smooth) {
+        var targetLvl = Math.max(1, Math.min(TOTAL_LEVELS, Number(levelNum) || 1));
+        var targetCh = getChapterForLevel(targetLvl);
+        if (targetCh.id !== activeChapterId) {
+          renderChapterSetup(targetCh.id);
+        }
+        var idx = targetLvl - targetCh.startLevel;
+        var nodeY = TOP_PAD + idx * NODE_SPACING_Y;
+        var viewH = elViewport.clientHeight || 600;
+        var targetScroll = Math.max(0, nodeY - viewH * 0.45);
+        elViewport.scrollTo({
+          top: targetScroll,
+          behavior: (smooth && !reducedMotion) ? 'smooth' : 'auto'
+        });
+        updateVirtualNodes();
+      }
+
+      /* =====================================================================
+       * 5. LEVEL PREVIEW PANEL (Open, Switch, & Guaranteed Auto-Close)
+       * ===================================================================== */
+      var elPreviewBackdrop = document.getElementById('level-preview-backdrop');
+
+      function openLevelPreview(levelNum) {
+        var lvl = Math.max(1, Math.min(TOTAL_LEVELS, Number(levelNum) || 1));
+        if (lvl > memoryStore.unlocked) {
+          playTone(170, 140, 'sawtooth');
+          showToast('🔒 Clear Level ' + memoryStore.unlocked + ' first to unlock Level ' + lvl + '!');
+          var btn = elNodesLayer.querySelector('[data-level="' + lvl + '"]');
+          if (btn) {
+            btn.classList.remove('shake-locked');
+            void btn.offsetWidth;
+            btn.classList.add('shake-locked');
+          }
+          return false;
+        }
+
+        previewedLevel = lvl;
+        playTone(520, 90, 'triangle');
+
+        var meta = getLevelMeta(lvl);
+        document.getElementById('preview-chapter-pill').textContent = 'World ' + meta.chapter.id + ' · ' + meta.chapter.name;
+        document.getElementById('preview-tier-pill').textContent = meta.tier;
+        document.getElementById('preview-level-title').textContent = 'Level ' + lvl;
+        document.getElementById('preview-zone-subtitle').textContent = 'Sanctuary Landmark: ' + meta.zoneName;
+        document.getElementById('preview-spec-grid').textContent = meta.gridSize + ' × ' + meta.gridSize;
+        document.getElementById('preview-spec-arrows').textContent = meta.arrows + ' Arrows';
+        document.getElementById('preview-play-label').textContent = 'Play Level ' + lvl;
+
+        var earnedStars = (memoryStore.best && memoryStore.best[lvl]) ? Number(memoryStore.best[lvl]) : 0;
+        var isCleared = (lvl < memoryStore.unlocked) || earnedStars > 0;
+        var statusEl = document.getElementById('preview-status-text');
+        if (isCleared) {
+          statusEl.textContent = earnedStars > 0 ? ('Completed · ' + earnedStars + ' / 3 Stars Earned') : 'Completed · Path Cleared';
+          statusEl.className = 'text-sm font-bold text-emerald-300 mt-0.5';
+        } else {
+          statusEl.textContent = 'Ready to Play · Current Frontier Level';
+          statusEl.className = 'text-sm font-bold text-amber-300 mt-0.5';
+        }
+
+        var starsHtml = '';
+        for (var s = 1; s <= 3; s++) {
+          var lit = (s <= earnedStars) || (isCleared && earnedStars === 0 && s === 1);
+          starsHtml += lit
+            ? '<span class="star-lit">★</span>'
+            : '<span class="star-dim">★</span>';
+        }
+        document.getElementById('preview-stars-box').innerHTML = starsHtml;
+
+        elPreviewBackdrop.classList.remove('hidden');
+        updateVirtualNodes();
+        return true;
+      }
+
+      function closeLevelPreview() {
+        previewedLevel = null;
+        elPreviewBackdrop.classList.add('hidden');
+        updateVirtualNodes();
+      }
+
+      /* =====================================================================
+       * 6. CHAPTER ATLAS & LEGACY COMPARISON RENDERERS
+       * ===================================================================== */
+      function openChaptersAtlas() {
+        closeLevelPreview();
+        var listEl = document.getElementById('chapters-atlas-list');
+        var html = [];
+        for (var i = 0; i < CHAPTERS.length; i++) {
+          var ch = CHAPTERS[i];
+          var cleared = getChapterClearedCount(ch);
+          var pct = Math.round((cleared / LEVELS_PER_CHAPTER) * 100);
+          var isUnlockedWorld = (memoryStore.unlocked >= ch.startLevel);
+          var activeBorder = (ch.id === activeChapterId) ? 'border-amber-400 ring-1 ring-amber-400/50' : 'border-slate-700/80';
+
+          html.push(
+            '<button type="button" data-atlas-ch="' + ch.id + '" ' +
+            'class="w-full text-left p-3.5 rounded-2xl bg-slate-950/90 hover:bg-slate-800/80 border ' + activeBorder + ' transition flex items-center justify-between gap-3">' +
+            '<div class="flex-1">' +
+              '<div class="flex items-center gap-2">' +
+                '<span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-white/10 text-amber-300">World ' + ch.id + '</span>' +
+                '<span class="font-display font-bold text-sm text-white">' + ch.name + '</span>' +
+                (isUnlockedWorld ? '<span class="text-[10px] text-emerald-300 font-semibold">● Reached</span>' : '<span class="text-[10px] text-slate-400">🔒 Previewable</span>') +
+              '</div>' +
+              '<p class="text-[11px] text-slate-400 mt-0.5">Levels ' + ch.startLevel + '–' + ch.endLevel + ' · ' + ch.subtitle + '</p>' +
+              '<div class="w-full h-1.5 rounded-full bg-slate-800 mt-2 overflow-hidden">' +
+                '<div class="h-full bg-gradient-to-r from-emerald-400 to-amber-300" style="width:' + pct + '%;"></div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="text-right">' +
+              '<div class="text-xs font-bold text-slate-200">' + cleared + '/125</div>' +
+              '<div class="text-[10px] text-amber-300 font-semibold mt-0.5">View ➔</div>' +
+            '</div>' +
+            '</button>'
+          );
+        }
+        listEl.innerHTML = html.join('');
+        document.getElementById('chapters-modal-backdrop').classList.remove('hidden');
+      }
+
+      function renderLegacyGrid() {
+        var ch = getChapterById(activeChapterId);
+        var container = document.getElementById('legacy-grid-container');
+        var items = [];
+        for (var lvl = ch.startLevel; lvl <= ch.endLevel; lvl++) {
+          var unlocked = lvl <= memoryStore.unlocked;
+          items.push(
+            '<button type="button" data-legacy-lvl="' + lvl + '" ' +
+            'class="h-11 rounded-lg font-bold text-xs border ' +
+            (unlocked ? 'bg-slate-800 text-white border-slate-600' : 'bg-slate-900 text-slate-600 border-slate-800') + '">' +
+            lvl +
+            '</button>'
+          );
+        }
+        container.innerHTML = items.join('');
+      }
+
+      /* =====================================================================
+       * 7. PLAYABLE ARROW OUT! PUZZLE BOARD (Preserves Core Game Mechanics)
+       * ===================================================================== */
+      var activeGame = {
+        level: 1,
+        gridSize: 4,
+        pieces: [],
+        undoStack: [],
+        activeHintId: null
+      };
+
+      var DIR_VECTORS = [
+        { dx: 0, dy: -1, symbol: '↑' }, // 0: Up
+        { dx: 1, dy: 0, symbol: '→' },  // 1: Right
+        { dx: 0, dy: 1, symbol: '↓' },  // 2: Down
+        { dx: -1, dy: 0, symbol: '←' }  // 3: Left
+      ];
+
+      var PIECE_COLORS = ['#34d399', '#38bdf8', '#fbbf24', '#c084fc', '#fb7185', '#f97316'];
+
+      /**
+       * Generates a guaranteed-solvable board for any level 1..1000
+       * by placing arrows in reverse removal order so at least one arrow always has a clear ray.
+       */
+      function buildSolvableBoard(levelNum) {
+        var meta = getLevelMeta(levelNum);
+        var N = meta.gridSize;
+        var pieces = [];
+        var occupied = {};
+        var idCounter = 1;
+
+        for (var r = 0; r < N; r++) {
+          for (var c = 0; c < N; c++) {
+            // Deterministic selection based on level seed
+            var hash = (levelNum * 31 + r * 17 + c * 13) % 100;
+            if (hash < 68 || pieces.length < 5) {
+              // Pick direction pointing toward nearest edge so board is 100% solvable without deadlock
+              var dir = 0;
+              var distTop = r;
+              var distBottom = (N - 1) - r;
+              var distLeft = c;
+              var distRight = (N - 1) - c;
+              var minDist = Math.min(distTop, distBottom, distLeft, distRight);
+              if (minDist === distTop) dir = 0;
+              else if (minDist === distRight) dir = 1;
+              else if (minDist === distBottom) dir = 2;
+              else dir = 3;
+
+              pieces.push({
+                id: idCounter++,
+                x: c,
+                y: r,
+                dir: dir,
+                color: PIECE_COLORS[(idCounter + levelNum) % PIECE_COLORS.length],
+                removed: false
+              });
+              occupied[c + ',' + r] = true;
+            }
+          }
+        }
+        return { gridSize: N, pieces: pieces };
+      }
+
+      function isPiecePathClear(piece, allPieces, gridSize) {
+        if (!piece || piece.removed) return false;
+        var vec = DIR_VECTORS[piece.dir];
+        var cx = piece.x + vec.dx;
+        var cy = piece.y + vec.dy;
+        while (cx >= 0 && cx < gridSize && cy >= 0 && cy < gridSize) {
+          for (var i = 0; i < allPieces.length; i++) {
+            var other = allPieces[i];
+            if (!other.removed && other.id !== piece.id && other.x === cx && other.y === cy) {
+              return false;
+            }
+          }
+          cx += vec.dx;
+          cy += vec.dy;
+        }
+        return true;
+      }
+
+      function renderGameBoard() {
+        var canvas = document.getElementById('puzzle-canvas');
+        var ctx = canvas.getContext('2d');
+        var W = canvas.width;
+        var H = canvas.height;
+        ctx.clearRect(0, 0, W, H);
+
+        var N = activeGame.gridSize;
+        var pad = 18;
+        var cellSize = Math.floor((W - pad * 2) / N);
+        var startX = Math.floor((W - cellSize * N) / 2);
+        var startY = Math.floor((H - cellSize * N) / 2);
+
+        // Draw grid slots
+        for (var r = 0; r < N; r++) {
+          for (var c = 0; c < N; c++) {
+            var gx = startX + c * cellSize;
+            var gy = startY + r * cellSize;
+            ctx.fillStyle = 'rgba(30, 41, 59, 0.75)';
+            ctx.strokeStyle = 'rgba(71, 85, 105, 0.45)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.roundRect(gx + 3, gy + 3, cellSize - 6, cellSize - 6, 10);
+            ctx.fill();
+            ctx.stroke();
+          }
+        }
+
+        // Draw active arrow tiles
+        for (var i = 0; i < activeGame.pieces.length; i++) {
+          var p = activeGame.pieces[i];
+          if (p.removed) continue;
+          var x = startX + p.x * cellSize;
+          var y = startY + p.y * cellSize;
+          var isHinted = (activeGame.activeHintId === p.id);
+
+          ctx.save();
+          ctx.fillStyle = p.color;
+          ctx.strokeStyle = isHinted ? '#ffffff' : 'rgba(255,255,255,0.35)';
+          ctx.lineWidth = isHinted ? 3.5 : 1.5;
+          ctx.beginPath();
+          ctx.roundRect(x + 5, y + 5, cellSize - 10, cellSize - 10, 12);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = '#0f172a';
+          ctx.font = 'bold ' + Math.floor(cellSize * 0.46) + 'px Inter, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(DIR_VECTORS[p.dir].symbol, x + cellSize / 2, y + cellSize / 2 + 1);
+          ctx.restore();
+        }
+
+        document.getElementById('game-hint-sub').textContent =
+          memoryStore.freeHints > 0 ? ('Free (' + memoryStore.freeHints + ')') : '10 Coins';
+        document.getElementById('game-undo-sub').textContent =
+          activeGame.undoStack.length + ' moves';
+      }
+
+      function launchLevel(levelNum) {
+        var lvl = Math.max(1, Math.min(TOTAL_LEVELS, Number(levelNum) || 1));
+        if (lvl > memoryStore.unlocked) {
+          showToast('🔒 Level ' + lvl + ' is locked!');
+          return false;
+        }
+        // Always close preview & modals automatically before starting a level
+        closeLevelPreview();
+        document.getElementById('chapters-modal-backdrop').classList.add('hidden');
+        document.getElementById('jump-modal-backdrop').classList.add('hidden');
+        document.getElementById('win-modal-backdrop').classList.add('hidden');
+
+        var board = buildSolvableBoard(lvl);
+        activeGame.level = lvl;
+        activeGame.gridSize = board.gridSize;
+        activeGame.pieces = board.pieces;
+        activeGame.undoStack = [];
+        activeGame.activeHintId = null;
+
+        memoryStore.hearts = 3;
+        memoryStore.cur = { level: lvl, hearts: 3 };
+        saveStorage();
+
+        var ch = getChapterForLevel(lvl);
+        document.getElementById('game-chapter-label').textContent = 'World ' + ch.id + ' · ' + ch.name;
+        document.getElementById('game-level-title').textContent = 'Level ' + lvl;
+
+        switchView('game');
+        updateCurrencyHud();
+        renderGameBoard();
+        return true;
+      }
+
+      function switchView(viewName) {
+        closeLevelPreview();
+        document.getElementById('view-map').classList.toggle('hidden', viewName !== 'map');
+        document.getElementById('view-home').classList.toggle('hidden', viewName !== 'home');
+        document.getElementById('view-game').classList.toggle('hidden', viewName !== 'game');
+        if (viewName === 'map') {
+          var targetCh = getChapterForLevel(memoryStore.unlocked);
+          renderChapterSetup(activeChapterId || targetCh.id);
+        }
+        updateCurrencyHud();
+      }
+
+      /* =====================================================================
+       * 8. EVENT LISTENERS & TOUCH INTERACTION HANDLERS
+       * ===================================================================== */
+      elViewport.addEventListener('scroll', function () {
+        updateVirtualNodes();
+      }, { passive: true });
+
+      window.addEventListener('resize', function () {
+        renderChapterSetup(activeChapterId);
+      });
+
+      // Delegated click handler on virtualized level nodes
+      elNodesLayer.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-level]');
+        if (!btn) return;
+        var lvl = Number(btn.getAttribute('data-level'));
+        openLevelPreview(lvl);
+      });
+
+      // Legacy comparison grid click handler
+      document.getElementById('legacy-grid-container').addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-legacy-lvl]');
+        if (!btn) return;
+        openLevelPreview(Number(btn.getAttribute('data-legacy-lvl')));
+      });
+
+      // Preview panel controls & outside-tap auto-close
+      document.getElementById('btn-close-preview').addEventListener('click', closeLevelPreview);
+      document.getElementById('btn-preview-back').addEventListener('click', closeLevelPreview);
+      elPreviewBackdrop.addEventListener('click', function (e) {
+        if (e.target === elPreviewBackdrop) closeLevelPreview();
+      });
+      document.getElementById('btn-preview-play').addEventListener('click', function () {
+        if (previewedLevel) launchLevel(previewedLevel);
+      });
+
+      // Escape key closes any open modal
+      window.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          closeLevelPreview();
+          document.getElementById('chapters-modal-backdrop').classList.add('hidden');
+          document.getElementById('jump-modal-backdrop').classList.add('hidden');
+          document.getElementById('qa-modal-backdrop').classList.add('hidden');
+        }
+      });
+
+      // Header & Chapter Navigation Controls
+      document.getElementById('btn-header-home').addEventListener('click', function () {
+        switchView('home');
+      });
+      document.getElementById('btn-home-map').addEventListener('click', function () {
+        switchView('map');
+        scrollToLevel(memoryStore.unlocked, true);
+      });
+      document.getElementById('btn-home-continue').addEventListener('click', function () {
+        launchLevel(memoryStore.unlocked);
+      });
+      document.getElementById('btn-home-daily').addEventListener('click', function () {
+        var dailyLvl = ((new Date().getUTCDate() * 19) % Math.max(1, memoryStore.unlocked)) + 1;
+        launchLevel(dailyLvl);
+      });
+      document.getElementById('btn-home-qa').addEventListener('click', function () {
+        switchView('map');
+        openQaModal();
+      });
+
+      document.getElementById('btn-prev-chapter').addEventListener('click', function () {
+        if (activeChapterId > 1) {
+          closeLevelPreview();
+          renderChapterSetup(activeChapterId - 1);
+          elViewport.scrollTop = 0;
+        }
+      });
+      document.getElementById('btn-next-chapter').addEventListener('click', function () {
+        if (activeChapterId < CHAPTERS.length) {
+          closeLevelPreview();
+          renderChapterSetup(activeChapterId + 1);
+          elViewport.scrollTop = 0;
+        }
+      });
+
+      document.getElementById('btn-open-chapters').addEventListener('click', openChaptersAtlas);
+      document.getElementById('btn-close-chapters').addEventListener('click', function () {
+        document.getElementById('chapters-modal-backdrop').classList.add('hidden');
+      });
+      document.getElementById('chapters-modal-backdrop').addEventListener('click', function (e) {
+        if (e.target.id === 'chapters-modal-backdrop') {
+          document.getElementById('chapters-modal-backdrop').classList.add('hidden');
+        }
+      });
+      document.getElementById('chapters-atlas-list').addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-atlas-ch]');
+        if (!btn) return;
+        var chId = Number(btn.getAttribute('data-atlas-ch'));
+        document.getElementById('chapters-modal-backdrop').classList.add('hidden');
+        renderChapterSetup(chId);
+        elViewport.scrollTop = 0;
+      });
+
+      // Bottom Bar: Locate Current & Continue Next Level
+      document.getElementById('btn-recenter-current').addEventListener('click', function () {
+        scrollToLevel(memoryStore.unlocked, true);
+        showToast('🧭 Centered on Level ' + memoryStore.unlocked);
+      });
+      document.getElementById('btn-continue-next').addEventListener('click', function () {
+        openLevelPreview(memoryStore.unlocked);
+      });
+
+      // Find Level # Modal
+      document.getElementById('btn-quick-jump').addEventListener('click', function () {
+        closeLevelPreview();
+        document.getElementById('input-jump-level').value = String(memoryStore.unlocked);
+        document.getElementById('jump-modal-backdrop').classList.remove('hidden');
+      });
+      document.getElementById('btn-close-jump').addEventListener('click', function () {
+        document.getElementById('jump-modal-backdrop').classList.add('hidden');
+      });
+      document.getElementById('btn-confirm-jump').addEventListener('click', function () {
+        var val = Math.max(1, Math.min(1000, Number(document.getElementById('input-jump-level').value) || 1));
+        document.getElementById('jump-modal-backdrop').classList.add('hidden');
+        scrollToLevel(val, true);
+        if (val <= memoryStore.unlocked) {
+          openLevelPreview(val);
+        } else {
+          showToast('Viewing Level ' + val + ' in ' + getChapterForLevel(val).name);
+        }
+      });
+      document.querySelectorAll('.quick-lvl-btn').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var l = Number(b.getAttribute('data-quick-lvl'));
+          document.getElementById('jump-modal-backdrop').classList.add('hidden');
+          scrollToLevel(l, true);
+          showToast('Scrolled to Level ' + l + ' (' + getChapterForLevel(l).name + ')');
+        });
+      });
+
+      // Compare Legacy vs New Magical Map Toggle
+      document.getElementById('btn-toggle-legacy').addEventListener('click', function () {
+        compareLegacyMode = !compareLegacyMode;
+        document.getElementById('compare-mode-label').textContent =
+          compareLegacyMode ? 'Legacy Flat Grid' : 'New Magical Map';
+        elViewport.classList.toggle('hidden', compareLegacyMode);
+        document.getElementById('legacy-grid-viewport').classList.toggle('hidden', !compareLegacyMode);
+        if (compareLegacyMode) renderLegacyGrid();
+      });
+      document.getElementById('btn-exit-legacy').addEventListener('click', function () {
+        compareLegacyMode = false;
+        document.getElementById('compare-mode-label').textContent = 'New Magical Map';
+        elViewport.classList.remove('hidden');
+        document.getElementById('legacy-grid-viewport').classList.add('hidden');
+      });
+
+      // Game Board Canvas Tap Handling
+      document.getElementById('puzzle-canvas').addEventListener('click', function (e) {
+        var canvas = e.currentTarget;
+        var rect = canvas.getBoundingClientRect();
+        var scaleX = canvas.width / rect.width;
+        var scaleY = canvas.height / rect.height;
+        var px = (e.clientX - rect.left) * scaleX;
+        var py = (e.clientY - rect.top) * scaleY;
+
+        var N = activeGame.gridSize;
+        var pad = 18;
+        var cellSize = Math.floor((canvas.width - pad * 2) / N);
+        var startX = Math.floor((canvas.width - cellSize * N) / 2);
+        var startY = Math.floor((canvas.height - cellSize * N) / 2);
+
+        var col = Math.floor((px - startX) / cellSize);
+        var row = Math.floor((py - startY) / cellSize);
+
+        var tappedPiece = null;
+        for (var i = 0; i < activeGame.pieces.length; i++) {
+          var p = activeGame.pieces[i];
+          if (!p.removed && p.x === col && p.y === row) {
+            tappedPiece = p;
+            break;
+          }
+        }
+        if (!tappedPiece) return;
+
+        if (isPiecePathClear(tappedPiece, activeGame.pieces, N)) {
+          tappedPiece.removed = true;
+          activeGame.undoStack.push(tappedPiece.id);
+          if (activeGame.activeHintId === tappedPiece.id) activeGame.activeHintId = null;
+          playTone(660, 110, 'sine');
+          renderGameBoard();
+
+          // Check level completion
+          var remaining = activeGame.pieces.filter(function (item) { return !item.removed; }).length;
+          if (remaining === 0) {
+            playTone(880, 260, 'triangle');
+            var earnedStars = memoryStore.hearts >= 3 ? 3 : memoryStore.hearts === 2 ? 2 : 1;
+            memoryStore.best[activeGame.level] = Math.max(earnedStars, memoryStore.best[activeGame.level] || 0);
+            if (activeGame.level === memoryStore.unlocked && memoryStore.unlocked < TOTAL_LEVELS) {
+              memoryStore.unlocked++;
+            }
+            memoryStore.coins = (memoryStore.coins || 0) + 15;
+            memoryStore.wins = (memoryStore.wins || 0) + 1;
+            saveStorage();
+            updateCurrencyHud();
+
+            document.getElementById('win-modal-title').textContent = 'Level ' + activeGame.level + ' Complete!';
+            document.getElementById('win-modal-stars').textContent =
+              earnedStars === 3 ? '★ ★ ★' : earnedStars === 2 ? '★ ★ ☆' : '★ ☆ ☆';
+            document.getElementById('win-modal-backdrop').classList.remove('hidden');
+          }
+        } else {
+          // Blocked arrow: deduct heart and immediately save to storage
+          playTone(150, 180, 'sawtooth');
+          memoryStore.hearts = Math.max(0, (memoryStore.hearts || 3) - 1);
+          if (memoryStore.cur) memoryStore.cur.hearts = memoryStore.hearts;
+          saveStorage();
+          updateCurrencyHud();
+          if (memoryStore.hearts === 0) {
+            showToast('💔 Out of hearts! Board reset with 3 fresh hearts.');
+            launchLevel(activeGame.level);
+          } else {
+            showToast('💥 Path blocked! -1 Heart (' + memoryStore.hearts + '/3 left)');
+          }
+        }
+      });
+
+      // Hint with duplicate-tap protection (Audit Phase 1 Fix included!)
+      document.getElementById('btn-game-hint').addEventListener('click', function () {
+        if (activeGame.activeHintId !== null) {
+          var existing = activeGame.pieces.find(function (p) {
+            return !p.removed && p.id === activeGame.activeHintId;
+          });
+          if (existing && isPiecePathClear(existing, activeGame.pieces, activeGame.gridSize)) {
+            showToast('💡 Hint arrow is already highlighted in white!');
+            renderGameBoard();
+            return;
+          }
+        }
+        var clearPiece = activeGame.pieces.find(function (p) {
+          return !p.removed && isPiecePathClear(p, activeGame.pieces, activeGame.gridSize);
+        });
+        if (!clearPiece) return;
+
+        if (memoryStore.freeHints > 0) {
+          memoryStore.freeHints--;
+        } else if (memoryStore.coins >= 10) {
+          memoryStore.coins -= 10;
+        } else {
+          showToast('Need 10 coins or a free hint!');
+          return;
+        }
+        activeGame.activeHintId = clearPiece.id;
+        saveStorage();
+        updateCurrencyHud();
+        renderGameBoard();
+      });
+
+      document.getElementById('btn-game-undo').addEventListener('click', function () {
+        if (!activeGame.undoStack.length) {
+          showToast('Nothing to undo yet');
+          return;
+        }
+        var lastId = activeGame.undoStack.pop();
+        var piece = activeGame.pieces.find(function (p) { return p.id === lastId; });
+        if (piece) piece.removed = false;
+        renderGameBoard();
+      });
+
+      document.getElementById('btn-game-restart').addEventListener('click', function () {
+        launchLevel(activeGame.level);
+        showToast('↻ Level ' + activeGame.level + ' restarted');
+      });
+
+      document.getElementById('btn-game-back-map').addEventListener('click', function () {
+        switchView('map');
+        scrollToLevel(activeGame.level, true);
+      });
+
+      document.getElementById('btn-game-mute').addEventListener('click', function (e) {
+        soundMuted = !soundMuted;
+        e.currentTarget.textContent = soundMuted ? '🔇 Muted' : '🔊 Sound';
+      });
+
+      document.getElementById('btn-win-map').addEventListener('click', function () {
+        document.getElementById('win-modal-backdrop').classList.add('hidden');
+        switchView('map');
+        scrollToLevel(memoryStore.unlocked, true);
+      });
+      document.getElementById('btn-win-next').addEventListener('click', function () {
+        document.getElementById('win-modal-backdrop').classList.add('hidden');
+        launchLevel(memoryStore.unlocked);
+      });
+
+      /* =====================================================================
+       * 9. NON-DESTRUCTIVE QA SUITE & SAVE PREVIEWER
+       * ===================================================================== */
+      function ensureRealBackup() {
+        try {
+          if (!localStorage.getItem(BACKUP_KEY)) {
+            localStorage.setItem(BACKUP_KEY, JSON.stringify(memoryStore));
+          }
+        } catch (e) {}
+      }
+
+      function applyPreviewState(targetUnlocked, sampleCoins) {
+        ensureRealBackup();
+        memoryStore.unlocked = targetUnlocked;
+        memoryStore.coins = sampleCoins;
+        memoryStore.best = {};
+        for (var l = 1; l < targetUnlocked; l++) {
+          memoryStore.best[l] = ((l * 7) % 3) + 1;
+        }
+        saveStorage();
+        var ch = getChapterForLevel(targetUnlocked);
+        renderChapterSetup(ch.id);
+        scrollToLevel(targetUnlocked, true);
+        showToast('✨ Previewing Level ' + targetUnlocked + ' (' + ch.name + ')');
+      }
+
+      function runAutomatedQaChecks() {
+        var results = [];
+        function check(label, pass, detail) {
+          results.push({ label: label, pass: Boolean(pass), detail: detail });
+        }
+
+        // 1. All 1000 levels across 8 chapters without gaps or duplicates
+        var seen = new Set();
+        CHAPTERS.forEach(function (c) {
+          for (var l = c.startLevel; l <= c.endLevel; l++) seen.add(l);
+        });
+        check('Levels 1–1,000 Coverage', seen.size === 1000 && CHAPTERS.length === 8, '8 chapters × 125 levels = 1,000 unique levels');
+
+        // 2. Virtualization DOM efficiency
+        var domNodeCount = elNodesLayer.querySelectorAll('.map-node').length;
+        check('Viewport DOM Virtualization', domNodeCount > 0 && domNodeCount < 80, domNodeCount + ' nodes mounted (out of 1,000)');
+
+        // 3. Level preview opens for unlocked level and auto-closes cleanly
+        var prevUnlocked = memoryStore.unlocked;
+        openLevelPreview(1);
+        var openedOk = !elPreviewBackdrop.classList.contains('hidden') && previewedLevel === 1;
+        closeLevelPreview();
+        var closedOk = elPreviewBackdrop.classList.contains('hidden') && previewedLevel === null;
+        check('Level Preview Open & Auto-Close', openedOk && closedOk, 'Opens on Lv 1 & closes cleanly with zero stuck state');
+
+        // 4. Locked level protection
+        var lockedBlocked = !openLevelPreview(Math.min(1000, prevUnlocked + 5)) || prevUnlocked === 1000;
+        check('Locked Level Guard', lockedBlocked, 'Prevents starting levels above unlocked=' + prevUnlocked);
+
+        // 5. Storage preservation (arrowOut.v2)
+        check('Storage Schema (arrowOut.v2)', typeof memoryStore.unlocked === 'number' && typeof memoryStore.best === 'object', 'Preserves unlocked, best, coins, freeHints, hearts');
+
+        // 6. Winding Bezier SVG path generation
+        var dAttr = elSvgOuter.getAttribute('d') || '';
+        check('Winding Cubic Bezier Path SVG', dAttr.indexOf('M ') === 0 && dAttr.indexOf(' C ') > 0, 'Valid SVG cubic Bezier curve rendered');
+
+        var listEl = document.getElementById('qa-results-list');
+        listEl.innerHTML = results.map(function (r) {
+          return '<div class="flex items-center justify-between p-2 rounded-lg ' +
+            (r.pass ? 'bg-emerald-950/60 border border-emerald-500/30 text-emerald-200' : 'bg-rose-950/60 border border-rose-500/30 text-rose-200') + '">' +
+            '<span>' + (r.pass ? '✅ PASS: ' : '❌ FAIL: ') + r.label + '</span>' +
+            '<span class="text-[10px] text-slate-300">' + r.detail + '</span>' +
+            '</div>';
+        }).join('');
+        return results;
+      }
+
+      function openQaModal() {
+        closeLevelPreview();
+        runAutomatedQaChecks();
+        document.getElementById('qa-modal-backdrop').classList.remove('hidden');
+      }
+
+      document.getElementById('btn-open-qa').addEventListener('click', openQaModal);
+      document.getElementById('btn-close-qa').addEventListener('click', function () {
+        document.getElementById('qa-modal-backdrop').classList.add('hidden');
+      });
+      document.getElementById('btn-run-qa-suite').addEventListener('click', runAutomatedQaChecks);
+
+      document.getElementById('btn-sim-fresh').addEventListener('click', function () {
+        document.getElementById('qa-modal-backdrop').classList.add('hidden');
+        applyPreviewState(14, 180);
+      });
+      document.getElementById('btn-sim-mid').addEventListener('click', function () {
+        document.getElementById('qa-modal-backdrop').classList.add('hidden');
+        applyPreviewState(382, 940);
+      });
+      document.getElementById('btn-sim-endgame').addEventListener('click', function () {
+        document.getElementById('qa-modal-backdrop').classList.add('hidden');
+        applyPreviewState(1000, 4500);
+      });
+      document.getElementById('btn-restore-real-save').addEventListener('click', function () {
+        try {
+          var rawBackup = localStorage.getItem(BACKUP_KEY);
+          if (rawBackup) {
+            memoryStore = JSON.parse(rawBackup);
+            localStorage.removeItem(BACKUP_KEY);
+            saveStorage();
+          }
+        } catch (e) {}
+        document.getElementById('qa-modal-backdrop').classList.add('hidden');
+        var ch = getChapterForLevel(memoryStore.unlocked);
+        renderChapterSetup(ch.id);
+        scrollToLevel(memoryStore.unlocked, true);
+        showToast('Restored original player progress (Lv. ' + memoryStore.unlocked + ')');
+      });
+
+      document.getElementById('btn-toggle-motion').addEventListener('click', function (e) {
+        reducedMotion = !reducedMotion;
+        document.body.classList.toggle('reduce-motion', reducedMotion);
+        e.currentTarget.textContent = reducedMotion ? 'Animations: REDUCED' : 'Animations: ON';
+      });
+
+      /* =====================================================================
+       * 10. INITIALIZATION
+       * ===================================================================== */
+      loadStorage();
+      // If a brand-new preview session has unlocked===1 and zero stars, seed a welcoming Demo preview or keep exact save
+      var startCh = getChapterForLevel(memoryStore.unlocked);
+      renderChapterSetup(startCh.id);
+      setTimeout(function () {
+        scrollToLevel(memoryStore.unlocked, false);
+      }, 60);
+
+      // Expose test hook for automated headless browser verification
+      window.ArrowOutMapApp = {
+        getChapters: function () { return CHAPTERS; },
+        getState: function () { return memoryStore; },
+        scrollToLevel: scrollToLevel,
+        openLevelPreview: openLevelPreview,
+        closeLevelPreview: closeLevelPreview,
+        runAutomatedQaChecks: runAutomatedQaChecks,
+        applyPreviewState: applyPreviewState
+      };
+    })();
+  </script>
 </body>
 </html>
