@@ -51,7 +51,7 @@ test('All 1,000 levels covered across 8 themed chapters without gaps or duplicat
 
 // 2. Winding path coordinates remain within safe horizontal bounds on narrow and wide screens
 test('Winding SVG path coordinates remain within safe horizontal bounds on 320px-768px screens', () => {
-  for (const width of [320, 360, 412, 768]) {
+  for (const width of [248, 288, 320, 360, 412, 768]) {
     const ch = MapEngine.CHAPTERS[0];
     const pts = [];
     for (let i = 0; i < MapEngine.LEVELS_PER_CHAPTER; i++) {
@@ -191,6 +191,10 @@ test('Map opens on the current chapter, virtualizes nodes, and launches levels t
 
   run.open();
   assert(sb.calls.openDlg.includes('dlg-map'), 'Map dialog must open');
+  // Regression: the dialog must be open before setChapter measures the
+  // viewport, otherwise clientWidth is 0 and nodes collapse onto the 360px
+  // fallback width and clip on phones.
+  assert.ok(MAP_SOURCE.indexOf("UI.openDlg('dlg-map')") < MAP_SOURCE.indexOf('setChapter(chapterForLevel'), 'Open the dialog before setChapter measures node positions');
   assert.strictEqual(sb.elements['map-chapter-name'].textContent, 'Whisperwind Meadow');
   assert.strictEqual(sb.elements['map-progress-text'].textContent, '2 / 125 cleared');
   assert(sb.elements['map-path-outer'].attrs.d.startsWith('M '), 'Road path must be drawn');
@@ -297,7 +301,7 @@ test('Commercial map: world rail, avatar, star chest, sanctuary chests all behav
   byLevel['7'].fire('click');
   const p7 = MapEngine.nodePos(6, MapEngine.CHAPTERS[0], 360);
   assert.strictEqual(av.style.left, p7.x + 'px', 'Avatar follows selection');
-  assert.strictEqual(av.style.top, (p7.y + 30) + 'px', 'Avatar sits below its node');
+  assert.strictEqual(av.style.top, (p7.y + 60) + 'px', 'Avatar sits below its node without covering its label');
   assert.ok(av.classList.contains('map-avatar-walk'), 'Selection must walk the avatar');
 
   // Boss levels (n % 25) carry a sanctuary-chest badge that opens once cleared
@@ -347,3 +351,4 @@ test('Commercial map: world rail, avatar, star chest, sanctuary chests all behav
 
 console.log(`\nSummary: ${passed} passed, ${failed} failed.`);
 if (failed > 0) process.exit(1);
+

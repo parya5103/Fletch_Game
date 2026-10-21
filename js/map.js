@@ -347,8 +347,12 @@ const ArrowOutMap = (function () {
     focusLevel = focusLevelFor(save);
     selected = 0;
     avatarPlaced = false;
-    setChapter(chapterForLevel(focusLevel).id, false);
+    // Open the dialog before measuring the viewport: setChapter reads
+    // #map-viewport clientWidth/clientHeight, which are still 0 while the
+    // dialog is display:none, so node positions collapsed onto the 360px
+    // fallback width and clipped right-side nodes/landmarks on phones.
     UI.openDlg('dlg-map');
+    setChapter(chapterForLevel(focusLevel).id, false);
     // One-time guardian cutscene for the newest unlocked world
     try {
       if (ST && ST.pendingWorld) {
@@ -571,7 +575,10 @@ const ArrowOutMap = (function () {
     if (first || !animate) el.classList.remove('map-avatar-walk');
     else el.classList.add('map-avatar-walk');
     el.style.left = p.x + 'px';
-    el.style.top = (p.y + 30) + 'px';
+    // Stand clear of the node's number and stars (label ends ~13px below the
+    // node centre) instead of covering them: +60 puts the 44px avatar at
+    // y+16..y+60, below the label and 2px above the next node's top edge.
+    el.style.top = (p.y + 60) + 'px';
   }
 
   function onScroll() {
@@ -857,3 +864,4 @@ const ArrowOutMap = (function () {
 
 // Expose for Node-based unit tests (scripts/map-redesign-test.js)
 if (typeof globalThis !== 'undefined') globalThis.ArrowOutMap = ArrowOutMap;
+

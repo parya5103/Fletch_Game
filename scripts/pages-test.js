@@ -105,10 +105,10 @@ test('all local page links exist and home/Settings expose About, Contact, Privac
 });
 test('About catalogue/count claims agree with production and unsupported release claims are absent', () => {
   const about=read('about.html'),{GC}=harness();
-  assert.equal(Object.keys(GC.COSMETICS.boards).length,5);
+  assert.equal(Object.keys(GC.COSMETICS.boards).length,9);
   assert.equal(Object.keys(GC.SKINS).length,17);
   assert.equal(new Set(Object.values(GC.SKINS).map(s=>s.style)).size,6);
-  assert.match(about,/5 board themes and 17 arrow cosmetics/);
+  assert.match(about,/9 board themes and 17 arrow cosmetics/);
   assert(!/each release|every release|before they go live|4&ndash;5/.test(about));
   assert.match(about,/daily login rewards/);assert.match(about,/failure dialog/);
 });

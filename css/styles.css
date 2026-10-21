@@ -1318,10 +1318,30 @@ h2 svg.ic { width: 24px; height: 24px; vertical-align: -4px; }
 #board-tools { flex-shrink: 0; }
 #board-wrap { padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); }
 [data-board-skin="default"] { background: #0c1229; box-shadow: inset 0 0 0 1px #303b60; }
-[data-board-skin="ice"] { background: radial-gradient(ellipse at top left, #27445a, transparent 65%), repeating-linear-gradient(125deg, #a7eaff09 0 1px, transparent 1px 29px), #0b2034 !important; box-shadow: inset 0 0 18px #90dfff30, inset 0 0 0 1px #81cce380 !important; }
-[data-board-skin="galaxy"] { background: radial-gradient(circle at 20% 30%, #ffffff90 0 1px, transparent 1.5px) 0 0 / 61px 79px, radial-gradient(circle at 70% 60%, #a5caff80 0 1px, transparent 1.5px) 0 0 / 97px 53px, radial-gradient(ellipse at 80% 25%, #4b286b60, transparent 65%), #101126 !important; box-shadow: inset 0 0 0 1px #655482 !important; }
-[data-board-skin="cyber"] { background: linear-gradient(#36d7e00b 1px, transparent 1px) 0 0 / 28px 28px, linear-gradient(90deg, #36d7e00b 1px, transparent 1px) 0 0 / 28px 28px, #081925 !important; box-shadow: inset 0 0 14px #00f0ff18, inset 0 0 0 1px #36d7e080 !important; }
-[data-board-skin="forest"] { background: repeating-radial-gradient(ellipse at 0 100%, transparent 0 24px, #6aaa6a10 25px 26px, transparent 27px 44px), linear-gradient(135deg, #17382a, #0a1c19) !important; box-shadow: inset 0 0 0 1px #66885e !important; }
+/* Board themes paint the backdrop behind the transparent game canvas; drawn
+   arrows always stay on top. Animations only shift background-position
+   (cheap repaint, no layout) and are disabled under prefers-reduced-motion. */
+[data-board-skin="ice"] { background: radial-gradient(circle at 16% 84%, #8b5cf63d 0 32%, transparent 60%), radial-gradient(circle at 84% 16%, #38d9f93d 0 30%, transparent 58%), repeating-linear-gradient(125deg, #a7eaff0d 0 1px, transparent 1px 29px), #0b2034 !important; box-shadow: inset 0 0 24px #90dfff45, inset 0 0 0 1px #81cce3a8 !important; animation: board-ice 12s ease-in-out infinite alternate; }
+@keyframes board-ice { from { background-position: 0 0, 0 0, 0 0, 0 0; } to { background-position: 26px -18px, -28px 22px, 0 0, 0 0; } }
+[data-board-skin="forest"] { background: radial-gradient(circle at 25% 20%, #34d39930 0 36%, transparent 64%), radial-gradient(circle at 78% 82%, #10b98126 0 32%, transparent 62%), repeating-radial-gradient(ellipse at 0 100%, transparent 0 24px, #6aaa6a10 25px 26px, transparent 27px 44px), linear-gradient(135deg, #17382a, #0a1c19) !important; box-shadow: inset 0 0 26px #2f8f5f45, inset 0 0 0 1px #66885e !important; animation: board-emerald 10s ease-in-out infinite alternate; }
+@keyframes board-emerald { from { background-position: 0 0, 0 0, 0 0, 0 0; } to { background-position: 20px 14px, -22px -16px, 0 0, 0 0; } }
+[data-board-skin="galaxy"] { background: radial-gradient(circle at 20% 30%, #ffffff90 0 1px, transparent 1.5px) 0 0 / 61px 79px, radial-gradient(circle at 70% 60%, #a5caff80 0 1px, transparent 1.5px) 0 0 / 97px 53px, radial-gradient(ellipse at 80% 25%, #4b286b60, transparent 65%), radial-gradient(ellipse at 18% 78%, #2b4a8260, transparent 60%), #101126 !important; box-shadow: inset 0 0 26px #3b2b5f66, inset 0 0 0 1px #655482 !important; animation: board-galaxy 26s ease-in-out infinite alternate; }
+@keyframes board-galaxy { from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0; } to { background-position: 61px 79px, -97px 53px, 0 0, 0 0, 0 0; } }
+[data-board-skin="sunset"] { background: linear-gradient(115deg, #ff5e7833 0%, transparent 38%), linear-gradient(245deg, #ffb64833 0%, transparent 42%), linear-gradient(160deg, #ff8c4230 12%, #2b14303d 88%), #251426 !important; box-shadow: inset 0 0 26px #ff9a5245, inset 0 0 0 1px #b06a5fa6 !important; animation: board-sunset 13s ease-in-out infinite alternate; }
+@keyframes board-sunset { from { background-position: 0 0, 0 0, 0 0, 0 0; } to { background-position: 34px 0, -34px 0, 0 0, 0 0; } }
+[data-board-skin="cyber"] { background: radial-gradient(circle at 15% 12%, #ff3ec626 0 30%, transparent 58%), radial-gradient(circle at 85% 88%, #00f0ff26 0 30%, transparent 58%), linear-gradient(#36d7e00b 1px, transparent 1px) 0 0 / 28px 28px, linear-gradient(90deg, #36d7e00b 1px, transparent 1px) 0 0 / 28px 28px, #081925 !important; box-shadow: inset 0 0 16px #00f0ff20, inset 0 0 0 1px #36d7e0a0 !important; animation: board-cyber 7s ease-in-out infinite alternate; }
+@keyframes board-cyber { from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0; } to { background-position: 22px 18px, -22px -18px, 0 0, 0 0, 0 0; } }
+[data-board-skin="royal"] { background: radial-gradient(ellipse at 50% -12%, #ffd76433 0 44%, transparent 68%), linear-gradient(100deg, transparent 42%, #f7c94816 50%, transparent 58%), repeating-linear-gradient(115deg, #ffd76408 0 1px, transparent 1px 23px), #131028 !important; box-shadow: inset 0 0 26px #b8860b52, inset 0 0 0 1px #d4af37a0 !important; animation: board-royal 11s ease-in-out infinite alternate; }
+@keyframes board-royal { from { background-position: 0 0, 0 0, 0 0, 0 0; } to { background-position: 0 14px, 40px 0, 0 0, 0 0; } }
+[data-board-skin="aurora"] { background: radial-gradient(ellipse 60% 45% at 22% 30%, #2dd4bf3d 0 42%, transparent 70%), radial-gradient(ellipse 55% 40% at 55% 68%, #3b82f63d 0 40%, transparent 70%), radial-gradient(ellipse 50% 42% at 84% 22%, #8b5cf63d 0 40%, transparent 70%), #07111f !important; box-shadow: inset 0 0 30px #2dd4bf38, inset 0 0 0 1px #5eead4a0 !important; animation: board-aurora 12s ease-in-out infinite alternate; }
+@keyframes board-aurora { from { background-position: 0 0, 0 0, 0 0, 0 0; } to { background-position: 30px 16px, -26px -12px, 22px -18px, 0 0; } }
+[data-board-skin="rainbow"] { background: linear-gradient(115deg, #ff6b6b1f 0, #ffb6481f 14%, #ffe0661f 29%, #5be5841f 43%, #38d9f91f 57%, #8b5cf61f 71%, #e879f91f 86%, #ff6b6b1f 100%), linear-gradient(#ffffff08 1px, transparent 1px) 0 0 / 31px 31px, #0a0e1d !important; box-shadow: inset 0 0 26px #ffffff1c, inset 0 0 0 1px #9ba6d8a0 !important; animation: board-prism 14s ease-in-out infinite alternate; }
+@keyframes board-prism { from { background-position: 0 0, 0 0, 0 0; } to { background-position: -60px 26px, 31px 31px, 0 0; } }
+@media (prefers-reduced-motion: reduce) {
+  [data-board-skin="ice"], [data-board-skin="forest"], [data-board-skin="galaxy"],
+  [data-board-skin="sunset"], [data-board-skin="cyber"], [data-board-skin="royal"],
+  [data-board-skin="aurora"], [data-board-skin="rainbow"] { animation: none !important; }
+}
 .shop-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
 .shop-tabs .btn { flex: 1; min-height: 44px; }
 .shop-tabs [aria-selected="true"] { background: #354276; border-color: #a5b4fc; }
@@ -1360,7 +1380,10 @@ body:not(.at-home) #install-banner, body:not(.at-home) #update-banner { display:
 #map-progress-track { height: 8px; background: rgba(0, 0, 0, .5); border-radius: 999px; overflow: hidden; border: 1px solid rgba(255, 255, 255, .14); }
 #map-progress-fill { height: 100%; width: 0; background: linear-gradient(90deg, #34d399, #fbbf24); border-radius: 999px; transition: width .3s ease; }
 #map-progress-text { font-size: 11px; color: var(--text-tertiary); margin: 2px 0 0; }
-#map-viewport { position: relative; flex: 1; min-height: 320px; max-height: 52vh; border-radius: 14px; overflow-y: auto; overflow-x: hidden; border: 1px solid var(--btn-border); -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+/* min-height stays below the 52vh max so short/landscape screens are never
+   forced taller than the dialog (320px min used to beat ~187px max and push
+   the bottom controls off-screen). */
+#map-viewport { position: relative; flex: 1; min-height: 180px; max-height: 52vh; border-radius: 14px; overflow-y: auto; overflow-x: hidden; border: 1px solid var(--btn-border); -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 #map-viewport::-webkit-scrollbar { width: 6px; }
 #map-viewport::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .22); border-radius: 999px; }
 #map-canvas { position: relative; width: 100%; overflow: hidden; }
@@ -1413,7 +1436,9 @@ body:not(.at-home) #install-banner, body:not(.at-home) #update-banner { display:
 .map-guardian-art { width: 34px; height: 34px; flex: 0 0 auto; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: rgba(116, 143, 252, .12); }
 .map-guardian-art svg { width: 100%; height: 100%; display: block; }
 .map-guardian-name { font-size: 12px; font-weight: 700; color: var(--text-secondary); }
-.map-worlds { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+/* 8px top padding keeps the .wc-chest badge (top:-6px) from being clipped
+   by this overflow-x:auto scroll container. */
+.map-worlds { display: flex; gap: 8px; overflow-x: auto; padding: 8px 0 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .map-worlds::-webkit-scrollbar { display: none; }
 .world-card { position: relative; flex: 0 0 auto; width: 96px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 6px; border-radius: 12px; border: 1px solid var(--btn-border); background: var(--bg-tertiary); color: var(--text-secondary); cursor: pointer; font: inherit; -webkit-tap-highlight-color: transparent; }
 .world-card:active { transform: scale(.96); }
@@ -1440,3 +1465,18 @@ body:not(.at-home) #install-banner, body:not(.at-home) #update-banner { display:
   #map-avatar.map-avatar-walk { transition: none !important; }
   .world-card .wc-chest { filter: none; }
 }
+/* Short landscape screens: compact the map chrome so the viewport and the
+   bottom tools both fit. The guardian banner is decorative here (precedent:
+   .home-stats is hidden in the home landscape rule). */
+@media (max-height: 480px) and (orientation: landscape) {
+  #dlg-map .card.map-card { gap: 6px; }
+  #dlg-map p.sub { margin: 2px 0; }
+  #map-guardian { display: none; }
+  #map-chapter-row { gap: 5px; }
+  #map-progress-text { margin: 1px 0 0; }
+  .map-worlds { padding: 5px 0 3px; }
+  .world-card { width: 82px; padding: 5px 4px; gap: 2px; }
+  .world-card .wc-art { width: 28px; height: 28px; font-size: 12px; }
+  #map-viewport { min-height: 140px; }
+}
+

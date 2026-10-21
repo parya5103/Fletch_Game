@@ -1,11 +1,11 @@
 /**
  * Arrow Out! Service Worker
- * Version: v41
+ * Version: v42
  * Audit fixes: notification privacy, saved settings and interrupted game restoration.
  * Handles caching for offline gameplay
  */
 
-const CACHE = 'arrow-out-v41';
+const CACHE = 'arrow-out-v42';
 // Only obsolete caches that belong to THIS game (arrow-out-*) are ever deleted,
 // so other apps served from the same origin keep their caches.
 const CACHE_PREFIX = 'arrow-out-';
@@ -157,3 +157,4 @@ self.addEventListener('notificationclick', (e) => {
     }).catch(() => null)
   );
 });
+
