@@ -399,6 +399,11 @@ const Game = (function() {
       UI.buildLevelGrid();
       UI.openDlg('dlg-levels');
     });
+    on($('btn-map-menu'), 'click', function() {
+      Audio.ui();
+      UI.closeAll();
+      ArrowOutMap.open();
+    });
     
     // Stats button (menu dialog uses a different id than the home screen)
     on($('btn-stats-menu'), 'click', function() {
@@ -419,6 +424,16 @@ const Game = (function() {
       UI.closeAll();
       UI.buildLevelGrid();
       UI.openDlg('dlg-levels');
+    });
+    on($('btn-map'), 'click', function() {
+      Audio.ui();
+      UI.closeAll();
+      ArrowOutMap.open();
+    });
+    on($('btn-levels-map'), 'click', function() {
+      Audio.ui();
+      UI.closeAll();
+      ArrowOutMap.open();
     });
     on($('btn-achievements'), 'click', function() {
       Audio.ui();
