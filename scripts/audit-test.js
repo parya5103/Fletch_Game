@@ -127,3 +127,96 @@ test('timed bonus is paid once across undo, replay and persisted restore', () =>
   assert.equal(copy.G.getState().bonus, null);
   copy.G.loadLevel(5); assert.equal(copy.G.getState().bonus, null); assert.equal(copy.ST.getSave().coins, reward);
 });
+
+/* ===== v4.3 audit additions: save warnings, bonus pause, focus, bounded loops ===== */
+// (extraction marker for sandbox pre-push validation; harmless in CI)
+
+// The qa-harness fires each timer exactly once per flush() call; interval
+// tasks do not re-arm. Grab the live 250ms bonusTick watcher that init()
+// registered and drive it directly, one call per simulated interval.
+function bonusTicker(h) {
+  const fns = [];
+  for (const task of h.timers.values()) if (task.ms === 250) fns.push(task.fn);
+  return () => { for (const fn of fns) fn(); };
+}
+
+test('bonus timer freezes while a dialog is open and never underflows on repeated pause/resume', () => {
+  const h = harness(); h.G.init(); // registers the 250ms bonusTick watcher
+  const tick = bonusTicker(h);
+  let now = 1000;
+  h.box.performance.now = () => now; // controllable clock
+  h.G.loadLevel(5);
+  tick(); // first bonusTick anchors b.last at t=1000
+  const deadline0 = h.G.getState().bonus.deadline;
+  assert.ok(deadline0 - now > 0, 'bonus must start with time on the clock');
+  // 30 simulated seconds pass while a dialog is open: the deadline slides
+  // forward by the paused time, so no remaining time is lost
+  now += 30000; h.ui.anyOpen = () => true; tick();
+  let b = h.G.getState().bonus;
+  assert.equal(b.deadline, deadline0 + 30000, 'a paused bonus must not lose time');
+  assert.equal(b.active, true);
+  // resuming consumes time again: the deadline now stays put while playing
+  h.ui.anyOpen = () => false; now += 5000; tick();
+  b = h.G.getState().bonus;
+  assert.equal(b.deadline, deadline0 + 30000, 'active play must consume bonus time');
+  // repeated pause/resume cycles: deadline only ever moves forward, stays
+  // finite, and never underflows (3 of 6 cycles paused x 4000ms)
+  for (let i = 0; i < 6; i++) { h.ui.anyOpen = () => i % 2 === 0; now += 4000; tick(); }
+  b = h.G.getState().bonus;
+  assert.ok(Number.isFinite(b.deadline), 'deadline must stay finite');
+  assert.equal(b.deadline, deadline0 + 42000, 'only paused intervals may extend the deadline');
+  assert.equal(b.active, true, 'bonus must still be alive (plenty of time left)');
+});
+
+test('an expired bonus pays nothing and no false success is reported', () => {
+  const h = harness(); h.G.init(); // registers the 250ms bonusTick watcher
+  const tick = bonusTicker(h);
+  let now = 1000;
+  h.box.performance.now = () => now;
+  h.G.loadLevel(5);
+  tick(); // anchor b.last
+  now += 60000; // bonus timers are 30/40/50s - always shorter than 60s
+  tick(); // expiry tick
+  const s = h.G.getState();
+  assert.equal(s.bonus.active, false, 'bonus must expire');
+  const coins = h.ST.getSave().coins;
+  h.G.tapArrow(s.bonus.idx); // tap the (now expired) golden piece
+  assert.equal(h.ST.getSave().coins, coins, 'expired bonus must pay nothing');
+  assert.equal(h.G.getState().bonus.granted, false, 'no reward may be marked granted');
+});
+
+test('dialogs move keyboard focus in on open and restore it on close', () => {
+  const h = harness(); const UI = realUI(h);
+  const opener = button(h, 'btn-focus-opener'); const closer = button(h, 'btn-focus-close');
+  let active = opener;
+  opener.focus = () => { active = opener; };
+  closer.focus = () => { active = closer; };
+  h.elements['dlg-focus'] = {
+    classList: { add() {}, remove() {}, contains: () => true },
+    querySelector: () => closer
+  };
+  Object.defineProperty(h.box.document, 'activeElement', {
+    configurable: true, get: () => active, set: v => { active = v; }
+  });
+  h.box.document.querySelectorAll = () => [];
+  UI.openDlg('dlg-focus');
+  assert.equal(active, closer, 'focus must move into the dialog on open');
+  UI.closeAll();
+  assert.equal(active, opener, 'focus must return to the opener on close');
+  UI.closeAll(); // nothing was opened since: focus stays put, no crash
+  assert.equal(active, opener);
+});
+
+test('map ambient and render loops are structurally bounded (single loop, cleaned up on stop)', () => {
+  const mapSrc = source('js/map.js'), renderSrc = source('js/render.js');
+  // map ambient: a new start always stops the previous loop first
+  assert.ok(mapSrc.indexOf('function startAmbient() {\n    stopAmbient();') !== -1,
+    'startAmbient must stop any previous loop before starting a new one');
+  assert.ok(/ambient\.parts = \[\];/.test(mapSrc),
+    'particles must be rebuilt on every start (no unbounded growth)');
+  assert.ok(/function stopAmbient\(\) \{\s*ambient\.running = false;/.test(mapSrc) &&
+    /ambient\.raf = 0;/.test(mapSrc), 'loop flags must be cleared on stop');
+  // render: needsRender-gated single loop, never stacked
+  assert.ok(renderSrc.indexOf('function ensureLoop() {\n    if (!loopOn) {') !== -1,
+    'ensureLoop must only start a loop when none is running');
+});
