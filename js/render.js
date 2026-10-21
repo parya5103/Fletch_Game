@@ -406,7 +406,19 @@ const Render = (function() {
       ctx = target.getContext('2d'); activePalette = skin.colors; arrowStyle = skin.style;
       ctx.clearRect(0, 0, target.width, target.height);
       ctx.save(); ctx.scale(target.width / 180, target.height / 96);
-      drawPiece({ cells: [{x:0,y:2},{x:1,y:2},{x:1,y:1},{x:2,y:1},{x:3,y:1},{x:4,y:1}], dir:1, c:0 }, 32, 1, 1, false, false, 8, 0);
+      // Mini sample board: translucent panel with a faint grid like the
+      // gameplay surface, then three winding arrows leaving in different
+      // directions, so every theme is judged against real arrows.
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(3, 3, 174, 90, 10); else ctx.rect(3, 3, 174, 90);
+      ctx.fillStyle = 'rgba(129,140,248,0.10)'; ctx.fill();
+      ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(129,140,248,0.30)'; ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+      for (var gx = 22; gx < 174; gx += 22) { ctx.beginPath(); ctx.moveTo(3 + gx, 5); ctx.lineTo(3 + gx, 91); ctx.stroke(); }
+      for (var gy = 22; gy < 90; gy += 22) { ctx.beginPath(); ctx.moveTo(5, 3 + gy); ctx.lineTo(175, 3 + gy); ctx.stroke(); }
+      drawPiece({ cells: [{x:0,y:3},{x:1,y:3},{x:1,y:2},{x:2,y:2},{x:2,y:1},{x:3,y:1}], dir:1, c:0 }, 22, 1, 1, false, false, 6, 5);
+      drawPiece({ cells: [{x:5,y:3},{x:5,y:2},{x:6,y:2},{x:6,y:1},{x:6,y:0}], dir:0, c:2 }, 22, 1, 1, false, false, 6, 5);
+      drawPiece({ cells: [{x:7,y:0},{x:7,y:1},{x:7,y:2},{x:7,y:3}], dir:2, c:4 }, 22, 1, 1, false, false, 6, 5);
       ctx.restore();
     } finally { ctx = previous.ctx; activePalette = previous.palette; arrowStyle = previous.style; }
   }

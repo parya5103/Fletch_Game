@@ -48,10 +48,14 @@ const GameCore = (function() {
   });
   const BOARD_SKINS = {
     default: { name: 'Classic Night', price: 0, description: 'The original quiet midnight surface.' },
-    ice: { name: 'Ice Crystal', price: 800, description: 'Frozen blue glass with fine frost edges.' },
-    galaxy: { name: 'Galaxy', price: 1200, description: 'Distant stars over a violet nebula.' },
-    cyber: { name: 'Neon Cyber', price: 1600, description: 'A restrained electric grid and neon rim.' },
-    forest: { name: 'Forest', price: 1000, description: 'Deep woodland greens and organic grain.' }
+    ice: { name: 'Crystal Ice', price: 800, description: 'Icy cyan and violet shine drifting over frost glass.' },
+    forest: { name: 'Emerald Grove', price: 1000, description: 'Deep emerald glow with a magical green shimmer.' },
+    galaxy: { name: 'Galaxy', price: 1200, description: 'Dark cosmic drift with slowly glowing stars.' },
+    sunset: { name: 'Sunset Shimmer', price: 1400, description: 'Warm pink, orange and gold dusk light.' },
+    cyber: { name: 'Cyber Pulse', price: 1600, description: 'A restrained cyan and magenta neon pulse.' },
+    royal: { name: 'Royal Gold', price: 1800, description: 'Premium brushed-gold highlights on midnight blue.' },
+    aurora: { name: 'Aurora Veil', price: 2000, description: 'Teal, blue and violet aurora curtains in motion.' },
+    rainbow: { name: 'Prism Drift', price: 2400, description: 'A smoothly shifting full-spectrum sheen.' }
   };
   Object.keys(BOARD_SKINS).forEach(function(id) { BOARD_SKINS[id].currency = 'coins'; });
   // Future real-money entitlements require server verification, not this coin API.
