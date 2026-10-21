@@ -40,6 +40,8 @@ jobs:
 
       - name: World map module tests
         run: node scripts/map-redesign-test.js
+      - name: Commercial upgrade tests
+        run: node scripts/commercial-test.js
 
       - name: State, storage, audio and PWA regressions
         run: |

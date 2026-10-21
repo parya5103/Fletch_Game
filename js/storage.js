@@ -36,6 +36,10 @@ const Storage = (function() {
       },
       coins: 0,
       bonusClaimed: {},
+      winStreak: { current: 0, best: 0 },
+      chestClaimed: {},
+      starChestClaimed: {},
+      storySeen: {},
       skin: 'default',
       owned: { default: true },
       boardSkin: 'default',
@@ -209,6 +213,25 @@ const Storage = (function() {
     if (!d.bonusClaimed || typeof d.bonusClaimed !== 'object' || Array.isArray(d.bonusClaimed)) d.bonusClaimed = {};
     for (var ck in d.bonusClaimed) {
       if (Object.prototype.hasOwnProperty.call(d.bonusClaimed, ck) && d.bonusClaimed[ck] !== true) delete d.bonusClaimed[ck];
+    }
+
+    // winStreak: consecutive campaign wins (reset on fail), never negative
+    if (!d.winStreak || typeof d.winStreak !== 'object' || Array.isArray(d.winStreak)) d.winStreak = defaultSave().winStreak;
+    d.winStreak.current = Math.max(0, toInt(d.winStreak.current, 0, 100000, 0));
+    d.winStreak.best = Math.max(0, toInt(d.winStreak.best, 0, 100000, 0));
+
+    // claim maps keep only === true values, like bonusClaimed
+    if (!d.chestClaimed || typeof d.chestClaimed !== 'object' || Array.isArray(d.chestClaimed)) d.chestClaimed = {};
+    for (var hcK in d.chestClaimed) {
+      if (Object.prototype.hasOwnProperty.call(d.chestClaimed, hcK) && d.chestClaimed[hcK] !== true) delete d.chestClaimed[hcK];
+    }
+    if (!d.starChestClaimed || typeof d.starChestClaimed !== 'object' || Array.isArray(d.starChestClaimed)) d.starChestClaimed = {};
+    for (var scK in d.starChestClaimed) {
+      if (Object.prototype.hasOwnProperty.call(d.starChestClaimed, scK) && d.starChestClaimed[scK] !== true) delete d.starChestClaimed[scK];
+    }
+    if (!d.storySeen || typeof d.storySeen !== 'object' || Array.isArray(d.storySeen)) d.storySeen = {};
+    for (var ssK in d.storySeen) {
+      if (Object.prototype.hasOwnProperty.call(d.storySeen, ssK) && d.storySeen[ssK] !== true) delete d.storySeen[ssK];
     }
 
     // owned skins: map of skinId -> true; the default skin is always owned

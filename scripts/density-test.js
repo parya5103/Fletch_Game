@@ -26,10 +26,10 @@ test('count targets rise monotonically and dense tiers contain interlocking path
 });
 
 test('600-piece removal, hint, undo, restart, persistence and final campaign completion', () => {
-  const h = harness(); h.G.loadLevel(1000);
+  const h = harness(); let hintClock = 1000; h.box.performance.now = () => hintClock; h.G.loadLevel(1000);
   const original = JSON.stringify(h.G.getState().arrows);
   for (let k = 0; k < 12; k++) {
-    const s = h.G.getState(); h.G.test.doHint();
+    const s = h.G.getState(); hintClock += 400; h.G.test.doHint();
     assert.equal(h.GC.pieceBlocker(s.occ,s.arrows,s.cols,s.rows,s.hintIdx),-1);
     h.G.tapArrow(s.hintIdx);
   }
