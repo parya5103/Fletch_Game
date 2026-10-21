@@ -38,6 +38,9 @@ jobs:
       - name: Game logic smoke tests
         run: node scripts/ci-test.js
 
+      - name: Cross-tab save conflict tests
+        run: node scripts/conflict-test.js
+
       - name: World map module tests
         run: node scripts/map-redesign-test.js
       - name: Commercial upgrade tests
