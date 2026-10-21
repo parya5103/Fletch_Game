@@ -38,6 +38,9 @@ jobs:
       - name: Game logic smoke tests
         run: node scripts/ci-test.js
 
+      - name: World map module tests
+        run: node scripts/map-redesign-test.js
+
       - name: State, storage, audio and PWA regressions
         run: |
           node scripts/regression-test.js
