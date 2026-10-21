@@ -313,9 +313,25 @@ const UI = (function() {
   }
 
   // Dialog functions
+  // Keyboard focus support (P2 accessibility): remember the element that
+  // opened a dialog, move focus into the dialog on open, and restore it
+  // on close so focus is never lost behind an overlay.
+  var lastFocused = null;
+
+  function focusSafe(el) {
+    try { if (el && typeof el.focus === 'function') el.focus(); } catch (e) {}
+  }
+
   function openDlg(id) {
     var dlg = $(id);
     if (dlg) dlg.classList.add('show');
+    try {
+      var active = document.activeElement;
+      if (active && active !== document.body) lastFocused = active;
+    } catch (e) {}
+    var target = null;
+    try { target = dlg ? dlg.querySelector('[data-close], button, [href], input, select, textarea') : null; } catch (e) { target = null; }
+    focusSafe(target);
   }
 
   function closeAll() {
@@ -323,6 +339,12 @@ const UI = (function() {
     var list = document.querySelectorAll('.overlay.show');
     for (var i = 0; i < list.length; i++) {
       list[i].classList.remove('show');
+    }
+    var restore = lastFocused;
+    lastFocused = null;
+    if (restore) {
+      try { if (document.contains && !document.contains(restore)) { focusSafe(document.body); return; } } catch (e) {}
+      focusSafe(restore);
     }
   }
 
