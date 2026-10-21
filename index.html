@@ -375,6 +375,25 @@
     </div>
   </div>
 
+    <!-- ===== WORLD STORY CUTSCENE ===== -->
+  <div id="dlg-story" class="overlay" role="dialog" aria-modal="true" aria-labelledby="story-world-title">
+    <div class="card story-card">
+      <div class="story-head">
+        <div id="story-portrait" class="story-portrait" aria-hidden="true"></div>
+        <div class="story-titles">
+          <h2 id="story-world-title">World 1</h2>
+          <p id="story-guardian-name">Guardian</p>
+        </div>
+      </div>
+      <p id="story-act-num" class="story-act-num">Act 1 of 3</p>
+      <p id="story-act-text" class="story-act-text"></p>
+      <div class="story-actions">
+        <button id="story-skip" type="button" class="btn">Skip</button>
+        <button id="story-continue" type="button" class="btn primary">Continue</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== MAGICAL WORLD MAP ===== -->
   <div class="overlay" id="dlg-map" role="dialog" aria-modal="true" aria-labelledby="map-title">
     <div class="card map-card">
@@ -683,6 +702,7 @@
   <script src="js/haptics.js"></script>
   <script src="js/bgfx.js"></script>
   <script src="js/pwa.js"></script>
+  <script src="js/story.js"></script>
   <script src="js/map.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/reminders.js"></script>
