@@ -1446,8 +1446,14 @@ body:not(.at-home) #install-banner, body:not(.at-home) #update-banner { display:
 .map-guardian-art svg { width: 100%; height: 100%; display: block; }
 .map-guardian-name { font-size: 12px; font-weight: 700; color: var(--text-secondary); }
 /* 8px top padding keeps the .wc-chest badge (top:-6px) from being clipped
-   by this overflow-x:auto scroll container. */
-.map-worlds { display: flex; gap: 8px; overflow-x: auto; padding: 8px 0 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+   by this overflow-x:auto scroll container.
+   overflow-x:auto also gives this flex item an automatic minimum size of
+   ZERO, so without flex:0 0 auto the rail was the ONLY card child that
+   could shrink below its content: on short screens the world-card tabs
+   collapsed and clipped while the map viewport sat right on top of them.
+   flex:0 0 auto pins the rail to its natural height in normal flow (it
+   never grew before either, so layout is otherwise unchanged). */
+.map-worlds { flex: 0 0 auto; display: flex; gap: 8px; overflow-x: auto; padding: 8px 0 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .map-worlds::-webkit-scrollbar { display: none; }
 .world-card { position: relative; flex: 0 0 auto; width: 96px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 6px; border-radius: 12px; border: 1px solid var(--btn-border); background: var(--bg-tertiary); color: var(--text-secondary); cursor: pointer; font: inherit; -webkit-tap-highlight-color: transparent; }
 .world-card:active { transform: scale(.96); }
@@ -1487,4 +1493,27 @@ body:not(.at-home) #install-banner, body:not(.at-home) #update-banner { display:
   .world-card { width: 82px; padding: 5px 4px; gap: 2px; }
   .world-card .wc-art { width: 28px; height: 28px; font-size: 12px; }
   #map-viewport { min-height: 140px; }
+}
+
+/* Short portrait screens (compact Android phones with browser chrome):
+   compact the map chrome so the world rail, the viewport and the bottom
+   tools all fit. The rail itself can no longer collapse (see .map-worlds
+   note above); this tier just reduces the fixed chrome around it. */
+@media (max-height: 760px) and (orientation: portrait) {
+  #dlg-map .card.map-card { gap: 6px; padding: 14px; }
+  #dlg-map p.sub { margin: 2px 0; }
+  #map-guardian { padding: 4px 8px; }
+  .map-guardian-art { width: 28px; height: 28px; }
+  .map-worlds { padding: 5px 0 2px; }
+  #map-tools .btn, #map-jump { min-height: 40px; min-width: 44px; padding: 6px 10px; font-size: 13px; }
+  #map-viewport { min-height: 140px; }
+}
+
+/* Very short portrait screens: same guarantees with the smallest possible
+   chrome (mirrors the landscape compaction above). */
+@media (max-height: 600px) and (orientation: portrait) {
+  #map-chapter-sub, #map-progress-text { display: none; }
+  .world-card { width: 82px; padding: 5px 4px; gap: 2px; }
+  .world-card .wc-art { width: 28px; height: 28px; font-size: 12px; }
+  #map-viewport { min-height: 120px; }
 }
