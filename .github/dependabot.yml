@@ -1,0 +1,12 @@
+# Dependabot keeps the SHA-pinned GitHub Actions fresh.
+# It opens version-update PRs against main; CI must pass before merge.
+# On the GitHub Free plan, version updates run for private repositories
+# too; vulnerability ALERTS need the dependency graph, which is free only
+# for public repositories.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
