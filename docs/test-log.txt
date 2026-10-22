@@ -27,12 +27,15 @@
 [pwa-4-cache-scope] [PWA 4/6] checking scoped cache cleanup (reinstall dance)...
 [pwa-4-cache-scope] [OK] cache cleanup is scoped: foreign cache survived Arrow Out! (re)install
 [pwa-5-offline] [PWA 5/6] checking offline boot from service worker cache...
-[pwa-5-offline] [WARN] offline emulation did not flip navigator.onLine (test-env quirk)
+[pwa-5-offline] [OK] offline: navigator.onLine is false as expected
 [pwa-5-offline] [OK] offline: game boots fully from the service worker cache
 [pwa-6-update-cycle] [PWA 6/6] simulating a new deployment (bumped sw.js + changed index.html)...
 [pwa-6-update-cycle] simulated deployment: sw.js v44 -> v45 (deploy marker in index.html)
 [pwa-6-update-cycle] [OK] new deployment detected: update banner shown
 [pwa-6-update-cycle] [OK] banner Refresh reloaded the game
-FATAL: Error: localStorage save changed across the update reload
-    at runUpdateCycleTest (/home/runner/work/Fletch_Game/Fletch_Game/scripts/screenshot.js:406:13)
-    at async main (/home/runner/work/Fletch_Game/Fletch_Game/scripts/screenshot.js:513:5)
+[pwa-6-update-cycle] [OK] reload served the NEW html (deploy marker present in DOM)
+[pwa-6-update-cycle] [OK] localStorage progress identical before/after the update
+[pwa-6-update-cycle] [OK] update banner did not reappear after reload (no reload loop)
+[pwa-6-update-cycle] [OK] cache swap verified: arrow-out-v45
+[final-console-check] [OK] no console errors
+[final-console-check] ALL CHECKS PASSED
