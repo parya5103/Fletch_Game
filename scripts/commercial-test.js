@@ -9,7 +9,7 @@
  *    storySeen (js/storage.js)
  *  - the win streak, Sanctuary chest and Royal Star Chest flows (js/main.js)
  *  - the hint double-tap guard and immediate heart persistence (js/main.js)
- *  - the service worker v42 bump with story.js precached (sw.js)
+ *  - the service worker v43 bump with story.js precached (sw.js)
  *  - the PWA module version (js/pwa.js)
  *  - the commercial map and story DOM wiring (index.html)
  */
@@ -392,16 +392,16 @@ function runAll(deps) {
     assert.strictEqual(env.Game.claimStarChest(NaN), false, 'NaN rejected');
   });
 
-  test('Service worker bumped to arrow-out-v42 with story.js precached', function () {
-    assert.ok(deps.swSrc.indexOf('arrow-out-v42') !== -1, 'v42 cache name present');
-    assert.strictEqual(deps.swSrc.indexOf('arrow-out-v41'), -1, 'v41 cache name gone');
+  test('Service worker bumped to arrow-out-v43 with story.js precached', function () {
+    assert.ok(deps.swSrc.indexOf('arrow-out-v43') !== -1, 'v43 cache name present');
+    assert.strictEqual(deps.swSrc.indexOf('arrow-out-v42'), -1, 'v42 cache name gone');
     assert.ok(deps.swSrc.indexOf("'./js/story.js'") !== -1, 'story.js precached');
     assert.ok(deps.swSrc.indexOf("'./js/map.js'") !== -1, 'map.js precached');
   });
 
-  test('PWA module reports v42', function () {
-    assert.ok(deps.pwaSrc.indexOf("'v42'") !== -1, 'v42 reported');
-    assert.strictEqual(deps.pwaSrc.indexOf("'v41'"), -1, 'v41 gone');
+  test('PWA module reports v43', function () {
+    assert.ok(deps.pwaSrc.indexOf("'v43'") !== -1, 'v43 reported');
+    assert.strictEqual(deps.pwaSrc.indexOf("'v42'"), -1, 'v42 gone');
   });
 
   test('index.html wires the commercial map and story DOM', function () {

@@ -262,6 +262,15 @@ footer {
   outline-offset: 2px;
 }
 
+/* Keyboard focus indicators for map nodes and world cards (P2 a11y).
+   Same indicator as .btn, shown only for keyboard focus - the map's
+   touch visuals are untouched. */
+.map-node:focus-visible,
+.world-card:focus-visible {
+  outline: 3px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
 .btn[disabled] {
   opacity: 0.4;
   pointer-events: none;

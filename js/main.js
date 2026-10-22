@@ -12,7 +12,25 @@ const Game = (function() {
   var saveTimer = 0;
   // Timestamp of the last granted hint; double-taps inside 350ms are ignored
   var lastHintAt = -10000;
+  // Save-health toast state (P1: visible, non-spamming save warnings)
+  var saveWarned = false;
   var REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  // Save-health watcher (P1): persistence failures (private mode, quota)
+  // are reported once instead of spamming, and recovery is confirmed the
+  // same way. Local save only - this game has no cloud sync.
+  function saveWatch() {
+    if (!Storage.isStorageOk()) {
+      if (!saveWarned) {
+        saveWarned = true;
+        UI.toast('Warning: saving failed - progress may not be stored. Free up storage space.');
+      }
+    } else if (saveWarned) {
+      saveWarned = false;
+      Storage.persist(); // make sure the recovered tab is up to date
+      UI.toast('Saving recovered - progress is being stored again.');
+    }
+  }
 
   // Initialize the game
   function init() {
@@ -76,6 +94,9 @@ const Game = (function() {
 
     // Timed bonus objective countdown (cheap 250ms tick, no-op without a bonus)
     setInterval(bonusTick, 250);
+
+    // Save-health watcher: single warn + single recovery toast (P1)
+    setInterval(saveWatch, 3000);
   }
 
   // Set up event listeners
@@ -984,12 +1005,11 @@ const Game = (function() {
     b.granted = true;
     b.active = false;
 
-    // Persist immediately: never grant the same level bonus twice,
-    // even across refresh, replay or undo/redo.
-    var save = Storage.getSave();
-    if (!save.bonusClaimed) save.bonusClaimed = {};
-    save.bonusClaimed[gameState.level === 'daily' ? 'daily' : gameState.level] = true;
-    Storage.updateSave(save);
+    // Persist the one-time claim immediately and cross-tab safe: never
+    // grant the same level bonus twice, across refresh, replay, undo or
+    // a second open tab. claimOnce merges newer disk state first.
+    var bKey = gameState.level === 'daily' ? 'daily' : gameState.level;
+    if (!Storage.claimOnce('bonusClaimed', bKey)) return; // already claimed elsewhere
     Storage.addCoins(b.coins);
 
     Audio.success();
@@ -1290,13 +1310,12 @@ const Game = (function() {
       save.winStreak.current += 1;
       if (save.winStreak.current > save.winStreak.best) save.winStreak.best = save.winStreak.current;
 
-      // Sanctuary chest: one-time 50 coins for clearing a boss level
+      // Sanctuary chest: one-time 50 coins for clearing a boss level.
+      // claimOnce merges disk state and persists the claim first, so the
+      // chest can never double-pay (across tabs, replays or refreshes).
       if (gameState.level % 25 === 0) {
         var chestKey = String(gameState.level);
-        if (!save.chestClaimed) save.chestClaimed = {};
-        if (!save.chestClaimed[chestKey]) {
-          save.chestClaimed[chestKey] = true;
-          Storage.updateSave(save); // persist first: never grant twice
+        if (Storage.claimOnce('chestClaimed', chestKey)) {
           Storage.addCoins(50);
           UI.toast('Sanctuary chest found! +50 coins');
         }
@@ -1389,6 +1408,9 @@ const Game = (function() {
   }
 
   function claimDailyReward() {
+    // Pull in any newer cross-tab state before checking the calendar so a
+    // reward already claimed today in another tab is not granted twice.
+    Storage.persist();
     var save = Storage.getSave();
     var now = new Date();
     var today = now.toISOString().slice(0, 10);
@@ -1433,9 +1455,9 @@ const Game = (function() {
         UI.toast('Earn 15 stars in this world to open the Star Chest.');
         return false;
       }
-      if (!save.starChestClaimed) save.starChestClaimed = {};
-      save.starChestClaimed[wid] = true;
-      Storage.updateSave(save); // persist BEFORE granting: never double-pay
+      // claimOnce merges disk state and persists the claim first, so the
+      // Star Chest can never double-pay (across tabs, replays, refreshes).
+      if (!Storage.claimOnce('starChestClaimed', wid)) return false;
       Storage.addCoins(100);
       Audio.success();
       if (save.vibration) Haptics.win();

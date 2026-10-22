@@ -349,5 +349,56 @@ test('Commercial map: world rail, avatar, star chest, sanctuary chests all behav
     'Cleared sanctuary chest must show open');
 });
 
+// 16. Ambient animation stays bounded: one frame loop, fixed particle set, clean shutdown (P2)
+test('Ambient animation is bounded: one loop, fixed particles, full cleanup on close/hidden', () => {
+  const sb = makeMockDom();
+  let arcs = 0, clears = 0;
+  const ctx = new Proxy({}, {
+    get: (t, k) => k === 'arc' ? () => { arcs++; } : k === 'clearRect' ? () => { clears++; } : () => {}
+  });
+  sb.elements['map-ambient-canvas'].getContext = () => ctx;
+  const live = new Map();
+  let nextId = 1;
+  const hadRaf = typeof global.requestAnimationFrame !== 'undefined';
+  const origRaf = global.requestAnimationFrame;
+  const origCaf = global.cancelAnimationFrame;
+  global.requestAnimationFrame = fn => { const id = nextId++; live.set(id, fn); return id; };
+  global.cancelAnimationFrame = id => { live.delete(id); };
+  // Like a real browser: a fired animation-frame callback leaves the queue.
+  const pump = ts => { for (const [id, fn] of [...live.entries()]) { live.delete(id); fn(ts); } };
+  try {
+    const run = runMap(sb);
+    run.open();
+    assert.strictEqual(live.size, 1, 'exactly one animation frame may be pending after open');
+    pump(16);
+    assert.strictEqual(clears, 1, 'one canvas clear per frame');
+    assert.strictEqual(arcs, 8, 'fixed particle set of 8 on low-end devices (no growth)');
+    assert.strictEqual(live.size, 1, 'the loop re-arms exactly once per frame (no duplicate loops)');
+    // Re-opening must not stack a second loop (startAmbient stops the old one first)
+    run.open();
+    assert.strictEqual(live.size, 1, 're-open must not stack a second animation loop');
+    // Closing the dialog must stop the loop by itself
+    sb.elements['dlg-map'].classList.remove('show');
+    pump(32);
+    assert.strictEqual(live.size, 0, 'the loop must self-stop once the map is not shown');
+    // A hidden tab behaves the same way
+    sb.elements['dlg-map'].classList.add('show');
+    sb.document.hidden = true;
+    run.open();
+    assert.strictEqual(live.size, 1, 'open while hidden still requests one frame');
+    pump(48);
+    assert.strictEqual(live.size, 0, 'the loop must self-stop while the tab is hidden');
+    // stopAmbient clears any queued frame
+    sb.document.hidden = false;
+    run.open();
+    assert.strictEqual(live.size, 1);
+    run.stopAmbient();
+    assert.strictEqual(live.size, 0, 'stopAmbient must cancel the pending frame');
+  } finally {
+    if (hadRaf) global.requestAnimationFrame = origRaf; else delete global.requestAnimationFrame;
+    if (typeof origCaf !== 'undefined') global.cancelAnimationFrame = origCaf; else delete global.cancelAnimationFrame;
+  }
+});
+
 console.log(`\nSummary: ${passed} passed, ${failed} failed.`);
 if (failed > 0) process.exit(1);

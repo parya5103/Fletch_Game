@@ -13,6 +13,7 @@ const Storage = (function() {
   function defaultSave() {
     return {
       v: 2,
+      rev: 0,
       unlocked: 1,
       best: {},
       cur: null,
@@ -66,6 +67,12 @@ const Storage = (function() {
 
   var save = defaultSave();
   var storageOk = true;
+  // Cross-tab conflict tracking (P0): the exact raw save string and the
+  // revision this tab last observed in localStorage, plus a snapshot of
+  // the user-facing preferences as this tab loaded them.
+  var lastSyncedRaw = null;
+  var lastSyncedRev = 0;
+  var prefBaseline = null;
 
   // Initialize storage
   function readSave(key) {
@@ -78,19 +85,25 @@ const Storage = (function() {
   }
 
   function init() {
+    try { lastSyncedRaw = localStorage.getItem(SAVE_KEY); } catch (e) {}
     var d = readSave(SAVE_KEY);
     if (d && d.v === 2) {
       save = normalizeSave(d);
+      lastSyncedRev = save.rev || 0;
+      capturePrefBaseline();
       return;
     }
     var old = readSave(OLD_SAVE_KEY);
     if (old && old.v === 1) {
       save = normalizeSave(migrateFromV1(old));
+      capturePrefBaseline();
       // Keep the legacy backup until its replacement is durably written.
       if (persist()) {
         try { localStorage.removeItem(OLD_SAVE_KEY); } catch (e) {}
       }
+      return;
     }
+    capturePrefBaseline();
   }
 
   // Migrate from v1 to v2
@@ -162,6 +175,9 @@ const Storage = (function() {
 
   function sanitizeSave(d) {
     d.v = 2;
+    // Revision counter for cross-tab conflict detection (P0). Older saves
+    // without it are treated as revision 0 and get one on the next write.
+    d.rev = Math.max(0, toInt(d.rev, 0, 1000000000, 0));
     d.unlocked = toInt(d.unlocked, 1, DESIGN_LEVELS, 1);
     d.coins = Math.max(0, toInt(d.coins, 0, 1000000, 0));
 
@@ -293,10 +309,142 @@ const Storage = (function() {
     return d;
   }
 
-  // Persist save data
-  function persist() {
+  // Snapshot the user-facing preferences exactly as this tab loaded them,
+  // so a cross-tab merge can tell "the other tab changed this" apart from
+  // "this is the value I started with".
+  function capturePrefBaseline() {
+    prefBaseline = {
+      sound: save.sound, music: save.music, vibration: save.vibration,
+      theme: save.theme, installHidden: save.installHidden,
+      skin: save.skin, boardSkin: save.boardSkin,
+      settings: JSON.parse(JSON.stringify(save.settings))
+    };
+  }
+
+  // Merge a snapshot written by another tab into our save (P0). Every rule
+  // is progress-preserving: numeric progress keeps the larger value,
+  // claim/ownership maps union, per-level bests keep the better result.
+  // A stale tab can never roll back newer progress this way.
+  function mergeRemote(remote) {
+    if (!remote || typeof remote !== 'object') return;
+    try { remote = normalizeSave(remote); } catch (e) { return; }
+    if (!remote || typeof remote !== 'object') return;
+
+    save.unlocked = Math.max(save.unlocked, remote.unlocked);
+    save.coins = Math.max(save.coins, remote.coins);
+
+    // Per-level best: keep the better result (stars first, then plays)
+    for (var bk in remote.best) {
+      if (!Object.prototype.hasOwnProperty.call(remote.best, bk)) continue;
+      var rb = remote.best[bk];
+      var lb = save.best[bk];
+      if (!lb) save.best[bk] = rb;
+      else if (rb.stars > lb.stars || (rb.stars === lb.stars && rb.plays > lb.plays)) save.best[bk] = rb;
+    }
+
+    // Stats and play streaks: keep the larger counters, the later date
+    save.stats.totalPlays = Math.max(save.stats.totalPlays, remote.stats.totalPlays);
+    save.stats.totalWins = Math.max(save.stats.totalWins, remote.stats.totalWins);
+    save.stats.totalStars = Math.max(save.stats.totalStars, remote.stats.totalStars);
+    save.stats.hintsUsed = Math.max(save.stats.hintsUsed, remote.stats.hintsUsed);
+    save.stats.mistakes = Math.max(save.stats.mistakes, remote.stats.mistakes);
+    save.streaks.current = Math.max(save.streaks.current, remote.streaks.current);
+    save.streaks.best = Math.max(save.streaks.best, remote.streaks.best);
+    if (!save.streaks.lastPlayDate ||
+        (remote.streaks.lastPlayDate && remote.streaks.lastPlayDate > save.streaks.lastPlayDate)) {
+      save.streaks.lastPlayDate = remote.streaks.lastPlayDate;
+    }
+
+    // One-time claim markers and shown-achievement markers: union (true wins)
+    ['achievements', 'bonusClaimed', 'chestClaimed', 'starChestClaimed', 'storySeen'].forEach(function(mapName) {
+      if (!save[mapName] || typeof save[mapName] !== 'object') save[mapName] = {};
+      for (var mk in remote[mapName]) {
+        if (Object.prototype.hasOwnProperty.call(remote[mapName], mk) && remote[mapName][mk] === true) {
+          save[mapName][mk] = true;
+        }
+      }
+    });
+
+    // Cosmetic ownership: union - purchases made in another tab are kept
+    ['owned', 'ownedBoards'].forEach(function(mapName) {
+      if (!save[mapName] || typeof save[mapName] !== 'object') save[mapName] = {};
+      for (var ok2 in remote[mapName]) {
+        if (Object.prototype.hasOwnProperty.call(remote[mapName], ok2) && remote[mapName][ok2] === true) {
+          save[mapName][ok2] = true;
+        }
+      }
+    });
+
+    // Daily: the later date wins outright; the same date unions results
+    if (remote.daily.lastDate && (!save.daily.lastDate || remote.daily.lastDate > save.daily.lastDate)) {
+      save.daily = JSON.parse(JSON.stringify(remote.daily));
+    } else if (remote.daily.lastDate && remote.daily.lastDate === save.daily.lastDate) {
+      save.daily.completed = save.daily.completed || remote.daily.completed;
+      save.daily.stars = Math.max(save.daily.stars, remote.daily.stars);
+    }
+
+    // Login rewards: the later claim date wins; the same date keeps the longer streak
+    if (remote.loginRewards.lastClaim &&
+        (!save.loginRewards.lastClaim || remote.loginRewards.lastClaim > save.loginRewards.lastClaim)) {
+      save.loginRewards = JSON.parse(JSON.stringify(remote.loginRewards));
+    } else if (remote.loginRewards.lastClaim && remote.loginRewards.lastClaim === save.loginRewards.lastClaim) {
+      save.loginRewards.streak = Math.max(save.loginRewards.streak, remote.loginRewards.streak);
+    }
+
+    // Preferences and equipped cosmetics: keep whichever side actually
+    // changed the value since this tab loaded (baseline diff). If both
+    // tabs changed it, the remote write wins. These are pure preferences;
+    // no progress can be lost either way.
+    if (prefBaseline) {
+      save.sound = prefPick(save.sound, remote.sound, prefBaseline.sound);
+      save.music = prefPick(save.music, remote.music, prefBaseline.music);
+      save.vibration = prefPick(save.vibration, remote.vibration, prefBaseline.vibration);
+      save.theme = prefPick(save.theme, remote.theme, prefBaseline.theme);
+      save.installHidden = prefPick(save.installHidden, remote.installHidden, prefBaseline.installHidden);
+      save.skin = prefPick(save.skin, remote.skin, prefBaseline.skin);
+      save.boardSkin = prefPick(save.boardSkin, remote.boardSkin, prefBaseline.boardSkin);
+      for (var sk in prefBaseline.settings) {
+        if (Object.prototype.hasOwnProperty.call(prefBaseline.settings, sk)) {
+          save.settings[sk] = prefPick(save.settings[sk], remote.settings[sk], prefBaseline.settings[sk]);
+        }
+      }
+    }
+
+    // A board in progress in this tab is never replaced; otherwise adopt
+    // the remote snapshot so a restore on reload is not lost.
+    if (!(save.cur && typeof save.cur === 'object')) {
+      save.cur = remote.cur || null;
+    }
+
+    save.rev = Math.max(save.rev || 0, remote.rev || 0);
+  }
+
+  function prefPick(local, remote, base) {
+    if (remote === base) return local; // remote did not change it -> keep ours
+    return remote;                     // remote changed it -> take theirs
+  }
+
+  // Read the on-disk save and merge it if another tab has written since
+  // our last sync. Safe against corrupt JSON (merge skipped; our own
+  // write then repairs the key) and a missing key (nothing to merge).
+  function mergeFromDisk() {
+    var raw = null;
+    try { raw = localStorage.getItem(SAVE_KEY); } catch (e) { return; }
+    if (raw === lastSyncedRaw) return; // nobody else wrote since our last sync
+    if (!raw) return;                  // no remote save yet
+    var remote = null;
+    try { remote = JSON.parse(raw); } catch (e) { return; }
+    mergeRemote(remote);
+  }
+
+  // Write our save exactly as it is, no merge step. For persist() after
+  // its merge pass, and for callers that intentionally overwrite (reset).
+  function writeNow() {
     try {
-      localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+      var out = JSON.stringify(save);
+      localStorage.setItem(SAVE_KEY, out);
+      lastSyncedRaw = out;
+      lastSyncedRev = save.rev || 0;
       storageOk = true;
       return true;
     } catch (e) {
@@ -306,6 +454,15 @@ const Storage = (function() {
       }
       return false;
     }
+  }
+
+  // Persist save data. Before overwriting, merge any progress written by
+  // another tab since our last sync, so a stale tab can never roll back
+  // newer progress (P0: stale-tab save overwrite prevention).
+  function persist() {
+    try { mergeFromDisk(); } catch (e) { /* merging must never block a save */ }
+    save.rev = (save.rev || 0) + 1;
+    return writeNow();
   }
 
   // Get current save
@@ -431,6 +588,20 @@ const Storage = (function() {
     return owned ? 'equipped' : 'purchased';
   }
 
+  // One-time claim guard with cross-tab safety (P0/P1): sync from disk
+  // first so a claim made in another tab is honored, then claim the key
+  // only if it is still free. Returns true only when THIS call claimed it
+  // and the claim was durably written.
+  function claimOnce(mapName, key) {
+    if (!mapName || key === undefined || key === null) return false;
+    key = String(key);
+    try { mergeFromDisk(); } catch (e) {}
+    if (!save[mapName] || typeof save[mapName] !== 'object') save[mapName] = {};
+    if (save[mapName][key] === true) return false;
+    save[mapName][key] = true;
+    return writeNow();
+  }
+
   // Update hints used
   function updateHintsUsed(count) {
     save.stats.hintsUsed += count;
@@ -443,10 +614,12 @@ const Storage = (function() {
     persist();
   }
 
-  // Reset all progress
+  // Reset all progress. Intentionally bypasses the merge: a reset must
+  // win. (Known limit: a tab that was already open can resurrect merged
+  // progress with its next save - documented, accepted for a reset action.)
   function resetAll() {
     save = defaultSave();
-    persist();
+    writeNow();
   }
 
   // Check if storage is available
@@ -469,6 +642,7 @@ const Storage = (function() {
     spendCoins: spendCoins,
     cosmeticAction: cosmeticAction,
     resetAll: resetAll,
+    claimOnce: claimOnce,
     isStorageOk: isStorageOk,
     persist: persist,
     DESIGN_LEVELS: DESIGN_LEVELS
