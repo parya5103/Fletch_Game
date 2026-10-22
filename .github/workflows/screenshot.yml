@@ -24,7 +24,12 @@ jobs:
           node-version: '20'
 
       - name: Install deps
-        run: npm install --no-save puppeteer http-server
+        # Supply chain: this job has contents:write, so never install
+        # floating "latest" versions. Update process: bump both exact pins,
+        # run this workflow via workflow_dispatch, require the log to end
+        # with "ALL CHECKS PASSED", then merge. Dependabot does not manage
+        # these inline versions.
+        run: npm install --no-save puppeteer@25.16.0 http-server@14.1.1
 
       - name: Capture screenshots
         run: node scripts/screenshot.js

@@ -2,20 +2,44 @@
 
 ## Supported Versions
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+Arrow Out! deploys from the main branch as a single static snapshot; the
+hosted site always runs the latest release. Players receive updates
+automatically through the in-game service-worker update banner, so only
+the latest release receives security fixes.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+| Channel | Supported |
+| ------- | --------- |
+| Latest release on main | Yes |
+| Older snapshots / cached versions | No - reopen the game to update |
 
 ## Reporting a Vulnerability
 
-Use this section to tell people how to report a vulnerability.
+Preferred: use GitHub's private vulnerability reporting ("Report a
+vulnerability" on this repository's Security tab).
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+If that is not available, open a regular GitHub issue WITHOUT exploit
+details or payloads and note that you have a security report; the
+maintainer will follow up privately.
+
+Please include:
+
+- The page or URL involved
+- Browser and version, and whether the game was installed (PWA) or a tab
+- Step-by-step reproduction instructions
+- The impact you observed
+
+What to expect:
+
+- Acknowledgement within a few days
+- Confirmed issues are fixed in the next release
+- Manual testing is welcome; please do not run automated load or scan
+  tools against the hosted site
+
+## Scope
+
+- The game is a client-only static app: no accounts, no server-side
+  logic, no payments. Progress and settings live only in the player's own
+  browser storage and never leave the device.
+- Cheating by editing one's own local save data is possible by design and
+  is out of scope - there is no competitive leaderboard or server economy.
+- Repository CI secrets are never embedded in client code.

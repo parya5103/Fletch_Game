@@ -402,7 +402,19 @@ async function runUpdateCycleTest(page) {
     if (!after.hasMarker) {
       throw new Error('reload served STALE html (deploy marker missing) - update flow broken');
     }
-    if (after.save !== before.save) {
+    // The P0 stale-tab fix stamps save.rev on every persist, so the raw
+    // save string legitimately changes across the reload. Player progress
+    // must still be identical with the rev watermark (and only it) removed.
+    const saveProgress = (raw) => {
+      try {
+        const d = JSON.parse(raw);
+        if (d && typeof d === 'object') delete d.rev;
+        return JSON.stringify(d);
+      } catch (e) {
+        return 'unparseable: ' + raw;
+      }
+    };
+    if (saveProgress(after.save) !== saveProgress(before.save)) {
       throw new Error('localStorage save changed across the update reload');
     }
     if (after.bannerShown) {
