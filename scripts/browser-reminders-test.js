@@ -47,11 +47,12 @@ const report={checks:[],errors:[],externalRequests:[]};let browser,page,server,c
   // A dismissed permission prompt is simulated; native prompt/device UX is not certified.
   await page.evaluate(()=>{window.__qaPrompts=0;Notification.requestPermission=()=>{window.__qaPrompts++;return Promise.resolve('default');};});
   await page.locator('#btn-notif-permission').click();assert.equal(await page.evaluate(()=>window.__qaPrompts),1);
-  assert(await page.locator('#btn-notif-permission').isDisabled());assert.match(await page.locator('#reminder-permission').textContent(),/Already requested/);
+  await page.locator('#btn-notif-permission').click();assert.equal(await page.evaluate(()=>window.__qaPrompts),2);
+  assert.equal(await page.locator('#btn-notif-permission').isDisabled(),false);assert.match(await page.locator('#reminder-permission').textContent(),/ask again/);
   await cdp.send('Browser.setPermission',{permission:{name:'notifications'},setting:'denied',origin});
   await page.evaluate(()=>Reminders.refreshUI());assert(await page.locator('#chk-system-notifs').isDisabled());
   assert.match(await page.locator('#reminder-status').textContent(),/blocked/);
-  report.checks.push('real browser default/denied states; simulated dismissal invokes one explicit request and prevents re-prompting; denied retains in-game fallback');
+  report.checks.push('real browser default/denied states; simulated dismissal can be asked again by the same explicit button; denied retains in-game fallback');
   await cdp.send('Browser.setPermission',{permission:{name:'notifications'},setting:'granted',origin});
   await page.evaluate(()=>Reminders.refreshUI());await page.locator('#chk-system-notifs').check();
   await page.setViewportSize({width:390,height:844});await page.locator('#reminder-status').scrollIntoViewIfNeeded();

@@ -429,12 +429,34 @@ console.log('# service worker: local notification click validation');
   vm.createContext(sb);
   vm.runInContext(swSrc, sb, { filename: 'sw.js' });
 
-  check('remote push delivery removed; safe local click handler retained',
-    !handlers.push && typeof handlers.notificationclick === 'function');
+  check('hardened push handler present alongside the safe local click handler',
+    typeof handlers.push === 'function' && typeof handlers.notificationclick === 'function');
   const fireClick = (data) => handlers.notificationclick({
     notification: { close: () => {}, data }, waitUntil: () => {}
   });
   const last = arr => arr[arr.length - 1];
+
+  // push: malformed, non-object and missing payloads never show anything
+  const firePush = (jsonFn) => handlers.push({
+    data: jsonFn === null ? undefined : { json: jsonFn },
+    waitUntil: () => {}
+  });
+  const shownBefore = shown.length;
+  firePush(() => { throw new Error('malformed JSON'); });
+  check('push with malformed JSON never crashes and shows nothing', shown.length === shownBefore);
+  firePush(() => 'junk');
+  check('push with a non-object payload shows nothing', shown.length === shownBefore);
+  firePush(null);
+  check('push with no data shows nothing', shown.length === shownBefore);
+  firePush(() => ({ title: 'A'.repeat(120), body: 'B'.repeat(300), tag: 'T'.repeat(100), icon: 'https://evil.example/icon.png', data: { url: 'https://evil.example/' } }));
+  check('oversized/unsafe payload is capped and rewritten',
+    last(shown).title.length === 80 && last(shown).opts.body.length === 200 &&
+    last(shown).opts.icon === './icons/icon-192.png' && last(shown).opts.tag.length === 64 &&
+    last(shown).opts.data.url === null);
+  firePush(() => ({ title: 'Hi', body: 'Come back!', tag: 'arrow-out-daily', data: { url: './?daily=1' } }));
+  check('valid payload keeps its same-scope click URL', last(shown).opts.data.url === SCOPE + '?daily=1');
+  firePush(() => ({ body: 'x' }));
+  check('body-only payload falls back to the game title', last(shown).title === 'Arrow Out!');
 
   // notificationclick: unsafe/missing URLs fall back to the app scope
   fireClick({ url: 'javascript:alert(1)' });
