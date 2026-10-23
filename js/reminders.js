@@ -2,8 +2,8 @@
 'use strict';
 const Reminders = (function() {
   const KEY = 'arrowOut.reminders.v1', CLAIMS = 'arrowOut.reminderClaims.v1', TAG = 'arrow-out-local';
-  let initialized = false, busy = false, prompting = false, cleanupBusy = false;
-  let storageAvailable = true, lastWrite = 0, legacyWarning = '';
+  let initialized = false, busy = false, prompting = false, pushBusy = false;
+  let storageAvailable = true, lastWrite = 0;
   let memory = { activityAt: Date.now(), notifiedFor: 0, lastTestAt: 0, pending: false };
   const $ = id => document.getElementById(id);
   const prefs = () => Storage.getSave().settings;
@@ -63,7 +63,9 @@ const Reminders = (function() {
   function options(test) {
     return { body: test ? 'Local reminder test. Browser or OS settings may suppress its display.' :
       'Your puzzle is waiting. Return whenever you are ready.',
-    tag: TAG, icon: './icons/icon-192.png', silent: true, data: { url: './' } };
+    // No silent flag: sound and vibration follow the browser and OS
+    // notification settings the user already configured (never forced silent).
+    tag: TAG, icon: './icons/icon-192.png', data: { url: './' } };
   }
   async function deliver(coordinated) {
     const state = read(), settings = prefs(), now = Date.now(), episode = state.activityAt;
@@ -116,7 +118,10 @@ const Reminders = (function() {
     const settings = prefs();
     if (prompting || !settings.notifications || !systemSupported()) return;
     let perm = permission();
-    if (perm === 'default' && !settings.notificationPrompted) {
+    if (perm === 'default') {
+      // A dismissed browser prompt still reports 'default', so every
+      // explicit button click may ask again; notificationPrompted only
+      // informs the hint text, it never locks the button.
       settings.notificationPrompted = true; Storage.persist(); prompting = true; refreshUI();
       try {
         // A single invocation, synchronously from the explicit button action.
@@ -147,22 +152,47 @@ const Reminders = (function() {
       catch (_) { return false; }
     }).catch(() => false);
   }
-  async function retireLegacyPush() {
-    if (cleanupBusy) return;
-    cleanupBusy = true;
+  function pushStatus(msg) { if ($('push-status')) $('push-status').textContent = msg || ''; }
+  async function pushStatusRefresh() {
+    if (pushBusy) return;
+    if (!prefs().pushReminders) { pushStatus(''); return; }
+    if (typeof PWA === 'undefined') { pushStatus('Push unavailable in this browser'); return; }
     try {
-      const reg = await registration();
-      if (reg && reg.pushManager && reg.pushManager.getSubscription) {
-        const sub = await reg.pushManager.getSubscription();
-        if (sub && !(await sub.unsubscribe())) throw Error('cleanup incomplete');
+      const sub = await PWA.getPushSubscriptionJson();
+      pushStatus(sub ? 'Daily push reminders active' : 'Setup incomplete — toggle off and on');
+    } catch (_) { pushStatus('Setup incomplete — toggle off and on'); }
+  }
+  // Daily push is genuine Web Push: a scheduled workflow delivers ~5
+  // notifications a day even when the game is closed. Local reminders
+  // (banner/system while the page can run) stay fully separate.
+  async function pushToggle() {
+    if (pushBusy) return;
+    pushBusy = true;
+    try {
+      const checked = !!($('chk-push') && $('chk-push').checked);
+      if (!checked) {
+        prefs().pushReminders = false; Storage.persist();
+        try {
+          if (typeof PWA !== 'undefined') {
+            const sub = await PWA.getPushSubscriptionJson();
+            if (sub) { await PWA.deletePushSubscription(sub); await PWA.unsubscribePush(); }
+          }
+        } catch (_) { /* roster removal is best-effort */ }
+        pushStatus(''); refreshUI(); return;
       }
-      if (reg && reg.getNotifications) {
-        for (const tag of ['arrow-out-daily', 'arrow-out'])
-          (await reg.getNotifications({ tag })).forEach(n => n.close());
+      if (typeof PWA === 'undefined' || !PWA.pushSupported()) {
+        pushStatus('Daily push reminders are not available in this browser'); refreshUI(); return;
       }
-      legacyWarning = '';
-    } catch (_) { legacyWarning = 'Old push cleanup could not be confirmed. Retry, or revoke this site’s notification permission in browser settings. Old server records need owner deletion.'; }
-    finally { cleanupBusy = false; refreshUI(); }
+      let perm = PWA.notifPermission();
+      if (perm === 'default') perm = await PWA.requestNotifPermission();
+      if (perm === 'denied') { pushStatus('Blocked in browser notification settings'); refreshUI(); return; }
+      const sub = await PWA.subscribePush();
+      if (!sub) { pushStatus('Could not subscribe — check your connection, then toggle off and on'); refreshUI(); return; }
+      const saved = await PWA.submitPushSubscription(sub);
+      if (!saved) { pushStatus('Could not save reminders — check your connection, then toggle off and on'); refreshUI(); return; }
+      prefs().pushReminders = true; Storage.persist();
+      pushStatus('Daily push reminders on — see you soon!'); refreshUI();
+    } finally { pushBusy = false; }
   }
   function status() {
     if (!prefs().notifications) return 'Off';
@@ -181,13 +211,14 @@ const Reminders = (function() {
     if (system) { system.checked = settings.systemNotifications; system.disabled = !settings.notifications || !systemSupported() || perm !== 'granted'; }
     for (const id of ['st-notif','reminder-status']) if ($(id)) $(id).textContent = status();
     if ($('btn-notif-permission')) $('btn-notif-permission').disabled = !settings.notifications || !systemSupported() ||
-      perm !== 'default' || settings.notificationPrompted || prompting;
+      perm !== 'default' || prompting;
     if ($('reminder-permission')) $('reminder-permission').textContent = 'System permission: ' + perm +
-      (settings.notificationPrompted && perm === 'default' ? '. Already requested; use browser site settings to change it.' : '.');
+      (settings.notificationPrompted && perm === 'default' ? '. Prompt shown before; this button can ask again.' : '.');
     if ($('btn-notif-test')) $('btn-notif-test').disabled = !settings.notifications || !settings.systemNotifications ||
       !systemSupported() || perm !== 'granted';
-    if ($('reminder-legacy')) { $('reminder-legacy').textContent = legacyWarning; $('reminder-legacy').hidden = !legacyWarning; }
-    if ($('btn-reminder-cleanup')) $('btn-reminder-cleanup').hidden = !legacyWarning;
+    const push = $('chk-push');
+    if (push) push.checked = settings.pushReminders === true;
+    pushStatusRefresh();
     if (!settings.notifications) hideBanner();
   }
   function reset() {
@@ -216,7 +247,7 @@ const Reminders = (function() {
         'Request handed to the browser. OS settings may suppress display; this does not test closed-browser delivery.' :
         'No notification sent. Check permission, active offline worker and storage; wait a minute between tests.';
     });
-    on('btn-reminder-cleanup','click', retireLegacyPush);
+    on('chk-push','change', pushToggle);
     on('btn-reminder-dismiss','click', () => activity(true));
     document.addEventListener('pointerdown', () => activity(false), { passive: true, capture: true });
     document.addEventListener('keydown', () => activity(false), { capture: true });
@@ -224,9 +255,8 @@ const Reminders = (function() {
     window.addEventListener('pagehide', () => { if (prefs().notifications) { read(); write(); } });
     window.addEventListener('focus', () => { refreshUI(); check(); });
     window.addEventListener('storage', () => { read(); refreshUI(); if (Date.now() - memory.activityAt < 15000) hideBanner(); });
-    if (navigator.serviceWorker && navigator.serviceWorker.addEventListener) navigator.serviceWorker.addEventListener('controllerchange', retireLegacyPush);
     setInterval(check, 30000); // browser suspension can delay or stop this; never a background guarantee
-    retireLegacyPush(); refreshUI();
+    refreshUI();
   }
-  return { init, reset, check, activity, setEnabled, permission, status, refreshUI, allowSystem, testSystem, retireLegacyPush };
+  return { init, reset, check, activity, setEnabled, permission, status, refreshUI, allowSystem, testSystem };
 })();

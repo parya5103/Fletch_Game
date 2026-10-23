@@ -112,10 +112,10 @@ test('About catalogue/count claims agree with production and unsupported release
   assert(!/each release|every release|before they go live|4&ndash;5/.test(about));
   assert.match(about,/daily login rewards/);assert.match(about,/failure dialog/);
 });
-test('Privacy distinguishes local reminders, historical subscriptions and public drafts from planned ads', () => {
+test('Privacy distinguishes local reminders, the daily push roster and public drafts from planned ads', () => {
   const privacy=read('privacy.html');
-  assert.match(privacy,/before an issue is submitted/);assert.match(privacy,/attempts to unsubscribe an existing browser subscription/);
-  assert.match(privacy,/site operator must delete the old roster separately/);
+  assert.match(privacy,/before an issue is submitted/);assert.match(privacy,/removes this device from the roster immediately/);
+  assert.match(privacy,/Provider-side retention \(Supabase backups or GitHub logs\) is managed by those providers/);
   assert.match(privacy,/no automated access-request service or private contact form/);
   assert.match(privacy,/no advertising SDK, AdSense code, ad cookies or consent-management system/);
   assert(!/GDPR|DPDP|will ask for it first/.test(privacy));

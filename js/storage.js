@@ -60,6 +60,7 @@ const Storage = (function() {
         reminderMinutes: 90,
         systemNotifications: false,
         notificationPrompted: false,
+        pushReminders: false,
         seenOnboarding: false
       }
     };
@@ -277,6 +278,7 @@ const Storage = (function() {
     d.settings.reminderMinutes = [60, 90, 120].includes(d.settings.reminderMinutes) ? d.settings.reminderMinutes : 90;
     d.settings.systemNotifications = toBool(d.settings.systemNotifications, false);
     d.settings.notificationPrompted = toBool(d.settings.notificationPrompted, false);
+    d.settings.pushReminders = toBool(d.settings.pushReminders, false);
     d.settings.seenOnboarding = toBool(d.settings.seenOnboarding, false);
 
     return d;

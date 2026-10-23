@@ -162,16 +162,28 @@ test('service worker assets exist and failed precache cannot activate; cache iso
   box.caches.open=async()=>{throw Error('cache unavailable');};
   assert.equal(await (await request('js/main.js')).text(),'asset');
 });
-test('PWA retains safe worker-copy fallback without remote subscription methods', async () => {
-  let subscriptions=0;const noop=()=>{};
-  const registration={pushManager:{getSubscription:async()=>null,subscribe:async()=>{subscriptions++;return {endpoint:'synthetic'};}}};
+test('PWA restores web-push helpers with roster submit/delete alongside the worker-copy fallback', async () => {
+  let subscriptions=0,current=null;const noop=()=>{};
+  const registration={pushManager:{getSubscription:async()=>current,subscribe:async()=>{subscriptions++;current={endpoint:'synthetic'};return current;}}};
   const box=vm.createContext({console,Uint8Array,Promise,URL,atob,Storage:{getSave:()=>({})},
     document:{getElementById:()=>null,addEventListener:noop,querySelector:()=>null},
     navigator:{serviceWorker:{ready:Promise.resolve(registration),register:async()=>registration},userAgent:''},
     window:{PushManager:function(){},Notification:{permission:'granted'},addEventListener:noop,matchMedia:()=>({matches:false})},
     Notification:{permission:'granted'},location:{protocol:'https:',hostname:'example.test'},setTimeout:noop});
   vm.runInContext(source('js/pwa.js')+'\nglobalThis.P=PWA;',box);
-  assert.equal(box.P.subscribePush,undefined);assert.equal(box.P.submitPushSubscription,undefined);assert.equal(subscriptions,0);
+  assert.equal(typeof box.P.subscribePush,'function');assert.equal(typeof box.P.submitPushSubscription,'function');assert.equal(subscriptions,0);
+  assert.equal(await box.P.subscribePush(),'{"endpoint":"synthetic"}');assert.equal(subscriptions,1);
+  assert.equal(await box.P.getPushSubscriptionJson(),'{"endpoint":"synthetic"}');assert.equal(subscriptions,1);
+  const posts=[],dels=[];
+  box.fetch=async(url,opts)=>{((opts.method==='DELETE')?dels:posts).push([url,opts]);return new Response('',{status:201});};
+  assert.equal(await box.P.submitPushSubscription('{"endpoint":"https://fcm/x"}'),true);
+  assert(posts.length===1&&posts[0][0].includes('/rest/v1/push_subscriptions')&&posts[0][1].method==='POST'&&
+    posts[0][1].headers['Prefer']==='resolution=merge-duplicates'&&posts[0][1].body.includes('https://fcm/x'));
+  assert.equal(await box.P.submitPushSubscription('not json'),false);assert.equal(posts.length,1);
+  assert.equal(await box.P.deletePushSubscription('{"endpoint":"https://fcm/x"}'),true);
+  assert(dels.length===1&&dels[0][0].includes('endpoint=eq.')&&dels[0][1].method==='DELETE');
+  registration.pushManager.getSubscription=async()=>({unsubscribe:async()=>true});
+  assert.equal(await box.P.unsubscribePush(),true);
   box.fetch=async()=>new Response('',{status:200});assert.equal(await box.P.getServiceWorkerSource(),null);
   box.fetch=async()=>new Response('not found',{status:404});assert.equal(await box.P.getServiceWorkerSource(),null);
   box.fetch=async()=>new Response(source('sw.js'));assert.equal(await box.P.getServiceWorkerSource(),source('sw.js'));

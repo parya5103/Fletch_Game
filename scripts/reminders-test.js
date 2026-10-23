@@ -14,8 +14,8 @@ function fixture(options={}) {
   const h=harness({'arrowOut.v2':JSON.stringify({v:2,unlocked:900,coins:4321,skin:'royal',owned:{royal:true},boardSkin:'galaxy',ownedBoards:{galaxy:true},
     settings:{notifications:true,systemNotifications:true,reminderMinutes:options.minutes||90,...options.settings}})});
   const before=JSON.stringify(h.ST.getSave()), elements={}, events={}, intervals=[], shown=[], closed=[];
-  for(const id of ['chk-notifs','chk-system-notifs','reminder-minutes','reminder-banner','st-notif','reminder-status','btn-notif-permission','reminder-permission','btn-notif-test','reminder-legacy','btn-reminder-cleanup'])
-    elements[id]={checked:false,hidden:true,disabled:false,value:'',textContent:'',addEventListener(){}};
+  for(const id of ['chk-notifs','chk-system-notifs','reminder-minutes','reminder-banner','st-notif','reminder-status','btn-notif-permission','reminder-permission','btn-notif-test','chk-push','push-status'])
+    elements[id]={checked:false,hidden:true,disabled:false,value:'',textContent:'',addEventListener(name,fn){(events[id+':'+name]||=[]).push(fn);}};
   const notification={permission:options.permission||'granted',requestPermission(){requested++;notification.permission=options.answer||'granted';return Promise.resolve(notification.permission);}};
   let requested=0, retired=0;
   const reg={scope:'https://game.example/Fletch_Game/',active:{},showNotification:async(title,opts)=>{shown.push({title,opts});if(options.rejectShow)throw Error('OS unavailable');},
@@ -28,7 +28,7 @@ function fixture(options={}) {
     location:{href:'https://game.example/Fletch_Game/index.html'},Notification:options.unsupported?undefined:notification,
     navigator:{locks:options.noLocks?undefined:options.locks||locks(),serviceWorker:options.noSW?undefined:{getRegistration:options.getRegistration||(async()=>reg),addEventListener:add}},
     window:{isSecureContext:!options.insecure,addEventListener:add},document,setInterval:fn=>intervals.push(fn),
-    fetch(){throw Error('no remote API calls allowed');}});
+    PWA:options.pwa,fetch(){throw Error('no remote API calls allowed');}});
   vm.runInContext(source('js/reminders.js')+';globalThis.R=Reminders;',box);
   box.R.init();
   return {R:box.R,h,before,clock,data,elements,events,intervals,shown,closed,reg,notification,document,options,
@@ -53,14 +53,14 @@ test('Off blocks timing, permission requests and test delivery and closes local 
   assert.equal(await f.R.testSystem(),false);assert.equal(f.requests(),0);assert.equal(f.shown.length,0);
   assert.equal(f.R.status(),'Off');await settle();assert(f.closed.includes('arrow-out-local'));
 });
-test('permission default is requested only by an explicit action, once; granted enables system preference',async()=>{
+test('permission default is requested only by explicit actions; granted enables system preference',async()=>{
   const f=fixture({permission:'default',settings:{systemNotifications:false}});assert.equal(f.requests(),0);
   await f.R.check();assert.equal(f.requests(),0);await f.R.allowSystem();await f.R.allowSystem();
   assert.equal(f.requests(),1);assert.equal(f.h.ST.getSave().settings.systemNotifications,true);
 });
-test('denied and dismissed permission never cause repeated prompts or suppress in-game fallback',async()=>{
+test('denied never prompts; a dismissed (still default) prompt can be asked again by the explicit button',async()=>{
   for(const options of [{permission:'denied'},{permission:'default',answer:'default'}]){
-    const f=fixture(options);await f.R.allowSystem();await f.R.allowSystem();assert.equal(f.requests(),options.permission==='denied'?0:1);
+    const f=fixture(options);await f.R.allowSystem();await f.R.allowSystem();assert.equal(f.requests(),options.permission==='denied'?0:2);
     f.advance(90*MINUTE);await f.R.check();assert.equal(f.elements['reminder-banner'].hidden,false);assert.equal(f.shown.length,0);
   }
 });
@@ -105,16 +105,55 @@ test('manual system tests are serialized and rate-limited across reloads and tab
   clock.now+=MINUTE;assert.equal(await b.R.testSystem(),true);
   b.reg.scope='https://game.example/other/';clock.now+=MINUTE;assert.equal(await b.R.testSystem(),false);
 });
-test('legacy push is only unsubscribed, with failed cleanup reported and retryable',async()=>{
-  const f=fixture({legacy:true,cleanupFails:true});await settle();assert.equal(f.retired(),1);
-  assert.match(f.elements['reminder-legacy'].textContent,/could not be confirmed/);
-  f.options.cleanupFails=false;await f.R.retireLegacyPush();assert.equal(f.retired(),2);assert.equal(f.elements['reminder-legacy'].hidden,true);
+test('legacy retirement is gone: no automatic unsubscription or cleanup UI, and the old API is not exported',async()=>{
+  const f=fixture({legacy:true});await settle();await f.R.check();
+  assert.equal(f.retired(),0);
+  assert.equal(typeof f.R.retireLegacyPush,'undefined');
 });
 test('new settings sanitize safely while all previous preferences, progress and purchases remain',()=>{
-  const f=fixture({settings:{reminderMinutes:1,systemNotifications:'junk',notificationPrompted:'junk',reducedMotion:true,seenOnboarding:true}});
+  const f=fixture({settings:{reminderMinutes:1,systemNotifications:'junk',notificationPrompted:'junk',pushReminders:'junk',reducedMotion:true,seenOnboarding:true}});
   const s=f.h.ST.getSave();assert.equal(s.settings.reminderMinutes,90);assert.equal(s.settings.systemNotifications,false);
-  assert.equal(s.settings.notificationPrompted,false);assert.equal(s.settings.notifications,true);assert.equal(s.settings.reducedMotion,true);
+  assert.equal(s.settings.notificationPrompted,false);assert.equal(s.settings.pushReminders,false);assert.equal(s.settings.notifications,true);assert.equal(s.settings.reducedMotion,true);
   assert.equal(s.unlocked,900);assert.equal(s.coins,4321);assert.equal(s.owned.royal,true);assert.equal(s.ownedBoards.galaxy,true);
+});
+
+test('push toggle subscribes and saves the roster only on success',async()=>{
+  const sent=[],gone=[];const subJson='{"endpoint":"https://fcm/x"}';
+  const pwa={pushSupported:()=>true,notifPermission:()=>'granted',requestNotifPermission:async()=>'granted',
+    subscribePush:async()=>subJson,getPushSubscriptionJson:async()=>subJson,
+    submitPushSubscription:async()=>{sent.push(1);return true;},
+    deletePushSubscription:async()=>{gone.push(1);return true;},unsubscribePush:async()=>true};
+  const f=fixture({pwa});
+  f.elements['chk-push'].checked=true;
+  for(const fn of f.events['chk-push:change'])fn();
+  await settle();
+  assert.equal(f.h.ST.getSave().settings.pushReminders,true);
+  assert.equal(sent.length,1);
+  assert.match(f.elements['push-status'].textContent,/active|soon/);
+  f.elements['chk-push'].checked=false;
+  for(const fn of f.events['chk-push:change'])fn();
+  await settle();
+  assert.equal(f.h.ST.getSave().settings.pushReminders,false);
+  assert.equal(gone.length,1);
+});
+test('push toggle failures keep the preference off with honest status',async()=>{
+  const pwa={pushSupported:()=>true,notifPermission:()=>'denied',requestNotifPermission:async()=>'denied',
+    subscribePush:async()=>null,getPushSubscriptionJson:async()=>null,
+    submitPushSubscription:async()=>false,deletePushSubscription:async()=>true,unsubscribePush:async()=>true};
+  const f=fixture({pwa});
+  f.elements['chk-push'].checked=true;
+  for(const fn of f.events['chk-push:change'])fn();
+  await settle();
+  assert.equal(f.h.ST.getSave().settings.pushReminders,false);
+  assert.match(f.elements['push-status'].textContent,/Blocked in browser notification settings/);
+  assert.equal(f.elements['chk-push'].checked,false);
+  const g=fixture({}); // no PWA module at all
+  g.elements['chk-push'].checked=true;
+  for(const fn of g.events['chk-push:change'])fn();
+  await settle();
+  assert.equal(g.h.ST.getSave().settings.pushReminders,false);
+  assert.match(g.elements['push-status'].textContent,/not available in this browser/);
+  assert.equal(g.elements['chk-push'].checked,false);
 });
 
 test('reset clears local reminder timing while preserving game data outside an explicit progress reset',()=>{

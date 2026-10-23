@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Arrow Out!" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' data:; connect-src 'self' https://usszcnaaylbsgqaehsgp.supabase.co; object-src 'none'; base-uri 'none'" />
   <title>Arrow Out! &mdash; Premium Arrow Puzzle</title>
   
   <!-- Preload critical resources -->
@@ -338,8 +338,8 @@
     <div class="card">
       <button class="btn icon close-x" data-close type="button" aria-label="Close reminder settings">&times;</button>
       <h2 id="reminders-title">Notifications &amp; reminders</h2>
-      <p class="sub">Free local reminders. No account, server or subscription.</p>
-      <p id="reminder-limit">Checks run only while this game page can execute. A closed, suspended or battery-restricted browser cannot schedule reminders. Return to the open game for an in-game fallback. This replaces the old five-daily push service.</p>
+      <p class="sub">Local reminders plus optional daily push. No account needed.</p>
+      <p id="reminder-limit">Local reminder checks run only while this game page can execute; a closed browser cannot schedule them. The Daily push reminders below use real Web Push and reach you roughly five times a day even when the game is closed.</p>
       <div class="stack">
         <label class="row" for="chk-notifs">Enable in-game reminders <input type="checkbox" id="chk-notifs" aria-describedby="reminder-limit" /></label>
         <label for="reminder-minutes">Remind me after no interaction for</label>
@@ -350,13 +350,14 @@
         <button class="btn" id="btn-notif-permission" type="button" aria-describedby="system-reminder-help">Allow system notifications</button>
         <label class="row" for="chk-system-notifs">Also use system notifications <input type="checkbox" id="chk-system-notifs" aria-describedby="system-reminder-help" /></label>
         <p id="reminder-permission"></p>
+        <p id="push-help">Daily push reminders are delivered by Web Push roughly five times a day, even when the game is closed. Your browser keeps the subscription; the game saves it to the developer's free delivery roster. Toggling off removes this device from that roster immediately.</p>
+        <label class="row" for="chk-push">Daily push reminders <input type="checkbox" id="chk-push" aria-describedby="push-help" /></label>
+        <p id="push-status" role="status" aria-live="polite"></p>
         <p id="reminder-status" role="status" aria-live="polite"></p>
         <button class="btn small" id="btn-notif-test" type="button">Send test notification</button>
         <p id="reminder-test-status" role="status" aria-live="polite"></p>
-        <p id="reminder-legacy" hidden></p>
-        <button class="btn small" id="btn-reminder-cleanup" type="button" hidden>Retry old push cleanup</button>
       </div>
-      <p>At most one reminder per inactivity period. Interacting starts a new period; system tests are limited to one per minute. Permission is requested only by the Allow button, once; if dismissed or blocked, use your browser’s site settings. Disabling reminders closes local notifications.</p>
+      <p>At most one reminder per inactivity period. Interacting starts a new period; system tests are limited to one per minute. Permission is requested only by explicit buttons; a dismissed prompt can be asked again by the same button. Disabling reminders closes local notifications; toggling off daily push removes this device from the delivery roster.</p>
     </div>
   </div>
 

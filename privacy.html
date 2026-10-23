@@ -34,43 +34,44 @@
 <body>
   <main class="wrap">
     <h1>Arrow Out! &mdash; Privacy Policy</h1>
-    <p class="sub">Last updated: 18 October 2026 &middot; Game progress stays on your device. Reminders are local; system notifications are optional.</p>
+    <p class="sub">Last updated: 22 October 2026 &middot; Game progress stays on your device. Reminders are local; system notifications and daily push are optional.</p>
 
     <h2>What the game stores</h2>
     <p>Arrow Out! has no accounts or sign-in. There is no server database for game progress. All your progress &mdash; current level, stars, coins, owned arrow styles and board themes, streaks, achievements and settings &mdash; is saved in your browser's <b>localStorage</b>, on your own device. The game does not upload this save. Reminder preferences and whether permission has already been requested are included in it. Separate local reminder metadata records interaction time and deduplication/test timestamps; it is not uploaded. Using Share sends the level, score or link you choose to share through your browser or clipboard.</p>
     <ul>
-      <li>Normal gameplay needs no external API. Loading or updating the public site contacts GitHub Pages (preview builds may use a different host); local reminders make no subscription or roster requests. Retiring an old push subscription can contact the browser's push service.</li>
+      <li>Normal gameplay needs no external API. Loading or updating the public site contacts GitHub Pages (preview builds may use a different host); local reminders make no network requests. Enabling Daily push reminders contacts the developer's Supabase roster and your browser's push service.</li>
       <li>The game itself sets no cookies and runs no analytics or trackers. Progress lives in localStorage, and the service worker keeps cached copies of the game files for offline play &mdash; both stay on your device (see Advertising below for what could change if ads are ever enabled).</li>
       <li>Installing the game (PWA) copies it to your device for offline play; it does not add any new data collection.</li>
       <li>The <a href="contact.html">Contact page</a> sends nothing to this site: with JavaScript enabled it prepares a draft locally. Opening its link sends the subject and message to GitHub in URL query parameters, before an issue is submitted. Without JavaScript, submitting the form sends those parameters directly to GitHub. The URL may remain in browser history and GitHub logs; posting makes the issue and your GitHub username public. This is not a private contact channel. See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub&rsquo;s privacy statement</a>.</li>
     </ul>
 
-    <h2>Local reminders and optional system notifications</h2>
+    <h2>Local reminders, system notifications and daily push</h2>
     <p>Reminders are off for new players. An existing reminder preference is preserved as an in-game reminder choice. Settings &rarr; Notification &amp; reminder settings offers 1, 1&frac12; or 2 hours of inactivity. Checks run in the game page, with an in-game fallback. A closed, suspended or battery-restricted page cannot schedule them.</p>
     <ul>
-      <li>System notifications are separately optional. Permission is requested only by the explicit Allow button, once. If dismissed or denied, use browser site settings to change it; in-game reminders still work.</li>
-      <li>Where supported, a running background page can ask the site's service worker to display a local notification. Browser/OS settings may suppress it. No remote push, daily sender, external subscription roster or closed-browser delivery is used by this version.</li>
+      <li>System notifications are separately optional. Permission is requested only by the explicit Allow button; a dismissed prompt can be asked again by the same button. If denied, use browser site settings; in-game reminders still work.</li>
+      <li>Where supported, a running background page can ask the site's service worker to display a local notification. Browser/OS settings may suppress it. A local timer never delivers reminders to a closed browser.</li>
+      <li>Daily push reminders are a separate optional setting. Your browser stores a Web Push subscription, the game saves it to the developer's free Supabase roster, and a scheduled GitHub Actions sender delivers roughly five short reminders a day even when the game is closed. Toggling Daily push off removes this device from the roster immediately.</li>
       <li>Disabling reminders stops new requests and attempts to close local notifications. You can also revoke permission in browser settings.</li>
     </ul>
-    <p>Earlier versions stored device-linked push endpoints and encryption keys in Supabase and used GitHub Actions to send reminders. This version removes that sender and integration and attempts to unsubscribe an existing browser subscription, without requesting permission. Failed cleanup is reported with a retry option. Unsubscribing or clearing local data cannot erase old Supabase records, backups or logs. The site operator must delete the old roster separately; provider retention is managed by those providers. Do not post subscription identifiers in public issues. See <a href="https://supabase.com/privacy">Supabase's privacy policy</a> and <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a> for those historical services.</p>
+    <p>Daily push works like this: the device-linked push endpoint and encryption keys are stored in the developer's free Supabase roster table (players can only insert and delete their own row), and the scheduled GitHub Actions sender reads that roster with the developer's service key to send roughly five daily Web Push notifications. Toggling the setting off removes this device's roster row immediately and unsubscribes the browser; subscriptions that the push service reports as expired are pruned from the roster automatically. Provider-side retention (Supabase backups or GitHub logs) is managed by those providers. Do not post subscription identifiers in public issues. See <a href="https://supabase.com/privacy">Supabase's privacy policy</a> and <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a> for those services.</p>
 
     <h2>Deleting your data</h2>
     <ul>
-      <li>In the game: Settings &rarr; <b>Reset all progress</b> resets game progress and preferences. It also resets local reminder timing and disables reminders, and attempts to close local notifications. It does not clear the offline cache, revoke browser permission or erase historical provider records.</li>
-      <li>In your browser: clearing site data removes local game data. Use browser notification settings to revoke permission. Clearing local data cannot itself erase historical provider records.</li>
+      <li>In the game: Settings &rarr; <b>Reset all progress</b> resets game progress and preferences. It also resets local reminder timing and disables reminders, and attempts to close local notifications. It does not clear the offline cache, revoke browser permission or erase provider-side records; toggling Daily push off removes this device from the delivery roster immediately.</li>
+      <li>In your browser: clearing site data removes local game data. Use browser notification settings to revoke permission. Clearing local data cannot itself erase provider-side records; toggle Daily push off first to leave the delivery roster.</li>
     </ul>
 
     <h2>Advertising</h2>
     <p>Arrow Out! currently loads no advertising SDK, AdSense code, ad cookies or consent-management system. The rewarded-hint screen is a labelled five-second demo, not a real ad. No advertising provider is integrated. If a future release adds ads, its actual provider, data use and required user choices must be reviewed, implemented and disclosed before enabling that release. No consent or legal-compliance guarantee is made for a future integration.</p>
 
     <h2>Security</h2>
-    <p>Your game progress stays on your device, which limits exposure, and the public GitHub Pages site uses HTTPS. Still, no online service can guarantee absolute security: information that travels over the internet (requests to the hosting service or historical notification providers) can in principle be intercepted or accessed by the parties operating those services. Please keep sensitive personal details out of public GitHub issues.</p>
+    <p>Your game progress stays on your device, which limits exposure, and the public GitHub Pages site uses HTTPS. Still, no online service can guarantee absolute security: information that travels over the internet (requests to the hosting service or notification providers) can in principle be intercepted or accessed by the parties operating those services. Please keep sensitive personal details out of public GitHub issues.</p>
 
     <h2>Privacy requests and limitations</h2>
     <p>This page describes the implemented behaviour; it is not a legal compliance certification. There is no automated access-request service or private contact form. For a general privacy question, use the <a href="contact.html">Contact page</a> without including personal data. Do not put push endpoints, encryption keys or other identifiers in public issues. This page does not provide a private route for sensitive requests or guarantee provider-side deletion.</p>
 
     <h2>Children</h2>
-    <p>Arrow Out! has no accounts, and the game itself never asks for a name or email address; the <a href="contact.html">Contact page</a> asks only for a subject and message. Do not put personal details in them. Current reminders store only local preferences/timing. Historical push identifiers and provider records are described above. Any future advertising integration needs a separate review of age, consent and applicable privacy requirements before launch.</p>
+    <p>Arrow Out! has no accounts, and the game itself never asks for a name or email address; the <a href="contact.html">Contact page</a> asks only for a subject and message. Do not put personal details in them. Local reminders store only preferences and timing on your device; daily push identifiers are described above. Any future advertising integration needs a separate review of age, consent and applicable privacy requirements before launch.</p>
 
     <h2>Changes</h2>
     <p>If this policy ever changes (for example, if advertising or a backup service is added), the updated policy will be published on this page with a new last-updated date.</p>
