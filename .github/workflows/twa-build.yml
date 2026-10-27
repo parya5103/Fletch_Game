@@ -42,6 +42,20 @@ jobs:
       - name: Regenerate Android project from twa-manifest.json
         run: yes | bubblewrap update --skipVersionUpgrade --manifest=./android
 
+      # Optional AdMob app-open ads. Without the ADMOB_APP_ID secret this is a
+      # no-op and the build stays a clean no-ads APK. See docs/ADMOB.md.
+      - name: Apply optional AdMob app-open ads patch
+        env:
+          ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
+          ADMOB_APP_OPEN_UNIT_ID: ${{ secrets.ADMOB_APP_OPEN_UNIT_ID }}
+        run: |
+          if [ -z "$ADMOB_APP_ID" ]; then
+            echo "ADMOB_APP_ID secret not set - building without ads (clean no-ads build)."
+            echo "To enable AdMob app-open ads later, add the secrets and re-run: see docs/ADMOB.md."
+          else
+            bash scripts/admob-patch.sh ./android
+          fi
+
       - name: Build signed APK and App Bundle
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.TWA_KEYSTORE_PASSWORD }}
@@ -60,7 +74,7 @@ jobs:
           SHA256="$(keytool -list -v -keystore android/android.keystore -alias android -storepass "$TWA_KEYSTORE_PASSWORD" 2>/dev/null | awk '/SHA256:/{print $2}' | tr -d ':' | tr 'A-F' 'a-f')"
           echo "Certificate SHA-256: $SHA256"
           bubblewrap fingerprint add "$SHA256" --name="Play upload key" --manifest=./android
-          bubblewrap fingerprint generateAssetLinks --manifest=./android --output=./android/assetlinks.json
+          bubblewrap fingerprint generateAssetlinks --manifest=./android --output=./android/assetlinks.json
           cat android/assetlinks.json
 
       - name: Upload release artifacts

@@ -11,6 +11,9 @@ Actions. The only cost is the one-time $25 Google Play developer fee.
   Challenge shortcut, official 512px + maskable icons.
 - `.github/workflows/twa-keygen.yml` - one-time signing key generator (manual run).
 - `.github/workflows/twa-build.yml` - builds the signed APK + AAB + assetlinks.json (manual run).
+- Optional AdMob app-open ads are prepared but OFF by default: the build only
+  includes ads if the `ADMOB_APP_ID` secret is set. See `docs/ADMOB.md` for the
+  full picture (what works in a TWA, what does not, and the exact steps).
 - No game code is touched by any of this; CI and the live site are unaffected.
 
 ## One-time setup (~10 minutes)
@@ -81,3 +84,6 @@ Without this file the APK still runs, but Chrome shows a browser URL bar and a
 - The build uses `--skipPwaValidation` so it does not depend on the site being
   reachable by the quality checker; the game already passes the same PWA checks
   in the regular CI.
+- For ads, read `docs/ADMOB.md` before enabling anything. Short version: only
+  app-open ads are practical in a TWA, the default build has no ads, and testing
+  uses Google's public test ad IDs.

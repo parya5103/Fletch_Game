@@ -15,6 +15,7 @@
   "enableNotifications": true,
   "enableSiteSettingsShortcut": true,
   "fallbackType": "customtabs",
+  "minSdkVersion": 21,
   "startUrl": "/Fletch_Game/",
   "iconUrl": "https://parya5103.github.io/Fletch_Game/icons/icon-512.png",
   "maskableIconUrl": "https://parya5103.github.io/Fletch_Game/icons/icon-maskable-512.png",
