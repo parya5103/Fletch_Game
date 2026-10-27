@@ -1,0 +1,66 @@
+name: TWA signing key
+
+# One-time setup: generates the Play Store signing keystore.
+# Manual run only. Never re-run this after the first Play Store upload -
+# every future update must be signed with the same key.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  keygen:
+    runs-on: ubuntu-latest
+    steps:
+      # TODO: pin to commit SHA like other workflows once verified; Dependabot tracks tags.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Generate signing keystore
+        run: |
+          set -euo pipefail
+          # Hex-only password avoids keystore/tooling special-character issues.
+          PASS="$(head -c 32 /dev/urandom | sha256sum | cut -c1-24)"
+          keytool -genkeypair -v \
+            -keystore android.keystore \
+            -alias android \
+            -keyalg RSA -keysize 2048 \
+            -validity 10950 \
+            -storepass "$PASS" -keypass "$PASS" \
+            -dname "CN=Arrow Out!, OU=aaryapratik, O=aaryapratik, C=IN"
+          base64 -w0 android.keystore > android.keystore.b64
+          SHA256="$(keytool -list -v -keystore android.keystore -alias android -storepass "$PASS" 2>/dev/null | awk '/SHA256:/{print $2}')"
+          {
+            echo "Arrow Out! - TWA signing key"
+            echo ""
+            echo "Save this file now, and keep a private backup of android.keystore."
+            echo "If this artifact expires before the secrets are set, simply re-run"
+            echo "the workflow - regenerating is safe until the first Play Store upload."
+            echo ""
+            echo "Step 1 - repository secret TWA_KEYSTORE_B64"
+            echo "  Settings -> Secrets and variables -> Actions -> New repository secret"
+            echo "  Value = the single line inside android.keystore.b64"
+            echo ""
+            echo "Step 2 - repository secret TWA_KEYSTORE_PASSWORD"
+            echo "  Value = $PASS"
+            echo ""
+            echo "Step 3 - repository secret TWA_KEY_PASSWORD"
+            echo "  Value = $PASS (same as the keystore password)"
+            echo ""
+            echo "Certificate SHA-256 fingerprint: $SHA256"
+          } > SECRETS-SETUP.txt
+          mkdir -p artifact
+          cp android.keystore android.keystore.b64 SECRETS-SETUP.txt artifact/
+          echo "::notice::Download the twa-signing-key artifact and follow SECRETS-SETUP.txt"
+
+      - name: Upload signing key artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: twa-signing-key
+          path: artifact/
+          retention-days: 30
+          if-no-files-found: error

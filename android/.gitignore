@@ -1,0 +1,6 @@
+# Bubblewrap generates the full Android project into this directory during the
+# "TWA APK build" workflow. Only the committed twa-manifest.json is tracked;
+# generated files and the decoded keystore never belong in git.
+/*
+!/.gitignore
+!/twa-manifest.json
