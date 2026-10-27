@@ -1,0 +1,90 @@
+name: TWA APK build
+
+# Builds the signed APK + AAB for the Play Store from android/twa-manifest.json
+# using Bubblewrap. Manual run only, after the "TWA signing key" secrets are set.
+# Requirements: repo public + GitHub Pages enabled (the TWA loads the live site
+# and the build downloads the launcher icons from it).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '20'
+      # Bubblewrap requires JDK 17 exactly (lower won't compile, higher is
+      # incompatible with the Android command line tools).
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Decode signing keystore
+        env:
+          TWA_KEYSTORE_B64: ${{ secrets.TWA_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$TWA_KEYSTORE_B64" ]; then
+            echo "::error::Secret TWA_KEYSTORE_B64 is missing. Run the 'TWA signing key' workflow first and add the secrets it produces."
+            exit 1
+          fi
+          printf '%s' "$TWA_KEYSTORE_B64" | base64 -d > android/android.keystore
+
+      - name: Install Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli@1.27.0
+
+      - name: Regenerate Android project from twa-manifest.json
+        run: yes | bubblewrap update --skipVersionUpgrade --manifest=./android
+
+      # Optional AdMob app-open ads. Without the ADMOB_APP_ID secret this is a
+      # no-op and the build stays a clean no-ads APK. See docs/ADMOB.md.
+      - name: Apply optional AdMob app-open ads patch
+        env:
+          ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
+          ADMOB_APP_OPEN_UNIT_ID: ${{ secrets.ADMOB_APP_OPEN_UNIT_ID }}
+        run: |
+          if [ -z "$ADMOB_APP_ID" ]; then
+            echo "ADMOB_APP_ID secret not set - building without ads (clean no-ads build)."
+            echo "To enable AdMob app-open ads later, add the secrets and re-run: see docs/ADMOB.md."
+          else
+            bash scripts/admob-patch.sh ./android
+          fi
+
+      - name: Build signed APK and App Bundle
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.TWA_KEYSTORE_PASSWORD }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.TWA_KEY_PASSWORD }}
+        run: |
+          yes | bubblewrap build \
+            --skipPwaValidation \
+            --manifest=./android \
+            --signingKeyPath=./android/android.keystore \
+            --signingKeyAlias=android
+
+      - name: Generate Digital Asset Links file
+        env:
+          TWA_KEYSTORE_PASSWORD: ${{ secrets.TWA_KEYSTORE_PASSWORD }}
+        run: |
+          SHA256="$(keytool -list -v -keystore android/android.keystore -alias android -storepass "$TWA_KEYSTORE_PASSWORD" 2>/dev/null | awk '/SHA256:/{print $2}' | tr -d ':' | tr 'A-F' 'a-f')"
+          echo "Certificate SHA-256: $SHA256"
+          bubblewrap fingerprint add "$SHA256" --name="Play upload key" --manifest=./android
+          bubblewrap fingerprint generateAssetlinks --manifest=./android --output=./android/assetlinks.json
+          cat android/assetlinks.json
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: arrow-out-twa-release
+          path: |
+            android/app-release-signed.apk
+            android/app-release-bundle.aab
+            app-release-signed.apk
+            app-release-bundle.aab
+            android/assetlinks.json
+          if-no-files-found: error

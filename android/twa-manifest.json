@@ -1,0 +1,43 @@
+{
+  "packageId": "com.aaryapratik.arrowout",
+  "host": "parya5103.github.io",
+  "name": "Arrow Out!",
+  "launcherName": "Arrow Out!",
+  "display": "standalone",
+  "orientation": "any",
+  "themeColor": "#0d1230",
+  "themeColorDark": "#0d1230",
+  "navigationColor": "#0d1230",
+  "navigationColorDark": "#0d1230",
+  "navigationDividerColor": "#0d1230",
+  "navigationDividerColorDark": "#0d1230",
+  "backgroundColor": "#0d1230",
+  "enableNotifications": true,
+  "enableSiteSettingsShortcut": true,
+  "fallbackType": "customtabs",
+  "minSdkVersion": 21,
+  "startUrl": "/Fletch_Game/",
+  "iconUrl": "https://parya5103.github.io/Fletch_Game/icons/icon-512.png",
+  "maskableIconUrl": "https://parya5103.github.io/Fletch_Game/icons/icon-maskable-512.png",
+  "webManifestUrl": "https://parya5103.github.io/Fletch_Game/manifest.webmanifest",
+  "appVersion": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "Daily Challenge",
+      "short_name": "Daily",
+      "url": "https://parya5103.github.io/Fletch_Game/?daily=1",
+      "icons": [
+        {
+          "src": "https://parya5103.github.io/Fletch_Game/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "android"
+  }
+}
