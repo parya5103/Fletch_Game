@@ -7,7 +7,7 @@ Actions. The only cost is the one-time $25 Google Play developer fee.
 ## What is already prepared
 
 - `android/twa-manifest.json` - the TWA project config: package `com.aaryapratik.arrowout`,
-  site `https://parya5103.github.io/Fletch_Game/`, notifications enabled, Daily
+  site `https://gogocompany.in/arrowout/`, notifications enabled, Daily
   Challenge shortcut, official 512px + maskable icons.
 - `.github/workflows/twa-keygen.yml` - one-time signing key generator (manual run).
 - `.github/workflows/twa-build.yml` - builds the signed APK + AAB + assetlinks.json (manual run).
@@ -42,15 +42,18 @@ Actions. The only cost is the one-time $25 Google Play developer fee.
 ## Digital Asset Links (required for the full-screen app look)
 
 Android verifies the app against:
-`https://parya5103.github.io/.well-known/assetlinks.json`
+`https://gogocompany.in/.well-known/assetlinks.json`
 
-That URL is the account's ROOT site, not this repo. So:
+That URL is the root of the GoGo Company custom domain. It is served by the
+`gogo-website` repository (the only repo that owns gogocompany.in), not this
+repo. So:
 
-1. Create a new public repository named exactly `parya5103.github.io`.
-2. In that repo, add a file at path `.well-known/assetlinks.json` with the
-   contents of the generated assetlinks.json (GitHub's "Add file" web editor
-   accepts a path like `.well-known/assetlinks.json`).
-3. Check `https://parya5103.github.io/.well-known/assetlinks.json` opens in a browser.
+1. Run the TWA build workflow once and download the `assetlinks.json` build
+   artifact - it contains the real SHA-256 signing fingerprint of the app
+   signing key. Do not hand-write or guess the fingerprint.
+2. In the `gogo-website` repository, add the file at path
+   `.well-known/assetlinks.json` with the generated contents.
+3. Check `https://gogocompany.in/.well-known/assetlinks.json` opens in a browser.
 
 Without this file the APK still runs, but Chrome shows a browser URL bar and a
 "site not verified" notification instead of the full-screen app.
@@ -62,7 +65,7 @@ Without this file the APK still runs, but Chrome shows a browser URL bar and a
    phone from the Play link and test everything (levels, saves, notifications,
    offline play, the update banner).
 3. Complete the store listing: name, description, screenshots, content rating,
-   and privacy policy URL: `https://parya5103.github.io/Fletch_Game/privacy.html`.
+   and privacy policy URL: `https://gogocompany.in/arrowout/privacy.html`.
 4. Roll out to production.
 
 ## Updating the app later

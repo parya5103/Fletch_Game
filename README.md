@@ -4,7 +4,7 @@
 
 A mobile-first **tap-away arrow puzzle** game — an **installable PWA**, zero dependencies, fully offline-capable. **1000 levels** of winding arrow paths on boards from 12×12 up to dense 65×65. **3 free hints per level**, hearts, timed bonus objectives, daily challenges, achievements, streaks, skins, stars and synthesized background music.
 
-**🎮 Play now: <https://parya5103.github.io/Fletch_Game/>**
+**🎮 Play now: <https://gogocompany.in/arrowout/>**
 
 ## Screenshots
 

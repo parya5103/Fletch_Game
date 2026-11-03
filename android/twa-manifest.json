@@ -1,6 +1,6 @@
 {
   "packageId": "com.aaryapratik.arrowout",
-  "host": "parya5103.github.io",
+  "host": "gogocompany.in",
   "name": "Arrow Out!",
   "launcherName": "Arrow Out!",
   "display": "standalone",
@@ -16,20 +16,20 @@
   "enableSiteSettingsShortcut": true,
   "fallbackType": "customtabs",
   "minSdkVersion": 21,
-  "startUrl": "/Fletch_Game/",
-  "iconUrl": "https://parya5103.github.io/Fletch_Game/icons/icon-512.png",
-  "maskableIconUrl": "https://parya5103.github.io/Fletch_Game/icons/icon-maskable-512.png",
-  "webManifestUrl": "https://parya5103.github.io/Fletch_Game/manifest.webmanifest",
+  "startUrl": "/arrowout/",
+  "iconUrl": "https://gogocompany.in/arrowout/icons/icon-512.png",
+  "maskableIconUrl": "https://gogocompany.in/arrowout/icons/icon-maskable-512.png",
+  "webManifestUrl": "https://gogocompany.in/arrowout/manifest.webmanifest",
   "appVersion": "1.0.0",
   "appVersionCode": 1,
   "shortcuts": [
     {
       "name": "Daily Challenge",
       "short_name": "Daily",
-      "url": "https://parya5103.github.io/Fletch_Game/?daily=1",
+      "url": "https://gogocompany.in/arrowout/?daily=1",
       "icons": [
         {
-          "src": "https://parya5103.github.io/Fletch_Game/icons/icon-192.png",
+          "src": "https://gogocompany.in/arrowout/icons/icon-192.png",
           "sizes": "192x192"
         }
       ]

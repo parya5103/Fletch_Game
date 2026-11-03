@@ -65,7 +65,7 @@ loading live ads in a development build can get the AdMob account suspended.
   policies (the section already reserves a place for exactly this).
 - app-ads.txt: AdMob crawls the developer website listed in the Play store
   listing. Host `app-ads.txt` at the root of that website - the same
-  `parya5103.github.io` root repo that serves `.well-known/assetlinks.json`.
+  `gogo-website` repository (serving gogocompany.in) that serves `.well-known/assetlinks.json`.
   Content: `google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0`
   (pub id is shown in AdMob -> Settings).
 - Play listing: set the developer website URL so app-ads.txt is findable.
