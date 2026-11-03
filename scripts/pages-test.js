@@ -117,7 +117,7 @@ test('Privacy distinguishes local reminders, the daily push roster and public dr
   assert.match(privacy,/before an issue is submitted/);assert.match(privacy,/removes this device from the roster immediately/);
   assert.match(privacy,/Provider-side retention \(Supabase backups or GitHub logs\) is managed by those providers/);
   assert.match(privacy,/no automated access-request service or private contact form/);
-  assert.match(privacy,/no advertising SDK, AdSense code, ad cookies or consent-management system/);
+  assert.match(privacy,/one labelled display advertisement, served by Google AdSense/);
   assert(!/GDPR|DPDP|will ask for it first/.test(privacy));
 });
 test('public pages are precached with matching worker/display version and valid inline JS', () => {
