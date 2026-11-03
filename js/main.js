@@ -1348,7 +1348,7 @@ const Game = (function() {
   }
 
   function shareGame(text) {
-    var url = 'https://parya5103.github.io/Fletch_Game/';
+    var url = 'https://gogocompany.in/arrowout/';
     try { if (location && location.href) url = location.href; } catch (e) {}
     if (navigator.share) {
       navigator.share({ title: 'Arrow Out!', text: text, url: url }).then(function() {}, function() {});
