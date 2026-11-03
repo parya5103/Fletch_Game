@@ -1517,3 +1517,20 @@ body:not(.at-home) #install-banner, body:not(.at-home) #update-banner { display:
   .world-card .wc-art { width: 28px; height: 28px; font-size: 12px; }
   #map-viewport { min-height: 120px; }
 }
+
+/* ===== Google AdSense menu ad slot ===== */
+.ad-slot {
+  margin: 10px auto 4px;
+  max-width: 320px;
+  text-align: center;
+}
+.ad-slot[hidden] { display: none; }
+.ad-label {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8a97b8;
+  margin-bottom: 2px;
+}
+.ad-slot ins.adsbygoogle { display: block; }
