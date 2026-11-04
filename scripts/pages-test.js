@@ -125,5 +125,10 @@ test('public pages are precached with matching worker/display version and valid 
   assert.equal(sw.match(/const CACHE = 'arrow-out-(v\d+)'/)[1],version);
   for(const file of ['contact.html','about.html','privacy.html']) assert(sw.includes(`'./${file}'`));
   for(const file of ['index.html','contact.html','about.html','privacy.html'])
-    for(const m of read(file).matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g))new vm.Script(m[1],{filename:file});
+    // Inline-JS check: skip <script> data blocks the browser would not run as JS (e.g. type="application/ld+json").
+    for(const m of read(file).matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)){
+      const type=(m[1].match(/\btype\s*=\s*"([^"]*)"/)||[])[1];
+      if(type&&!/^(module|(text|application)\/javascript)$/.test(type))continue;
+      new vm.Script(m[2],{filename:file});
+    }
 });
