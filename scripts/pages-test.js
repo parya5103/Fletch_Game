@@ -32,11 +32,12 @@ function contact() {
     } };
 }
 
-test('Contact discloses public URL transmission and collects no name/email', () => {
+test('Contact discloses the email flow and collects no name/email', () => {
   assert(!/id="f-(?:email|name)"/.test(html));
-  assert.match(html, /before you submit an issue/);
-  assert.match(html, /browser history and GitHub logs/);
-  assert.match(html, /no private channel/);
+  assert.match(html, /opens your email app/);
+  assert.match(html, /nothing is sent until you press send/i);
+  assert.match(html, /officialgogocompany@gmail\.com/);
+  assert(!/github\.com/.test(html), 'no GitHub links remain on the contact page');
   assert(!/Nothing leaves your device until|message is on its way/i.test(html));
 });
 test('empty and whitespace fields expose associated errors and focus the first invalid field', () => {
@@ -56,8 +57,9 @@ test('preparing a Unicode/delimiter draft is local and exactly URL encoded', () 
   h.submit(subject,message);
   assert.deepEqual(h.calls,[],'no popup, navigation or automatic transmission');
   const url=new URL(h.elements['fallback-link'].href);
-  assert.equal(url.origin,'https://github.com');assert.equal(url.pathname,'/parya5103/Fletch_Game/issues/new');
-  assert.equal(url.searchParams.get('title'),'[Contact] '+subject.trim());
+  assert.equal(url.protocol,'mailto:');
+  assert.equal(url.pathname,'officialgogocompany@gmail.com');
+  assert.equal(url.searchParams.get('subject'),'[Arrow Out! Contact] '+subject.trim());
   assert.equal(url.searchParams.get('body'),message.trim());
   assert.equal([...url.searchParams].length,2);assert.equal(url.hash,'');
   assert.equal(h.elements.fallback.hidden,false);assert.match(h.elements['form-status'].textContent,/Nothing has been sent/);
@@ -78,13 +80,13 @@ test('length limits reject oversized fields and encoded URLs; lone surrogates do
   assert.equal(h.elements.fallback.hidden,false);
   assert.equal(new URL(h.elements['fallback-link'].href).searchParams.get('body'),'bad UTF16: \ufffd');
 });
-test('no-JavaScript fallback is a native required GET form with only title/body', () => {
+test('no-JavaScript fallback is a native required GET mailto form with only subject/body', () => {
   const form=html.match(/<form\b([^>]*)>([\s\S]*?)<\/form>/);
-  assert.match(form[1],/method="get"/);assert.match(form[1],/action="https:\/\/github.com\/parya5103\/Fletch_Game\/issues\/new"/);
+  assert.match(form[1],/method="get"/);assert.match(form[1],/action="mailto:officialgogocompany@gmail\.com"/);
   assert(!/target=|novalidate/.test(form[1]));
-  assert.deepEqual([...form[2].matchAll(/\bname="([^"]+)"/g)].map(m=>m[1]),['title','body']);
+  assert.deepEqual([...form[2].matchAll(/\bname="([^"]+)"/g)].map(m=>m[1]),['subject','body']);
   for(const id of ['subject','message']) assert.match(html,new RegExp(`id="f-${id}"[^>]*required`));
-  assert.match(html,/<noscript>[\s\S]*sends the subject and message in the URL immediately/);
+  assert.match(html,/<noscript>[\s\S]*opens your email app directly/);
   assert.match(html,/name="referrer" content="no-referrer"/);
   assert(!/window\.open\(/.test(html),'explicit same-tab link avoids popup blocking and opener access');
 });
@@ -98,7 +100,7 @@ test('all local page links exist and home/Settings expose About, Contact, Privac
     const text=read(file),ids=[...text.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);
     assert.equal(new Set(ids).size,ids.length,`duplicate IDs in ${file}`);
     for(const match of text.matchAll(/\bhref="([^"#]+)(?:#[^"]*)?"/g)) {
-      if(/^(https?:|data:)/.test(match[1])) continue;
+      if(/^(https?:|data:|mailto:)/.test(match[1])) continue;
       assert(fs.existsSync(path.join(root,match[1].split('?')[0])),`${file}: ${match[1]}`);
     }
   }
@@ -112,13 +114,23 @@ test('About catalogue/count claims agree with production and unsupported release
   assert(!/each release|every release|before they go live|4&ndash;5/.test(about));
   assert.match(about,/daily login rewards/);assert.match(about,/failure dialog/);
 });
-test('Privacy distinguishes local reminders, the daily push roster and public drafts from planned ads', () => {
+test('Privacy describes the email contact flow and keeps the local/daily-push distinction', () => {
   const privacy=read('privacy.html');
-  assert.match(privacy,/before an issue is submitted/);assert.match(privacy,/removes this device from the roster immediately/);
+  assert.match(privacy,/nothing is sent until you press send in your email app/i);
+  assert.match(privacy,/removes this device from the roster immediately/);
   assert.match(privacy,/Provider-side retention \(Supabase backups or GitHub logs\) is managed by those providers/);
-  assert.match(privacy,/no automated access-request service or private contact form/);
+  assert.match(privacy,/no automated access-request service/);
   assert.match(privacy,/one labelled display advertisement, served by Google AdSense/);
   assert(!/GDPR|DPDP|will ask for it first/.test(privacy));
+});
+test('no visitor-facing GitHub links remain on the public info pages', () => {
+  for(const file of ['about.html','contact.html','privacy.html']) {
+    const text=read(file);
+    assert(!text.includes('github.com/parya5103'),`${file}: account/repository reference`);
+    assert(!/href\s*=\s*["']https:\/\/github\.com\//.test(text),`${file}: github.com hyperlink`);
+  }
+  // Honest infrastructure disclosures stay as plain text.
+  assert.match(read('privacy.html'),/GitHub Pages/);
 });
 test('public pages are precached with matching worker/display version and valid inline JS', () => {
   const sw=read('sw.js'),version=read('js/pwa.js').match(/var VERSION = '(v\d+)'/)[1];
@@ -132,3 +144,4 @@ test('public pages are precached with matching worker/display version and valid 
       new vm.Script(m[2],{filename:file});
     }
 });
+
