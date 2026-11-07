@@ -1,0 +1,9 @@
+# Gitleaks configuration: default rules plus documented, project-specific allowlists.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Supabase anon key is public by design: a frontend client key paired with an insert/delete-only RLS policy on the push_subscriptions table. Present in js/pwa.js by architecture, not a leak."
+regexes = [
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3pjbmFheWxic2dxYWVoc2dwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4ODY4ODMsImV4cCI6MjEwNzQ2Mjg4M30\.6LQPGdiJ8ggDgCdJdTXmxQNkBjV0fA0_vXYHehExMzc''',
+]
