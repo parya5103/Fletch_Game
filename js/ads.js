@@ -2,9 +2,10 @@
  * Arrow Out! - Google AdSense display ad wiring (menu screen only).
  * The loader tag lives in index.html. This module activates the single
  * labelled home-screen slot; gameplay screens never carry ads.
- * Until a Google-certified consent-management platform is wired in
- * (cmpReady below), the slot stays hidden for players detected in the
- * EEA, the UK or Switzerland.
+ * Fail-closed consent gate: no ad is activated until a Google-certified
+ * consent-management platform is wired in (cmpReady below) and confirms
+ * consent. Until that integration exists the slot stays hidden for
+ * every visitor, in every region.
  */
 (function () {
   'use strict';
@@ -13,19 +14,12 @@
   var SLOTS = { 'ao-home': '7200569170' };
   var cmpReady = false; // set true only after a certified CMP integration
 
-  function consentRegionLikely() {
-    try {
-      if (typeof navigator !== 'undefined' && navigator.language) {
-        var lang = String(navigator.language).toLowerCase();
-        if (lang.indexOf('en-gb') !== -1) return true;
-      }
-      if (typeof Intl !== 'undefined' && typeof Intl.DateTimeFormat === 'function') {
-        var tz = '';
-        try { tz = (Intl.DateTimeFormat().resolvedOptions() || {}).timeZone || ''; } catch (er) { tz = ''; }
-        if (tz.indexOf('Europe/') === 0 || tz.indexOf('Atlantic/') === 0) return true;
-      }
-    } catch (er) { return true; }
-    return false;
+  // Fail-closed: ads may activate ONLY after a certified CMP confirms
+  // consent. No ad is ever served on a missing or broken CMP signal.
+  function adsAllowed() {
+    if (!PUBLISHER) return false;
+    if (cmpReady === false) return false;
+    return true;
   }
 
   function loaderPresent() {
@@ -35,7 +29,7 @@
 
   function activateSlots() {
     if (!loaderPresent()) return;
-    if (cmpReady === false && consentRegionLikely()) return;
+    if (!adsAllowed()) return;
     if (typeof document === 'undefined' || !document.querySelectorAll) return;
     var hosts = document.querySelectorAll('.ad-slot[data-ad-slot]');
     for (var i = 0; i < hosts.length; i++) {
