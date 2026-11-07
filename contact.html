@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="description" content="Contact Arrow Out! — report a technical problem, send feedback or suggestions, ask privacy questions, or ask about advertising. The form opens a pre-filled GitHub issue." />
+  <meta name="description" content="Contact Arrow Out! — report a technical problem, send feedback or suggestions, ask privacy questions, or ask about advertising. The form opens a pre-filled email to the developer." />
   <meta name="theme-color" content="#0d1230" />
   <meta name="referrer" content="no-referrer" />
   <meta name="robots" content="index, follow" />
@@ -60,22 +60,22 @@
     </ul>
 
     <h2>How messaging works</h2>
-    <p>This site has no mail server or private message backend. This form prepares a draft for the Arrow Out! GitHub issue tracker. Preparing a draft with JavaScript enabled keeps it on this page until you choose to open GitHub.</p>
+    <p>This site has no mail server or private message backend. The form below prepares an email draft for <b>officialgogocompany@gmail.com</b> in your own email app. With JavaScript enabled, the draft stays on this page until you choose to open it.</p>
     <ul id="public-warning">
-      <li><b>GitHub issues are public.</b> Do not include an email address, full name, passwords, payment details, notification subscription values or other private information in the subject or message.</li>
-      <li>Opening the prepared link sends its subject and message to GitHub in the URL, <b>before you submit an issue</b>. The URL may remain in browser history and GitHub logs. See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>.</li>
-      <li>A GitHub account is required to post. Your GitHub username and the issue text become public when you submit it. Replies are issue comments; this page does not send email.</li>
-      <li>For privacy questions, describe the problem without personal details. <b>This page provides no private channel for sensitive deletion or access requests.</b> Do not post identifiers in a public issue.</li>
+      <li><b>Email is not public,</b> but it is also not encrypted end-to-end. Do not include passwords, payment details, notification subscription values or other high-risk private information in the subject or message.</li>
+      <li>Opening the prepared link opens your email app with the subject and message pre-filled. <b>Nothing is sent until you press send in your email app.</b> You can review and edit the draft before sending.</li>
+      <li>No account on any website is required. Your message reaches the developer's mailbox directly; there is no public comment thread.</li>
+      <li>For privacy questions, describe the problem without unnecessary personal details. Only include what is needed to help you.</li>
     </ul>
 
-    <h2>Prepare a public issue</h2>
+    <h2>Prepare an email draft</h2>
     <noscript>
-      <p>JavaScript is off. Submitting this form goes directly to GitHub in this tab and sends the subject and message in the URL immediately. It does not post an issue; review it on GitHub before submitting. For long messages, <a href="https://github.com/parya5103/Fletch_Game/issues/new">open a blank issue</a> and type there.</p>
+      <p>JavaScript is off. Submitting this form opens your email app directly with the subject and message pre-filled. Nothing is sent until you press send there. You can also email <a href="mailto:officialgogocompany@gmail.com">officialgogocompany@gmail.com</a> directly and type there.</p>
     </noscript>
-    <form id="contact-form" method="get" action="https://github.com/parya5103/Fletch_Game/issues/new" aria-describedby="public-warning">
+    <form id="contact-form" method="get" action="mailto:officialgogocompany@gmail.com" aria-describedby="public-warning">
       <div class="field">
         <label for="f-subject">Subject</label>
-        <input id="f-subject" name="title" maxlength="100" required aria-describedby="ferr-subject" />
+        <input id="f-subject" name="subject" maxlength="100" required aria-describedby="ferr-subject" />
         <p class="ferr" id="ferr-subject" hidden></p>
       </div>
       <div class="field">
@@ -85,10 +85,10 @@
       </div>
       <button class="btn" type="submit">Prepare draft &rarr;</button>
       <p id="form-status" class="form-status" role="status" aria-live="polite"></p>
-      <p id="fallback" hidden><a id="fallback-link" href="https://github.com/parya5103/Fletch_Game/issues/new" rel="noreferrer">Open prepared draft on GitHub</a> (sends the text to GitHub in this tab). Review and submit there to post publicly.</p>
+      <p id="fallback" hidden><a id="fallback-link" href="mailto:officialgogocompany@gmail.com" rel="noreferrer">Open the draft in your email app</a> (opens your email app with the subject and message pre-filled). Review it and press send there.</p>
     </form>
 
-    <p>You can also browse or open issues directly at <a href="https://github.com/parya5103/Fletch_Game/issues">github.com/parya5103/Fletch_Game/issues</a>.</p>
+    <p>You can also email us directly at <a href="mailto:officialgogocompany@gmail.com">officialgogocompany@gmail.com</a>.</p>
 
     <a class="btn" href="index.html">&larr; Back to the game</a>
     <p class="muted">Arrow Out! is an offline-first PWA. See the <a href="about.html">About</a> and <a href="privacy.html">Privacy Policy</a> pages.</p>
@@ -135,16 +135,16 @@
         if (!bad) {
           var url = new URL(form.action);
           // URLSearchParams encodes delimiters, Unicode and malformed UTF-16
-          // safely. Keep the complete encoded URL below common server limits.
-          url.searchParams.set('title', '[Contact] ' + byId('f-subject').value.trim());
+          // safely. Keep the complete encoded URL below common client limits.
+          url.searchParams.set('subject', '[Arrow Out! Contact] ' + byId('f-subject').value.trim());
           url.searchParams.set('body', byId('f-message').value.trim());
           if (url.href.length > 7000) {
-            setError('message', 'This draft is too long for a GitHub link. Shorten it, or open a blank issue and type there.');
+            setError('message', 'This draft is too long for an email link. Shorten it, or email us directly and type there.');
             bad = byId('f-message');
           } else {
             byId('fallback-link').href = url.href;
             byId('fallback').hidden = false;
-            setStatus('Draft prepared on this page. Nothing has been sent. Use the link below to open GitHub, then review and submit your public issue there.', true);
+            setStatus('Draft prepared on this page. Nothing has been sent. Use the link below to open your email app, then review and press send there.', true);
           }
         }
         if (bad) {
