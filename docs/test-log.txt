@@ -38,10 +38,8 @@
 [pwa-6-update-cycle] [OK] update banner did not reappear after reload (no reload loop)
 [pwa-6-update-cycle] [OK] cache swap verified: arrow-out-v48
 FATAL: Error: console/page errors detected:
-  [console @load] Loading the script 'https://ep2.adtrafficquality.google/sodar/sodar2.js' violates the following Content Security Policy directive: "script-src 'self' https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://googleads.g.doubleclick.net https://fundingchoicesmessages.google.com". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
+  [console @load] Loading the script 'https://ep2.adtrafficquality.google/sodar/sodar2.js' violates the following Content Security Policy directive: "script-src 'self' https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://googleads.g.doubleclick.net https://fundingchoicesmessages.google.com https://www.gstatic.com". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
   [pageerror @load] Uncaught (in promise) undefined
-  [console @pwa-5-offline] Loading the script 'https://ep2.adtrafficquality.google/sodar/sodar2.js' violates the following Content Security Policy directive: "script-src 'self' https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://googleads.g.doubleclick.net https://fundingchoicesmessages.google.com". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
-  [pageerror @pwa-5-offline] Uncaught (in promise) undefined
   [console @pwa-5-offline] Failed to load resource: net::ERR_INTERNET_DISCONNECTED
   [console @pwa-5-offline] Failed to load resource: net::ERR_INTERNET_DISCONNECTED
   [console @pwa-5-offline] Failed to load resource: net::ERR_INTERNET_DISCONNECTED
