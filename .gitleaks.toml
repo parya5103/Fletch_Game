@@ -13,3 +13,9 @@ description = "VAPID public key is public by design (pairs with the repo secret 
 regexes = [
   '''BCZi4Grxq_wVF9j-pIP7buv5lwCGfSdNCrDmRaeuojmIwkCQCK1o2NdqIIqamu4nuW1Yn3doDR31W1opJzR_9H4''',
 ]
+
+[[allowlists]]
+description = "Public Firebase web API key of the shared GoGo Firebase project (client-safe by design: a web API key identifies the project, it is not a credential; access is governed by Firebase Security Rules). Shipped in the GoGo Central notifications module and its FCM service worker, matching the public web config already on the GoGo portal."
+regexes = [
+  '''AIzaSyCtfvrvfRSlZmiNBluRLeHCLNgaNkuY-_4''',
+]
