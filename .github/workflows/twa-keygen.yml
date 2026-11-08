@@ -58,7 +58,7 @@ jobs:
           echo "::notice::Download the twa-signing-key artifact and follow SECRETS-SETUP.txt"
 
       - name: Upload signing key artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: twa-signing-key
           path: artifact/
