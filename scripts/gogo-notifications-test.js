@@ -27,7 +27,11 @@ const swSrc = fs.readFileSync(path.join(__dirname, '..', 'fcm', 'firebase-messag
 const indexHtml = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 
 console.log('# module loads inertly in plain Node (no DOM, no window)');
-const sandbox = {};
+// vm contexts expose only ECMAScript intrinsics: pass the host URL global
+// in so the module's WHATWG-URL link allowlist runs for real (browsers ship
+// URL as a standard global; without it the GoGo-domain allowlist checks
+// would silently exercise only the catch-path fallback).
+const sandbox = { URL };
 vm.createContext(sandbox);
 vm.runInContext(moduleSrc, sandbox, { filename: 'js/gogo-notifications.js' });
 const GN = sandbox.GoGoNotifications;
