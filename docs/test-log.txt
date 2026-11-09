@@ -27,6 +27,9 @@
 [pwa-4-cache-scope] [PWA 4/6] checking scoped cache cleanup (reinstall dance)...
 [pwa-4-cache-scope] [OK] cache cleanup is scoped: foreign cache survived Arrow Out! (re)install
 [pwa-5-offline] [PWA 5/6] checking offline boot from service worker cache...
+[pwa-5-offline] [OK] expected offline load failure: Failed to load resource: net::ERR_INTERNET_DISCONNECTED
+[pwa-5-offline] [OK] expected offline load failure: Failed to load resource: net::ERR_INTERNET_DISCONNECTED
+[pwa-5-offline] [OK] expected offline load failure: Failed to load resource: net::ERR_INTERNET_DISCONNECTED
 [pwa-5-offline] [OK] offline: navigator.onLine is false as expected
 [pwa-5-offline] [OK] offline: game boots fully from the service worker cache
 [pwa-6-update-cycle] [PWA 6/6] simulating a new deployment (bumped sw.js + changed index.html)...
@@ -38,10 +41,6 @@
 [pwa-6-update-cycle] [OK] update banner did not reappear after reload (no reload loop)
 [pwa-6-update-cycle] [OK] cache swap verified: arrow-out-v48
 FATAL: Error: console/page errors detected:
-  [console @load] Loading the script 'https://ep2.adtrafficquality.google/sodar/sodar2.js' violates the following Content Security Policy directive: "script-src 'self' https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://googleads.g.doubleclick.net https://fundingchoicesmessages.google.com https://www.gstatic.com". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
-  [pageerror @load] Uncaught (in promise) undefined
-  [console @pwa-5-offline] Failed to load resource: net::ERR_INTERNET_DISCONNECTED
-  [console @pwa-5-offline] Failed to load resource: net::ERR_INTERNET_DISCONNECTED
-  [console @pwa-6-update-cycle] Loading the script 'https://ep2.adtrafficquality.google/sodar/sodar2.js' violates the following Content Security Policy directive: "script-src 'self' https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://googleads.g.doubleclick.net https://fundingchoicesmessages.google.com https://www.gstatic.com". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
-  [pageerror @pwa-6-update-cycle] Uncaught (in promise) undefined
-    at main (/home/runner/work/Fletch_Game/Fletch_Game/scripts/screenshot.js:529:13)
+  [console @load] Framing 'https://www.google.com/' violates the following Content Security Policy directive: "frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://pagead2.googlesyndication.com https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://fundingchoicesmessages.google.com". The request has been blocked.
+
+    at main (/home/runner/work/Fletch_Game/Fletch_Game/scripts/screenshot.js:540:13)
