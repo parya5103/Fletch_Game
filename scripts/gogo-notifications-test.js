@@ -40,12 +40,20 @@ check('module mounts nothing outside a browser (no document object)', true);
 
 console.log('# fail-closed config gate');
 const v = GN.internals.validateConfig();
-check('empty apiBase/vapidPublicKey disable the feature',
-  v.ok === false && v.disabled === true,
+check('shipped config is fully configured (backend + VAPID key)',
+  v.ok === true && v.disabled === false,
   JSON.stringify(v.problems));
-check('config reports both missing deployment switches',
-  v.problems.some(function (p) { return p.indexOf('API base') !== -1; }) &&
-  v.problems.some(function (p) { return p.indexOf('VAPID') !== -1; }));
+const empty = GN.internals.validateConfig({
+  appId: 'arrow-out',
+  apiBase: '',
+  vapidPublicKey: ''
+});
+check('empty apiBase/vapidPublicKey disable the feature',
+  empty.ok === false && empty.disabled === true,
+  JSON.stringify(empty.problems));
+check('empty config reports both missing deployment switches',
+  empty.problems.some(function (p) { return p.indexOf('API base') !== -1; }) &&
+  empty.problems.some(function (p) { return p.indexOf('VAPID') !== -1; }));
 const v2 = GN.internals.validateConfig({
   appId: 'arrow-out',
   apiBase: 'https://gogo-central-backend.example.run.app/',
