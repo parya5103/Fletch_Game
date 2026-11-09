@@ -113,8 +113,55 @@ check('CSP allows the Firebase API connect hosts',
 check('game service worker file untouched by this feature',
   fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8').indexOf('GoGoNotifications') === -1);
 
+console.log('# onboarding (first-visit intro, 3-day reminder, denied guidance)');
+const eo = GN.internals.evaluateOnboarding;
+const DAY = 24 * 60 * 60 * 1000;
+const envOk = { configOk: true, pushSupported: true, permission: 'default', active: false };
+check('first visit shows the intro', eo(null, 1000, envOk).action === 'intro');
+check('no reshow within 24h of the last view',
+  eo({ shownAt: 2000 }, 1000 + DAY / 2, envOk).action === 'none');
+check('not-now waits 3 days, then shows ONE reminder',
+  eo({ decision: 'not-now', decidedAt: 1000 }, 1000 + DAY, envOk).action === 'none' &&
+  eo({ decision: 'not-now', decidedAt: 1000 }, 1000 + 3 * DAY + 1, envOk).action === 'reminder' &&
+  eo({ decision: 'not-now', decidedAt: 1000, reminderShown: true }, 1000 + 3 * DAY + 1, envOk).action === 'none');
+check('dismissed-forever and enabled never reshow',
+  eo({ decision: 'dismissed-forever' }, 9999999999999, envOk).action === 'none' &&
+  eo({ decision: 'enabled' }, 9999999999999, envOk).action === 'none');
+check('already-active visitors never see the intro',
+  eo(null, 1000, Object.assign({}, envOk, { active: true })).action === 'none');
+check('fail-closed config never shows the intro',
+  eo(null, 1000, Object.assign({}, envOk, { configOk: false })).action === 'none');
+check('denied permission gets one-time browser-settings guidance',
+  eo(null, 1000, Object.assign({}, envOk, { permission: 'denied' })).action === 'blocked' &&
+  eo({ blockedShown: true }, 1000, Object.assign({}, envOk, { permission: 'denied' })).action === 'none');
+check('intro lists all six GoGo categories with Enable + Not now',
+  ['GoGo Company announcements', 'Sarkari Sarthi job alerts', 'Pika News breaking news',
+   'Crystal Quest updates', 'Arrow Out updates', 'Future GoGo product announcements']
+    .every(function (label) { return moduleSrc.indexOf(label) !== -1; }) &&
+  moduleSrc.indexOf('id="gogo-notifications-intro"') !== -1);
+check('native prompt appears only inside the Enable click path',
+  (moduleSrc.match(/requestPermission/g) || []).length === 1);
+
+console.log('# backend verification before Active');
+const devices = [
+  { deviceId: 'd1', fcmToken: 'tok-aaa', appId: 'arrow-out', status: 'active' },
+  { deviceId: 'd2', fcmToken: 'tok-aaa', appId: 'other-app', status: 'active' },
+  { deviceId: 'd3', fcmToken: 'tok-bbb', appId: 'arrow-out', status: 'revoked' },
+  { deviceId: 'd4', fcmToken: 'tok-bbb', appId: 'arrow-out', status: 'active' }
+];
+const find = GN.internals.findRegisteredDevice;
+check('active token+appId row verified', find(devices, 'tok-aaa', 'arrow-out').deviceId === 'd1');
+check('revoked/rotated rows skipped, duplicates resolve to the active row',
+  find(devices, 'tok-bbb', 'arrow-out').deviceId === 'd4');
+check('unknown token is not registered', find(devices, 'tok-ccc', 'arrow-out') === null);
+check('verification reuses the existing devices endpoint and surfaces failures',
+  moduleSrc.indexOf("apiFetch('/api/v1/devices', { method: 'GET' })") !== -1 &&
+  moduleSrc.indexOf('VERIFY_FAILED') !== -1 &&
+  moduleSrc.indexOf('verified: true') !== -1);
+
 if (failures) {
   console.error('\n' + failures + ' check(s) FAILED');
   process.exit(1);
 }
 console.log('\nAll GoGo notifications checks passed');
+
