@@ -40,7 +40,5 @@
 [pwa-6-update-cycle] [OK] localStorage progress identical before/after the update
 [pwa-6-update-cycle] [OK] update banner did not reappear after reload (no reload loop)
 [pwa-6-update-cycle] [OK] cache swap verified: arrow-out-v48
-FATAL: Error: console/page errors detected:
-  [console @load] Framing 'https://www.google.com/' violates the following Content Security Policy directive: "frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://pagead2.googlesyndication.com https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://fundingchoicesmessages.google.com". The request has been blocked.
-
-    at main (/home/runner/work/Fletch_Game/Fletch_Game/scripts/screenshot.js:540:13)
+[final-console-check] [OK] no console errors
+[final-console-check] ALL CHECKS PASSED
