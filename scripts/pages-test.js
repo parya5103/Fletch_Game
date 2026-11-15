@@ -148,9 +148,9 @@ test('public pages are precached with matching worker/display version and valid 
 
 test('game landing page has one primary heading and complete VideoGame publisher schema', () => {
   const index = read('index.html');
-  assert.equal([...index.matchAll(/<h1\\b/gi)].length, 1, 'only the visible game title should be H1');
-  assert.match(index, /<title>Arrow Out! \\| Free Tap-Away Arrow Puzzle Game<\\/title>/);
-  const schemas = [...index.matchAll(/<script type="application\\/ld\\+json">([\\s\\S]*?)<\\/script>/g)].map(m => JSON.parse(m[1]));
+  assert.equal([...index.matchAll(/<h1\b/gi)].length, 1, 'only the visible game title should be H1');
+  assert.match(index, /<title>Arrow Out! \| Free Tap-Away Arrow Puzzle Game<\/title>/);
+  const schemas = [...index.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(m => JSON.parse(m[1]));
   const game = schemas.find(schema => schema['@type'] === 'VideoGame');
   assert(game && game.publisher && game.publisher.logo === 'https://gogocompany.in/favicon.svg');
 });
