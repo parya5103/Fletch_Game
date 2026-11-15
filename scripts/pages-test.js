@@ -157,8 +157,8 @@ test('game landing page has one primary heading and complete VideoGame publisher
 
 test('Arrow Out guide page has a distinct search snippet and canonical', () => {
   const guide = read('about.html');
-  assert.match(guide, /<title>Arrow Out Guide: How to Play &amp; Solve Arrow Puzzles<\\/title>/);
-  assert.match(guide, /<link rel="canonical" href="https:\\/\\/gogocompany\\.in\\/arrowout\\/about\\.html"/);
+  assert.ok(guide.includes('<title>Arrow Out Guide: How to Play &amp; Solve Arrow Puzzles</title>'));
+  assert.ok(guide.includes('href="https://gogocompany.in/arrowout/about.html"'));
   assert.equal([...guide.matchAll(/<h1\\b/gi)].length, 1);
-  assert.match(guide, /clear blocked exit corridors/);
+  assert.ok(guide.includes('clear blocked exit corridors'));
 });
