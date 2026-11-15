@@ -499,6 +499,15 @@ console.log('# skins shop sanity');
   check('new skins are flagged for the shop badge', ['aurora', 'lava', 'toxic', 'carnival', 'rainbow'].every(id => GC.SKINS[id] && GC.SKINS[id].isNew === true));
 }
 
+console.log('# SEO metadata sanity');
+{
+  const contactHtml = fs.readFileSync(path.join(__dirname, '..', 'contact.html'), 'utf8');
+  const description = contactHtml.match(/<meta name="description" content="([^"]*)"/i);
+  check('contact page meta description stays within 155 characters',
+    !!description && description[1].length <= 155,
+    description ? 'length ' + description[1].length : 'missing description');
+}
+
 if (failures) {
   console.error('\n' + failures + ' check(s) FAILED');
   process.exit(1);
