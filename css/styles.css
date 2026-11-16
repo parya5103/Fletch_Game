@@ -1534,3 +1534,52 @@ body:not(.at-home) #install-banner, body:not(.at-home) #update-banner { display:
   margin-bottom: 2px;
 }
 .ad-slot ins.adsbygoogle { display: block; }
+
+
+/* ===== Arrow Out! interface refresh — CSS only; gameplay selectors untouched ===== */
+:root {
+  --accent-cyan: #45d6e8;
+  --accent-cyan-light: #9aeaf2;
+  --accent-cyan-dark: #168da5;
+  --btn-primary-bg: #91a8ff;
+  --btn-primary-border: #91a8ff;
+  --btn-primary-text: #101a3c;
+  --btn-primary-hover: #b1c0ff;
+  --text-secondary: #d3dcfa;
+  --text-tertiary: #aebbe0;
+  --btn-border: #394779;
+}
+#app { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+#hud, footer { padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); }
+.btn { min-height: 48px; border-radius: 14px; font-weight: 750; }
+.btn:focus-visible, button:focus-visible, a:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+  outline: 3px solid var(--accent-cyan-light);
+  outline-offset: 3px;
+}
+.card { border-radius: 22px; border-color: rgba(154,234,242,.24); }
+.card h2 { letter-spacing: -.02em; }
+#toast { border-radius: 14px; box-shadow: var(--shadow-md); }
+#board-wrap { padding: clamp(6px, 2vw, 14px); }
+#board { max-width: 100%; }
+@media (hover: hover) {
+  .btn:not([disabled]):hover { border-color: var(--accent-cyan); filter: brightness(1.08); }
+  .card { transition: border-color .18s ease, box-shadow .18s ease; }
+  .card:hover { border-color: rgba(69,214,232,.5); box-shadow: var(--shadow-lg); }
+}
+@media (max-width: 380px) {
+  header#hud { gap: 5px; padding-top: calc(6px + env(safe-area-inset-top, 0px)); }
+  #hud-title .t1 { font-size: 13px; }
+  #hud-title .t2 { font-size: 11px; }
+  #hearts svg { width: 18px; height: 18px; }
+  #actions { gap: 6px; }
+  #actions .btn { padding: 8px 7px; font-size: 13px; }
+  .card { padding: 16px; }
+}
+@media (max-height: 480px) and (orientation: landscape) {
+  #board-wrap { padding: 2px 8px; }
+  footer { gap: 5px; padding-top: 4px; }
+  #actions .btn { min-height: 40px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card, .btn, #toast { transition: none !important; }
+}
