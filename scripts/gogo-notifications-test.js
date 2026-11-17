@@ -98,6 +98,11 @@ console.log('# background worker invariants');
 check('worker loads the compat messaging SDK', swSrc.indexOf('firebase-messaging-compat.js') !== -1);
 check('worker handles background messages', swSrc.indexOf('onBackgroundMessage') !== -1);
 check('worker dedupes by notificationId tag', swSrc.indexOf('tag: notificationId') !== -1);
+check('notification click uses exact HTTPS GoGo-origin validation, not substring matching',
+  swSrc.indexOf('function isTrustedClientUrl') !== -1 &&
+  swSrc.indexOf('client.url.indexOf') === -1 &&
+  swSrc.indexOf("parsed.hostname === 'gogocompany.in'") !== -1 &&
+  swSrc.indexOf('parsed.origin === self.location.origin') !== -1);
 check('worker installs NO fetch handler', swSrc.indexOf("addEventListener('fetch'") === -1);
 check('worker resolves the game icon from its own scope',
   swSrc.indexOf("new URL('../icons/icon-192.png', self.registration.scope).href") !== -1);
