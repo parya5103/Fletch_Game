@@ -399,9 +399,9 @@ function runAll(deps) {
     assert.ok(deps.swSrc.indexOf("'./js/map.js'") !== -1, 'map.js precached');
   });
 
-  test('PWA module reports v47', function () {
-    assert.ok(deps.pwaSrc.indexOf("'v47'") !== -1, 'v47 reported');
-    assert.strictEqual(deps.pwaSrc.indexOf("'v46'"), -1, 'v46 gone');
+  test('PWA module reports v48', function () {
+    assert.ok(deps.pwaSrc.indexOf("'v48'") !== -1, 'v48 reported');
+    assert.strictEqual(deps.pwaSrc.indexOf("'v47'"), -1, 'v47 gone');
   });
 
   test('index.html wires the commercial map and story DOM', function () {
