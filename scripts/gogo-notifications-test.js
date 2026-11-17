@@ -63,6 +63,8 @@ check('filled config validates', v2.ok === true && v2.disabled === false);
 
 console.log('# CONFIG targets arrow-out with the fcm/ sub-scope worker');
 check('appId is arrow-out', GN.config.appId === 'arrow-out');
+check('API targets the current GoGo Central backend', GN.config.apiBase === 'https://gogo-central-backend.onrender.com');
+check('CSP allows the current backend and excludes the retired host', /connect-src[^;]*https:\/\/gogo-central-backend\.onrender\.com/.test(indexHtml) && indexHtml.indexOf('gogo-central-backend-mg6z.onrender.com') === -1);
 check('worker url is the fcm/ subdirectory, never the game root',
   GN.config.swUrl === 'fcm/firebase-messaging-sw.js');
 check('auth mode is anonymous (no GoGo Account bundle on the game site)',
@@ -96,6 +98,11 @@ console.log('# background worker invariants');
 check('worker loads the compat messaging SDK', swSrc.indexOf('firebase-messaging-compat.js') !== -1);
 check('worker handles background messages', swSrc.indexOf('onBackgroundMessage') !== -1);
 check('worker dedupes by notificationId tag', swSrc.indexOf('tag: notificationId') !== -1);
+check('notification click uses exact HTTPS GoGo-origin validation, not substring matching',
+  swSrc.indexOf('function isTrustedClientUrl') !== -1 &&
+  swSrc.indexOf('client.url.indexOf') === -1 &&
+  swSrc.indexOf("parsed.hostname === 'gogocompany.in'") !== -1 &&
+  swSrc.indexOf('parsed.origin === self.location.origin') !== -1);
 check('worker installs NO fetch handler', swSrc.indexOf("addEventListener('fetch'") === -1);
 check('worker resolves the game icon from its own scope',
   swSrc.indexOf("new URL('../icons/icon-192.png', self.registration.scope).href") !== -1);
