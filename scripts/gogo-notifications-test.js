@@ -67,7 +67,7 @@ check('API targets the current GoGo Central backend', GN.config.apiBase === 'htt
 const connectSrc = (indexHtml.match(/connect-src\s+([^;]+)/) || [])[1] || '';
 const connectOrigins = connectSrc.split(/\s+/).filter(function (entry) { return /^https?:\/\//i.test(entry); }).map(function (entry) { try { return new URL(entry).origin; } catch (e) { return ''; } });
 check('CSP allows the exact current backend origin', connectOrigins.indexOf('https://gogo-central-backend.onrender.com') !== -1);
-check('service-worker cache version invalidates the old CSP app shell', /Version: v48/.test(fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8')) && /const CACHE = 'arrow-out-v48'/.test(swSrc));
+check('service-worker cache version invalidates the old CSP app shell', /Version: v48/.test(fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8')) && /const CACHE = 'arrow-out-v48'/.test(fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8')));
 check('worker url is the fcm/ subdirectory, never the game root',
   GN.config.swUrl === 'fcm/firebase-messaging-sw.js');
 check('auth mode is anonymous (no GoGo Account bundle on the game site)',
