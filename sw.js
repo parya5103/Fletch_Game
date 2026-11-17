@@ -1,7 +1,8 @@
 /**
  * Arrow Out! Service Worker
  * Version: v48
- * Audit fixes: notification privacy, saved settings and interrupted game restoration.
+ * Audit fixes: notification privacy, saved settings, interrupted game restoration,
+ * and the GoGo Central backend CSP migration for already-installed PWAs.
  * Handles caching for offline gameplay
  */
 
