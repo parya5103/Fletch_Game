@@ -64,7 +64,7 @@ check('filled config validates', v2.ok === true && v2.disabled === false);
 console.log('# CONFIG targets arrow-out with the fcm/ sub-scope worker');
 check('appId is arrow-out', GN.config.appId === 'arrow-out');
 check('API targets the current GoGo Central backend', GN.config.apiBase === 'https://gogo-central-backend.onrender.com');
-check('CSP allows the current backend and excludes the retired host', /connect-src[^;]*https:\/\/gogo-central-backend\.onrender\.com/.test(indexHtml) && indexHtml.indexOf('gogo-central-backend-mg6z.onrender.com') === -1);
+const connectSrc = (indexHtml.match(/connect-src\\s+([^;]+)/) || [])[1] || '';\nconst connectOrigins = connectSrc.split(/\\s+/).filter(function (entry) { return /^https?:\\/\\//i.test(entry); }).map(function (entry) { try { return new URL(entry).origin; } catch (e) { return ''; } });\ncheck('CSP allows the exact current backend origin', connectOrigins.indexOf('https://gogo-central-backend.onrender.com') !== -1);\ncheck('service-worker cache version invalidates the old CSP app shell', /Version: v48/.test(fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8')) && /const CACHE = 'arrow-out-v48'/.test(swSrc));
 check('worker url is the fcm/ subdirectory, never the game root',
   GN.config.swUrl === 'fcm/firebase-messaging-sw.js');
 check('auth mode is anonymous (no GoGo Account bundle on the game site)',
