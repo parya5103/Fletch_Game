@@ -12,12 +12,12 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Test
 class GameRepositoryTest{
- @Test fun malformedStoredPuzzleIsReportedInsteadOfSilentlyStartingFresh()=runBlocking{
+ @Test fun malformedStoredPuzzleIsReportedInsteadOfSilentlyStartingFresh(){
   val dao=mockk<GameProgressDao>()
   val levels=mockk<ArrowLevelCatalog>()
   coEvery{dao.get("arrow-out")} returns GameProgress("arrow-out","{broken",1L)
   val repository=GameRepository(dao,levels)
-  assertThrows(JsonSyntaxException::class.java){repository.load()}
+  assertThrows(JsonSyntaxException::class.java){runBlocking { repository.load() }}
   Unit
  }
  @Test fun exitingDailyChallengeReturnsToCampaignAndPreservesProgress(){
