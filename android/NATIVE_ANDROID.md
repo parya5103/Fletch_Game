@@ -22,7 +22,8 @@
 - Add native swipe/selection polish, undo/restart, haptics, original sound assets, accessibility and responsive-device QA.
 - Profile cold start, frame pacing, memory and crash-free sessions on low-, mid- and high-tier Android devices.
 - Sign with the existing Play App Signing upload key (if the TWA package is already published); otherwise confirm the correct first-upload identity before release.
-- Integrate Google UMP consent before initializing AdMob; no ad SDK initialization or personalized ad request before the required consent decision. Test rewarded callbacks and reward idempotency with test ads only.
+- The native scaffold now includes UMP 4.0.0, GMA Next-Gen 1.6.0, a consent-gated initialization helper and a privacy-options button. It uses Google's test app ID by default and does not request/display ads. Configure the production AdMob app ID with `-P.ADMOB_APP_ID=ca-app-pub-...~...` only after registering the app and publishing UMP privacy messages.
+- Before ad requests are enabled, classify the audience/age treatment, set required child/under-age flags before GMA initialization, configure ad units and verify rewarded callbacks with test ads only.
 - Complete Data safety, ads declaration, privacy policy, content rating, internal testing and staged rollout.
 
 This is an engineering scaffold and first playable puzzle scene, not a signed production APK, completed AdMob integration or Play Store release.
