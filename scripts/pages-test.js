@@ -171,6 +171,7 @@ test('Arrow Out guide page has a distinct search snippet and canonical', () => {
   const guide = read('about.html');
   assert.ok(guide.includes('<title>Arrow Out Guide: How to Play &amp; Solve Arrow Puzzles</title>'));
   assert.ok(guide.includes('href="https://gogocompany.in/arrowout/about.html"'));
+  assert.ok(guide.includes('rel="icon"') && guide.includes('https://gogocompany.in/favicon.svg'));
   assert.equal([...guide.matchAll(/<h1\b/gi)].length, 1);
   assert.ok(guide.includes('clear blocked exit corridors'));
   const schemaMatch = guide.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
