@@ -50,7 +50,7 @@ class ArrowPuzzleEngine{
   return state.copy(eraserMode=enabled,message=if(enabled)"Eraser ready — tap any arrow to remove it" else "Eraser cancelled")
  }
  fun undo(state:ArrowGameState):ArrowGameState{
-  if(state.isFailed)return state
+  if(state.isSolved||state.isFailed)return state
   val index=state.undoStack.lastOrNull()?:return state.copy(message="No move to undo")
   if(index !in state.board.pieces.indices)return state.copy(undoStack=emptyList(),message="Undo history was invalid")
   val pieces=state.board.pieces.toMutableList();pieces[index]=pieces[index].copy(alive=true)
