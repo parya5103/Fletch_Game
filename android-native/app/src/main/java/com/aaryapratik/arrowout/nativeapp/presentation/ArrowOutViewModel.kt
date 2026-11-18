@@ -53,6 +53,7 @@ import java.util.TimeZone
    ArrowUiEvent.Hint->{_uiState.update{engine.hint(it)};saveQueue.trySend(_uiState.value)}
    ArrowUiEvent.ToggleEraser->{_uiState.update{engine.toggleEraser(it)};saveQueue.trySend(_uiState.value)}
    ArrowUiEvent.Undo->{_uiState.update{engine.undo(it)};saveQueue.trySend(_uiState.value)}
+   is ArrowUiEvent.SelectLevel->{if(event.level in 1.._uiState.value.unlockedLevel)openLevel(event.level)else _uiState.update{it.copy(message="Unlock level ${event.level} first")}}
    ArrowUiEvent.DailyChallenge->startDaily()
    ArrowUiEvent.ExitDaily->{
     val current=_uiState.value
@@ -87,6 +88,14 @@ import java.util.TimeZone
    try{val daily=repository.newDaily(dateKey,current);_uiState.value=daily;saveQueue.trySend(daily)}
    catch(cancelled:CancellationException){throw cancelled}
    catch(error:Exception){_uiState.update{it.copy(message="Daily challenge unavailable: ${error.message?: "unknown error"}")}}
+  }
+ }
+ private fun openLevel(level:Int){
+  val current=_uiState.value
+  viewModelScope.launch(io){
+   try{val next=repository.newGame(level,current);_uiState.value=next;saveQueue.trySend(next)}
+   catch(cancelled:CancellationException){throw cancelled}
+   catch(error:Exception){_uiState.update{it.copy(message="Could not open level: ${error.message?: "unknown error"}")}}
   }
  }
  fun importLegacy(json:String){
