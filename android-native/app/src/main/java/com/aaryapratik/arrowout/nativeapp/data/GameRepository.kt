@@ -55,8 +55,9 @@ import kotlinx.coroutines.flow.Flow
  }
  fun newDaily(dateKey:String,progress:ArrowGameState?=null):ArrowGameState{
   val base=progress?:ArrowGameState(levels.dailyBoard(dateKey))
-  if(base.dailyCompletedDate==dateKey)return base.copy(isDaily=true,dailyDate=dateKey,isSolved=true,isFailed=false,message="Today's daily challenge is already complete")
-  return base.copy(board=levels.dailyBoard(dateKey),isDaily=true,dailyDate=dateKey,hearts=3,mistakes=0,hintsUsed=0,hintedPieceIndex=-1,erasersRemaining=1,erasersUsed=0,eraserMode=false,undoStack=emptyList(),undosUsed=0,isSolved=false,isFailed=false,message="Daily challenge — clear the board and build your streak")
+  val dailyBoard=levels.dailyBoard(dateKey)
+  if(base.dailyCompletedDate==dateKey)return base.copy(board=dailyBoard.copy(pieces=dailyBoard.pieces.map{it.copy(alive=false)}),isDaily=true,dailyDate=dateKey,isSolved=true,isFailed=false,message="Today's daily challenge is already complete")
+  return base.copy(board=dailyBoard,isDaily=true,dailyDate=dateKey,hearts=3,mistakes=0,hintsUsed=0,hintedPieceIndex=-1,erasersRemaining=1,erasersUsed=0,eraserMode=false,undoStack=emptyList(),undosUsed=0,isSolved=false,isFailed=false,message="Daily challenge — clear the board and build your streak")
  }
  suspend fun importLegacy(json:String):ArrowGameState{
   val imported=LegacySaveImporter.import(json)
