@@ -340,6 +340,20 @@ const Game = (function() {
       if (save.music) UI.toast('Music on \u266a');
     });
     
+    on($('btn-export-progress'), 'click', function() {
+      Audio.ui();
+      var snapshot = Storage.exportSave();
+      function fallbackCopy() {
+        try { window.prompt('Copy your Arrow Out progress JSON, then paste it into the Android app:', snapshot); }
+        catch (e) { UI.toast('Could not open the copy dialog.'); }
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(snapshot).then(function() {
+          UI.toast('Progress JSON copied. Paste it into Arrow Out Android.');
+        }, fallbackCopy);
+      } else fallbackCopy();
+    });
+
     on($('btn-reminders'), 'click', function() {
       Audio.ui(); UI.closeAll();
       if (typeof Reminders !== 'undefined') Reminders.refreshUI();
