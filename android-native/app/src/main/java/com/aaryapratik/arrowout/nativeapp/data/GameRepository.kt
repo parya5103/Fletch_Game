@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.Flow
   if(!json.has("hearts"))json.addProperty("hearts",3)
   if(!json.has("mistakes"))json.addProperty("mistakes",0)
   if(!json.has("hintsUsed"))json.addProperty("hintsUsed",0)
+  if(!json.has("hintedPieceIndex"))json.addProperty("hintedPieceIndex",-1)
   if(!json.has("coins"))json.addProperty("coins",0)
   if(!json.has("bestStars"))json.add("bestStars",JsonObject())
   if(!json.has("bestPlays"))json.add("bestPlays",JsonObject())
