@@ -78,7 +78,7 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
    OutlinedButton(onClick={onEvent(ArrowUiEvent.DailyChallenge)},enabled=!isRestoring&&!state.isDaily,modifier=Modifier.fillMaxWidth()){Text("Daily Challenge · ${state.dailyStreak}-day streak")}
    Text("Unlocked campaign levels: ${state.unlockedLevel} / 1000",color=Color(0xFF9EB0CE),style=MaterialTheme.typography.labelSmall)
    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=Alignment.CenterVertically){
-    OutlinedTextField(value=levelInput,onValueChange={levelInput=it.filter(Char::isDigit).take(4)},modifier=Modifier.weight(1f),singleLine=true,label={Text("Open level")},keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number))
+    OutlinedTextField(value=levelInput,onValueChange={levelInput=it.filter{ch->ch.isDigit()}.take(4)},modifier=Modifier.weight(1f),singleLine=true,label={Text("Open level")},keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number))
     val selectedLevel=levelInput.toIntOrNull()
     Button(onClick={selectedLevel?.let{onEvent(ArrowUiEvent.SelectLevel(it))}},enabled=!isRestoring&&!state.isDaily&&selectedLevel!=null&&selectedLevel in 1..state.unlockedLevel){Text("Play")}
    }
