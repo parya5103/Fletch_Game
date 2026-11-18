@@ -53,7 +53,7 @@ import java.util.TimeZone
    ArrowUiEvent.Hint->{_uiState.update{engine.hint(it)};saveQueue.trySend(_uiState.value)}
    ArrowUiEvent.ToggleEraser->{_uiState.update{engine.toggleEraser(it)};saveQueue.trySend(_uiState.value)}
    ArrowUiEvent.Undo->{_uiState.update{engine.undo(it)};saveQueue.trySend(_uiState.value)}
-   ArrowUiEvent.DailyChallenge->startDaily()
+   ArrowUiEvent.DailyChallenge->startDaily()\n   ArrowUiEvent.ExitDaily->{\n    val current=_uiState.value\n    if(current.isDaily)viewModelScope.launch(io){\n     try{val campaign=repository.newGame(current.unlockedLevel,current);_uiState.value=campaign;saveQueue.trySend(campaign)}\n     catch(cancelled:CancellationException){throw cancelled}\n     catch(error:Exception){_uiState.update{it.copy(message=\"Could not return to campaign: ${error.message?: \"unknown error\"}\")}}\n    }\n   }
    ArrowUiEvent.Restart,ArrowUiEvent.Continue->{
     val current=_uiState.value
     val target=when(event){
