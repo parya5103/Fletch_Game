@@ -37,6 +37,19 @@ class ArrowPuzzleEngineTest{
   assertTrue(result.isSolved);assertEquals(4,result.dailyStreak);assertEquals(4,result.dailyBest)
   assertEquals(25,result.coins);assertEquals("20261119",result.dailyCompletedDate);assertEquals(1,result.unlockedLevel)
  }
+ @Test fun negativeColorIndexesAreRejected(){
+  val board=ArrowBoard(4,4,listOf(ArrowPiece(listOf(Cell(0,0),Cell(1,0)),Direction.RIGHT,-1)))
+  assertFalse(engine.valid(board))
+ }
+ @Test fun undoCannotReverseACompletedReward(){
+  val board=ArrowBoard(4,4,listOf(ArrowPiece(listOf(Cell(0,0),Cell(1,0)),Direction.RIGHT,0)))
+  val solved=engine.tap(ArrowGameState(board),Cell(0,0))
+  assertTrue(solved.isSolved)
+  assertEquals(10,solved.coins)
+  val afterUndo=engine.undo(solved)
+  assertTrue(afterUndo.isSolved)
+  assertEquals(10,afterUndo.coins)
+ }
  @Test fun malformedOverlappingPathsAreRejected(){val board=ArrowBoard(4,4,listOf(ArrowPiece(listOf(Cell(0,1),Cell(1,1)),Direction.RIGHT,0),ArrowPiece(listOf(Cell(0,1),Cell(0,2)),Direction.DOWN,1)));assertFalse(engine.valid(board))}
  @Test fun freeHintsAreLimitedToThreePerLevel(){
   var state=engine.newGame()
