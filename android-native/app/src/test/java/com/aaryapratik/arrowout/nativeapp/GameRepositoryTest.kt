@@ -19,6 +19,21 @@ class GameRepositoryTest{
   val repository=GameRepository(dao,levels)
   assertThrows(JsonSyntaxException::class.java){runBlocking{repository.load()}}
  }
+ @Test fun exitingDailyChallengeReturnsToCampaignAndPreservesProgress(){
+  val dao=mockk<GameProgressDao>()
+  val levels=mockk<ArrowLevelCatalog>()
+  val board=ArrowBoard(4,4,listOf(ArrowPiece(listOf(Cell(0,0),Cell(1,0)),Direction.RIGHT,0)))
+  every{levels.boardFor(8)} returns board
+  val repository=GameRepository(dao,levels)
+  val daily=ArrowGameState(board=board,level=8,isDaily=true,dailyDate="20261119",unlockedLevel=8,coins=95,dailyStreak=4,dailyBest=5)
+  val campaign=repository.newGame(8,daily)
+  assertFalse(campaign.isDaily)
+  assertEquals(8,campaign.level)
+  assertEquals(8,campaign.unlockedLevel)
+  assertEquals(95,campaign.coins)
+  assertEquals(4,campaign.dailyStreak)
+  assertEquals(5,campaign.dailyBest)
+ }
  @Test fun startingAnotherLevelClearsThePreviousPuzzleHint(){
   val dao=mockk<GameProgressDao>()
   val levels=mockk<ArrowLevelCatalog>()
