@@ -1,5 +1,6 @@
 #include "ArrowOutScene.h"
 #include <array>
+#include <algorithm>
 #include <cmath>
 USING_NS_CC;
 using namespace gogo::arrowout;
