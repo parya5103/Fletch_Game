@@ -18,8 +18,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.aaryapratik.arrowout.nativeapp.domain.model.*
 import com.aaryapratik.arrowout.nativeapp.presentation.theme.ArrowOutTheme
 private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D85FF),Color(0xFF4DD6A1),Color(0xFFFF718F))
-@Composable fun ArrowOutRoute(viewModel:ArrowOutViewModel=hiltViewModel()){val state by viewModel.uiState.collectAsStateWithLifecycle();ArrowOutScreen(state,viewModel::onEvent)}
-@Composable fun ArrowOutScreen(state:ArrowGameState,onEvent:(ArrowUiEvent)->Unit,modifier:Modifier=Modifier){
+@Composable fun ArrowOutRoute(viewModel:ArrowOutViewModel=hiltViewModel(),privacyOptionsRequired:Boolean=false,onShowPrivacyOptions:()->Unit={}){val state by viewModel.uiState.collectAsStateWithLifecycle();ArrowOutScreen(state,viewModel::onEvent,privacyOptionsRequired=privacyOptionsRequired,onShowPrivacyOptions=onShowPrivacyOptions)}
+@Composable fun ArrowOutScreen(state:ArrowGameState,onEvent:(ArrowUiEvent)->Unit,modifier:Modifier=Modifier,privacyOptionsRequired:Boolean=false,onShowPrivacyOptions:()->Unit={}){
  val board=state.board
  Scaffold(modifier=modifier.fillMaxSize(),containerColor=Color(0xFF101827)){padding->
   Column(Modifier.fillMaxSize().padding(padding).padding(horizontal=18.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(18.dp)){
@@ -39,6 +39,7 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
     }}
    }
    Button(onClick={onEvent(ArrowUiEvent.Restart)},modifier=Modifier.fillMaxWidth()){Text("Restart puzzle")}
+   if(privacyOptionsRequired)TextButton(onClick=onShowPrivacyOptions){Text("Privacy options",color=Color(0xFFB8C8E0))}
    if(state.isSolved)Text("Great job! You cleared every arrow.",color=Color(0xFF61DDA8))
    Text("Only another arrow in the head's straight exit lane blocks a move.",color=Color(0xFF8294B3),style=MaterialTheme.typography.bodySmall)
   }
