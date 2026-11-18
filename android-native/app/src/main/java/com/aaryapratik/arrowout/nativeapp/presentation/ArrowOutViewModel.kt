@@ -54,9 +54,12 @@ import kotlinx.coroutines.launch
      else->current.level
     }.coerceIn(1,1000)
     if(event==ArrowUiEvent.Restart||current.isSolved)viewModelScope.launch(io){
-     val next=repository.newGame(target,current)
-     _uiState.value=next
-     repository.save(next)
+     try{
+      val next=repository.newGame(target,current)
+      _uiState.value=next
+      saveQueue.trySend(next)
+     }catch(cancelled:CancellationException){throw cancelled}
+     catch(error:Exception){_uiState.update{it.copy(message="Could not open level: ${error.message?: "unknown error"}")}}
     }
    }
   }
@@ -64,7 +67,7 @@ import kotlinx.coroutines.launch
  fun importLegacy(json:String){
   if(_isRestoring.value)return
   viewModelScope.launch(io){
-   try{val imported=repository.importLegacy(json);_uiState.value=imported;_importMessage.value="Browser progress imported successfully"}
+   try{val imported=repository.importLegacy(json);_uiState.value=imported;saveQueue.trySend(imported);_importMessage.value="Browser progress imported successfully"}
    catch(cancelled:CancellationException){throw cancelled}
    catch(error:Exception){_importMessage.value="Import failed: ${error.message?: "invalid save"}"}
   }
