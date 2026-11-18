@@ -12,7 +12,7 @@ class LegacySaveImporterTest{
   val imported=LegacySaveImporter.import(json)
   assertEquals(77,imported.currentLevel);assertNotNull(imported.currentPuzzle)
   assertEquals(4,imported.currentPuzzle!!.width);assertEquals(2,imported.currentPuzzle!!.pieces.size)
-  assertEquals(2,imported.hearts);assertEquals(1,imported.mistakes);assertEquals(1,imported.hintsUsed)
+  assertEquals(2,imported.hearts);assertEquals(1,imported.mistakes);assertEquals(1,imported.hintsUsed);assertEquals("20261119",imported.dailyCompletedDate);assertEquals(7,imported.dailyStreak);assertEquals(9,imported.dailyBest)
   assertTrue(imported.rawSaveJson.contains("\"achievements\""));assertTrue(imported.rawSaveJson.contains("\"ownedBoards\""))
  }
  @Test fun rejectsUnsupportedVersionsAndOversizedPayloads(){
