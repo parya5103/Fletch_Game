@@ -12,7 +12,7 @@ val hasReleaseSigning=listOf(releaseStorePath,releaseStorePassword,releaseKeyAli
 val admobAppId = providers.gradleProperty("ADMOB_APP_ID").orElse("ca-app-pub-3940256099942544~3347511713").get()
 android{
  namespace="com.aaryapratik.arrowout.nativeapp"
- compileSdk=36
+ compileSdk=37
  defaultConfig{
   applicationId="in.gogocompany.arrowout"
   minSdk=24
