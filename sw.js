@@ -1,12 +1,12 @@
 /**
  * Arrow Out! Service Worker
- * Version: v48
+ * Version: v49
  * Audit fixes: notification privacy, saved settings, interrupted game restoration,
  * and the GoGo Central backend CSP migration for already-installed PWAs.
  * Handles caching for offline gameplay
  */
 
-const CACHE = 'arrow-out-v48';
+const CACHE = 'arrow-out-v49';
 // Only obsolete caches that belong to THIS game (arrow-out-*) are ever deleted,
 // so other apps served from the same origin keep their caches.
 const CACHE_PREFIX = 'arrow-out-';
