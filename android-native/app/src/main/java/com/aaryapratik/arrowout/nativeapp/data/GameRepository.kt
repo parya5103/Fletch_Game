@@ -44,7 +44,7 @@ import kotlinx.coroutines.flow.Flow
  fun newGame(level:Int,progress:ArrowGameState?=null):ArrowGameState{
   val safe=level.coerceIn(1,1000)
   val base=progress?:ArrowGameState(levels.boardFor(safe))
-  return base.copy(board=levels.boardFor(safe),level=safe,hearts=3,mistakes=0,hintsUsed=0,hintedPieceIndex=-1,isSolved=false,isFailed=false,message="Find a clear arrow and tap to release it")
+  return base.copy(board=levels.boardFor(safe),level=safe,hearts=3,mistakes=0,hintsUsed=0,hintedPieceIndex=-1,erasersRemaining=1,erasersUsed=0,eraserMode=false,undoStack=emptyList(),undosUsed=0,isSolved=false,isFailed=false,message="Find a clear arrow and tap to release it")
  }
  suspend fun importLegacy(json:String):ArrowGameState{
   val imported=LegacySaveImporter.import(json)
