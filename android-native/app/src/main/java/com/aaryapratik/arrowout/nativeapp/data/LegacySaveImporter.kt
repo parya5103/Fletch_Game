@@ -46,10 +46,13 @@ object LegacySaveImporter{
   val hearts=(cur?.get("hearts")?.takeIf{it.isJsonPrimitive}?.asInt?:3).coerceIn(1,3)
   val mistakes=(cur?.get("wrong")?.takeIf{it.isJsonPrimitive}?.asInt?:0).coerceIn(0,3)
   val hints=(cur?.get("hintsUsed")?.takeIf{it.isJsonPrimitive}?.asInt?:0).coerceAtLeast(0)
+  val erasers=(cur?.get("erasersUsed")?.takeIf{it.isJsonPrimitive}?.asInt?:0).coerceAtLeast(0)
+  val undoIds=cur?.getAsJsonArray("undoIds")?.mapNotNull{runCatching{it.asInt}.getOrNull()}.orEmpty()
+  val undoStack=currentPuzzle?.pieces?.mapIndexedNotNull{index,piece->if(!piece.alive&&piece.step in undoIds)index else null}?.takeLast(10).orEmpty()
   return ImportedArrowProgress(
    version=version,unlocked=unlocked,coins=coins,bestStars=stars,bestPlays=plays,
    sound=root.get("sound")?.takeIf{it.isJsonPrimitive&&it.asJsonPrimitive.isBoolean}?.asBoolean?:true,
-   currentPuzzle=currentPuzzle,currentLevel=currentLevel,hearts=hearts,mistakes=mistakes,hintsUsed=hints,
+   currentPuzzle=currentPuzzle,currentLevel=currentLevel,hearts=hearts,erasersUsed=erasers,undoStack=undoStack,mistakes=mistakes,hintsUsed=hints,
    rawSaveJson=root.toString()
   )
  }
