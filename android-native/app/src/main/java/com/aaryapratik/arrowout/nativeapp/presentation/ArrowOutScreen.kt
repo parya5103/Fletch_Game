@@ -71,8 +71,8 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
     Text("LEVEL ${state.level.toString().padStart(3,'0')}",color=Color.White)
     Text("♥ ${state.hearts}    ARROWS LEFT  ${state.remaining}",color=Color.White)
    }
-   Text("COINS ${state.coins}   ·   BEST ${state.bestStars[state.level]?:0} ★",color=Color(0xFFFFD166),style=MaterialTheme.typography.labelMedium)
-   Text(if(isRestoring)"Restoring your progress…" else state.message,color=Color(0xFFB8C8E0),style=MaterialTheme.typography.bodyMedium)
+   Text("COINS ${state.coins}   ·   BEST ${state.bestStars[state.level]?:0} ★   ·   ERASERS ${state.erasersRemaining}",color=Color(0xFFFFD166),style=MaterialTheme.typography.labelMedium)
+   Text(if(isRestoring)"Restoring your progress…" else if(state.eraserMode)"Tap an arrow to erase it" else state.message,color=if(state.eraserMode)Color(0xFFFFD166)else Color(0xFFB8C8E0),style=MaterialTheme.typography.bodyMedium)
    Canvas(
     Modifier.fillMaxWidth().aspectRatio(board.width.toFloat()/board.height.toFloat())
      .clip(RoundedCornerShape(18.dp)).background(Color(0xFF202C40))
