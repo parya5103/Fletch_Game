@@ -7,13 +7,13 @@ class ArrowPuzzleEngine{
   ArrowPiece(listOf(Cell(2,3),Cell(2,4),Cell(2,5)),Direction.DOWN,2)
  )))
  fun valid(board:ArrowBoard):Boolean{
-  if(board.width !in 2..20||board.height !in 2..20)return false
+  if(board.width !in 2..72||board.height !in 2..72)return false
   val occupied=mutableSetOf<Cell>()
-  for(piece in board.pieces.filter{it.alive}){
+  for(piece in board.pieces){
    if(piece.cells.size<2||piece.cells.distinct().size!=piece.cells.size)return false
    if(piece.cells.any{it.x !in 0 until board.width||it.y !in 0 until board.height})return false
    if(piece.cells.zipWithNext().any{(a,b)->kotlin.math.abs(a.x-b.x)+kotlin.math.abs(a.y-b.y)!=1})return false
-   if(piece.cells.any{!occupied.add(it)})return false
+   if(piece.alive&&piece.cells.any{!occupied.add(it)})return false
    val head=piece.cells.last();val previous=piece.cells[piece.cells.lastIndex-1]
    if(head.x-previous.x!=piece.direction.dx||head.y-previous.y!=piece.direction.dy)return false
   }
