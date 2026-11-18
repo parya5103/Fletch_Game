@@ -63,7 +63,10 @@ for (let offset = 0; offset < 730; offset++) {
     }))
   });
 }
-fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-fs.writeFileSync(outputPath, JSON.stringify({ version: 1, generator: "GameCore", levels, dailyChallenges }));
-const bytes = fs.statSync(outputPath).size;
-process.stdout.write("Generated and solver-validated " + levels.length + " Arrow Out levels (" + bytes + " bytes)\n");
+const assetsDir = path.dirname(outputPath);
+const dailyOutputPath = path.join(assetsDir, "arrow-daily.v1.json");
+fs.mkdirSync(assetsDir, { recursive: true });
+fs.writeFileSync(outputPath, JSON.stringify({ version: 1, generator: "GameCore", levels }));
+fs.writeFileSync(dailyOutputPath, JSON.stringify({ version: 1, generator: "GameCore", dailyChallenges }));
+const bytes = fs.statSync(outputPath).size + fs.statSync(dailyOutputPath).size;
+process.stdout.write("Generated and solver-validated " + levels.length + " campaign levels and " + dailyChallenges.length + " daily boards (" + bytes + " bytes)\n");
