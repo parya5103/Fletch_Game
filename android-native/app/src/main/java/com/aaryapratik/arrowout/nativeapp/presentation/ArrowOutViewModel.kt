@@ -62,7 +62,7 @@ import java.util.Locale
     }.coerceIn(1,1000)
     if(event==ArrowUiEvent.Restart||current.isSolved)viewModelScope.launch(io){
      try{
-      val next=repository.newGame(target,current)
+      val next=if(current.isDaily&&event==ArrowUiEvent.Restart)repository.newDaily(current.dailyDate,current)else repository.newGame(target,current)
       _uiState.value=next
       saveQueue.trySend(next)
      }catch(cancelled:CancellationException){throw cancelled}
