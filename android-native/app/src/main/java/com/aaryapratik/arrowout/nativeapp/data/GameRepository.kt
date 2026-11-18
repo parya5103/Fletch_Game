@@ -9,6 +9,6 @@ import kotlinx.coroutines.flow.Flow
 @Singleton class GameRepository @Inject constructor(private val dao:GameProgressDao){
  private val gson=Gson()
  fun observe():Flow<GameProgress?> = dao.observe("arrow-out")
- suspend fun load():ArrowGameState? = dao.get("arrow-out")?.payload?.let{runCatching{gson.fromJson(it,ArrowGameState::class.java)}.getOrNull()}
+ suspend fun load():ArrowGameState? = dao.get("arrow-out")?.payload?.let{gson.fromJson(it,ArrowGameState::class.java)}
  suspend fun save(state:ArrowGameState){dao.upsert(GameProgress("arrow-out",gson.toJson(state),System.currentTimeMillis()))}
 }
