@@ -1,7 +1,7 @@
 name: Native Android
 on:
   pull_request:
-    paths: ['native/cocos/**','scripts/bootstrap-native-engine.sh','.github/workflows/native-android.yml']
+    paths: ['native/cocos/**','native/include/**','native/tests/**','scripts/bootstrap-native-engine.sh','scripts/export-native-levels.js','js/game.js','.github/workflows/native-android.yml']
   push:
     branches: [main]
     paths: ['native/cocos/**','scripts/bootstrap-native-engine.sh','.github/workflows/native-android.yml']
@@ -42,6 +42,10 @@ jobs:
               s=s.replace('android {', 'android {' + chr(10) + "    namespace 'org.cocos2dx.lib'", 1)
               p.write_text(s)
           PY
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Export deterministic 1,000-level campaign assets
+        run: node scripts/export-native-levels.js
       - name: Build APK and AAB
         working-directory: native/cocos/proj.android
         run: gradle --no-daemon :app:assembleDebug :app:bundleRelease
