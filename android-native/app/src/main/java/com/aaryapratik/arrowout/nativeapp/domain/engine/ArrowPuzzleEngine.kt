@@ -29,6 +29,12 @@ class ArrowPuzzleEngine{
   }
   return -1
  }
+ fun hint(state:ArrowGameState):ArrowGameState{
+  if(state.isSolved||state.isFailed)return state
+  val next=state.board.pieces.indices.sortedByDescending{state.board.pieces[it].step}.firstOrNull{state.board.pieces[it].alive&&blocker(state.board,it)==-1}
+   ?:return state.copy(message="No safe arrow found — restart this puzzle")
+  return state.copy(hintedPieceIndex=next,hintsUsed=state.hintsUsed+1,message="Hint: release the highlighted arrow")
+ }
  fun tap(state:ArrowGameState,cell:Cell):ArrowGameState{
   if(state.isSolved||state.isFailed||cell.x !in 0 until state.board.width||cell.y !in 0 until state.board.height)return state
   val index=state.board.pieces.indexOfFirst{it.alive&&it.cells.contains(cell)}
@@ -41,6 +47,6 @@ class ArrowPuzzleEngine{
   val stars=when{state.mistakes==0&&state.hintsUsed==0->3;state.mistakes<=2&&state.hintsUsed<=1->2;else->1}
   val nextBest=if(solved)state.bestStars.toMutableMap().apply{this[state.level]=maxOf(this[state.level]?:0,stars)}else state.bestStars
   val nextPlays=if(solved)state.bestPlays.toMutableMap().apply{this[state.level]=(this[state.level]?:0)+1}else state.bestPlays
-  return state.copy(board=board,isSolved=solved,unlockedLevel=if(solved)maxOf(state.unlockedLevel,state.level+1)else state.unlockedLevel,coins=if(solved)state.coins+10 else state.coins,bestStars=nextBest,bestPlays=nextPlays,message=if(solved)"Puzzle solved! +10 coins" else "Arrow cleared — find the next exit")
+  return state.copy(board=board,isSolved=solved,hintedPieceIndex=-1,unlockedLevel=if(solved)maxOf(state.unlockedLevel,(state.level+1).coerceAtMost(1000))else state.unlockedLevel,coins=if(solved)state.coins+10 else state.coins,bestStars=nextBest,bestPlays=nextPlays,message=if(solved)"Puzzle solved! +10 coins" else "Arrow cleared — find the next exit")
  }
 }
