@@ -1,7 +1,6 @@
 #include "ArrowOutScene.h"
 #include <algorithm>
 #include <string>
-#include <rapidjson/document.h>
 USING_NS_CC;
 using namespace gogo::arrowout;
 namespace {
@@ -35,31 +34,27 @@ bool ArrowOutScene::init() {
 bool ArrowOutScene::loadLevel(int level) {
  if(level<1||level>1000) { setStatus("All 1,000 campaign levels complete!"); return false; }
  const auto path="levels/level-"+std::to_string(level)+".json";
- const auto raw=FileUtils::getInstance()->getStringFromFile(path);
- if(raw.empty()) { setStatus("Cannot load "+path); return false; }
- rapidjson::Document doc; doc.Parse(raw.c_str());
- if(doc.HasParseError()||!doc.IsObject()||!doc.HasMember("cols")||!doc["cols"].IsInt()||
-    !doc.HasMember("rows")||!doc["rows"].IsInt()||!doc.HasMember("arrows")||!doc["arrows"].IsArray()) {
+ const auto doc=FileUtils::getInstance()->getValueMapFromFile(path);
+ if(doc.empty()||!doc.count("cols")||!doc.count("rows")||!doc.count("arrows")) {
   setStatus("Campaign level data is invalid"); return false;
  }
- Board next; next.width=doc["cols"].GetInt(); next.height=doc["rows"].GetInt();
- if(doc.HasMember("shape")&&doc["shape"].IsArray()) {
-  for(const auto& c:doc["shape"].GetArray()) {
-   if(!c.IsInt()&&!c.IsBool()) { setStatus("Invalid campaign shape"); return false; }
-   next.shape.push_back(c.IsBool()?(c.GetBool()?1:0):static_cast<std::uint8_t>(c.GetInt()!=0));
-  }
+ Board next; next.width=doc.at("cols").asInt(); next.height=doc.at("rows").asInt();
+ if(doc.count("shape")) {
+  const auto shape=doc.at("shape").asValueVector();
+  for(const auto& cell:shape) next.shape.push_back(static_cast<std::uint8_t>(cell.asInt()!=0));
  }
- for(const auto& item:doc["arrows"].GetArray()) {
-  if(!item.IsObject()||!item.HasMember("dir")||!item["dir"].IsInt()||
-     !item.HasMember("step")||!item["step"].IsInt()||
-     !item.HasMember("cells")||!item["cells"].IsArray()) { setStatus("Invalid arrow in campaign data"); return false; }
-  Piece piece; piece.dir=item["dir"].GetInt(); piece.step=item["step"].GetInt(); piece.alive=true;
-  if(item.HasMember("c")&&item["c"].IsString()) piece.color=item["c"].GetString();
-  for(const auto& cell:item["cells"].GetArray()) {
-   if(!cell.IsObject()||!cell.HasMember("x")||!cell["x"].IsInt()||!cell.HasMember("y")||!cell["y"].IsInt()) {
-    setStatus("Invalid arrow cell"); return false;
-   }
-   piece.cells.push_back({cell["x"].GetInt(),cell["y"].GetInt()});
+ const auto arrows=doc.at("arrows").asValueVector();
+ for(const auto& value:arrows) {
+  if(value.getType()!=Value::Type::MAP) { setStatus("Invalid arrow in campaign data"); return false; }
+  const auto item=value.asValueMap();
+  if(!item.count("dir")||!item.count("step")||!item.count("cells")) { setStatus("Incomplete arrow data"); return false; }
+  Piece piece; piece.dir=item.at("dir").asInt(); piece.step=item.at("step").asInt(); piece.alive=true;
+  if(item.count("c")) piece.color=item.at("c").asString();
+  for(const auto& valueCell:item.at("cells").asValueVector()) {
+   if(valueCell.getType()!=Value::Type::MAP) { setStatus("Invalid arrow cell"); return false; }
+   const auto cell=valueCell.asValueMap();
+   if(!cell.count("x")||!cell.count("y")) { setStatus("Invalid arrow coordinates"); return false; }
+   piece.cells.push_back({cell.at("x").asInt(),cell.at("y").asInt()});
   }
   next.pieces.push_back(std::move(piece));
  }
