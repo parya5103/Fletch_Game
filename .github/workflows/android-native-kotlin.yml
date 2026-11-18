@@ -24,7 +24,7 @@ jobs:
         run: |
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           test -x "$SDKMANAGER"
-          yes | "$SDKMANAGER" --licenses
+          yes | "$SDKMANAGER" --licenses || true
           "$SDKMANAGER" --install "platforms;android-36" "build-tools;36.0.0"
       - name: Generate and validate all 1,000 native levels
         run: node scripts/generate-native-levels.cjs
