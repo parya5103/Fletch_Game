@@ -55,6 +55,7 @@ import java.util.TimeZone
    ArrowUiEvent.Undo->{_uiState.update{engine.undo(it)};saveQueue.trySend(_uiState.value)}
    is ArrowUiEvent.SelectLevel->{if(event.level in 1.._uiState.value.unlockedLevel)openLevel(event.level)else _uiState.update{it.copy(message="Unlock level ${event.level} first")}}
    ArrowUiEvent.DailyChallenge->startDaily()
+   ArrowUiEvent.ExitDaily->openLevel(_uiState.value.level)
    ArrowUiEvent.ExitDaily->{
     val current=_uiState.value
     if(current.isDaily)viewModelScope.launch(io){
