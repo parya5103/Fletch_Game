@@ -42,7 +42,8 @@ jobs:
               s=s.replace('android {', 'android {' + chr(10) + "    namespace 'org.cocos2dx.lib'", 1)
           s=s.replace(' package="org.cocos2dx.lib"', '')
           p.write_text(s)
-          PY      - uses: actions/setup-node@v4
+          PY
+      - uses: actions/setup-node@v4
         with: { node-version: '22' }
       - name: Export deterministic 1,000-level campaign assets
         run: node scripts/export-native-levels.js
