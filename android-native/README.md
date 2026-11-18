@@ -19,7 +19,7 @@ On the PWA open **Settings → Export progress for Android**. The save JSON is c
 UMP consent request, privacy-options entry point and consent-gated Google Mobile Ads Next-Gen initialization are present. The app uses Google's test app ID and has no production ad unit configured. No live ads or monetization are enabled.
 
 ## Build
-JDK 17, Gradle 9.5.0, AGP 9.3.1, Kotlin 2.4.21, KSP 2.3.12, Android SDK Platform 36 and Build Tools 36.0.0.
+JDK 17, Gradle 9.5.0, AGP 9.3.1, Kotlin 2.4.21, KSP 2.3.12, Android SDK Platform 37 and Build Tools 36.0.0.
 
 For a local build, first run `node scripts/generate-native-levels.cjs`, then from `android-native/` run:
 `gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug :app:bundleRelease`.
