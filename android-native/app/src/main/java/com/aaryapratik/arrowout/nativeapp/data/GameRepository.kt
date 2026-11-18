@@ -10,6 +10,11 @@ import kotlinx.coroutines.flow.Flow
 @Singleton class GameRepository @Inject constructor(private val dao:GameProgressDao){
  private val gson=Gson()
  fun observe():Flow<GameProgress?> = dao.observe("arrow-out")
- suspend fun load():ArrowGameState? = dao.get("arrow-out")?.payload?.let{gson.fromJson(it,ArrowGameState::class.java)}
+ suspend fun load():ArrowGameState?{
+  val saved=dao.get("arrow-out")?:return null
+  val state=gson.fromJson(saved.payload,ArrowGameState::class.java)?:throw IllegalStateException("Saved Arrow Out state is empty")
+  require(ArrowPuzzleEngine().valid(state.board)){"Saved Arrow Out puzzle is invalid"}
+  return state
+ }
  suspend fun save(state:ArrowGameState){dao.upsert(GameProgress("arrow-out",gson.toJson(state),System.currentTimeMillis()))}
 }
