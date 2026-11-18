@@ -68,10 +68,11 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
    Text("ARROW OUT",style=MaterialTheme.typography.headlineLarge,color=Color.White)
    Text("A path puzzle",color=Color(0xFF9EB0CE))
    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){
-    Text("LEVEL ${state.level.toString().padStart(3,'0')}",color=Color.White)
+    Text(if(state.isDaily)"DAILY CHALLENGE" else "LEVEL ${state.level.toString().padStart(3,'0')}",color=Color.White)
     Text("♥ ${state.hearts}    ARROWS LEFT  ${state.remaining}",color=Color.White)
    }
-   Text("COINS ${state.coins}   ·   BEST ${state.bestStars[state.level]?:0} ★   ·   ERASERS ${state.erasersRemaining}",color=Color(0xFFFFD166),style=MaterialTheme.typography.labelMedium)
+   Text("COINS ${state.coins}   ·   BEST ${if(state.isDaily)state.dailyStars else state.bestStars[state.level]?:0} ★   ·   ERASERS ${state.erasersRemaining}   ·   STREAK ${state.dailyStreak}",color=Color(0xFFFFD166),style=MaterialTheme.typography.labelMedium)
+   OutlinedButton(onClick={onEvent(ArrowUiEvent.DailyChallenge)},enabled=!isRestoring&&!state.isDaily,modifier=Modifier.fillMaxWidth()){Text("Daily Challenge · ${state.dailyStreak}-day streak")}
    Text(if(isRestoring)"Restoring your progress…" else if(state.eraserMode)"Tap an arrow to erase it" else state.message,color=if(state.eraserMode)Color(0xFFFFD166)else Color(0xFFB8C8E0),style=MaterialTheme.typography.bodyMedium)
    Canvas(
     Modifier.fillMaxWidth().aspectRatio(board.width.toFloat()/board.height.toFloat())
@@ -108,7 +109,7 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
     for(y in 0..board.height)drawLine(Color(0x222A3D59),Offset(0f,y*ch),Offset(size.width,y*ch),1f)
    }
    Text("Pinch to zoom · drag to explore larger boards",color=Color(0xFF8294B3),style=MaterialTheme.typography.labelSmall)
-   if(state.isSolved)Button(onClick={onEvent(ArrowUiEvent.Continue)},enabled=!isRestoring&&state.level<1000,modifier=Modifier.fillMaxWidth()){Text(if(state.level<1000)"Continue to Level ${state.level+1}" else "All 1,000 levels cleared")}
+   if(state.isSolved)Button(onClick={onEvent(ArrowUiEvent.Continue)},enabled=!isRestoring&&(state.isDaily||state.level<1000),modifier=Modifier.fillMaxWidth()){Text(if(state.isDaily)"Return to campaign" else if(state.level<1000)"Continue to Level ${state.level+1}" else "All 1,000 levels cleared")}
    Button(onClick={onEvent(ArrowUiEvent.Hint)},enabled=!isRestoring&&!state.isSolved&&!state.isFailed&&state.hintsUsed<ArrowPuzzleEngine.FREE_HINTS,modifier=Modifier.fillMaxWidth()){Text("Hint · ${ArrowPuzzleEngine.FREE_HINTS-state.hintsUsed} free left")}
    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){
     OutlinedButton(onClick={onEvent(ArrowUiEvent.Undo)},enabled=!isRestoring&&!state.isFailed&&state.undoStack.isNotEmpty(),modifier=Modifier.weight(1f)){Text("Undo")}
