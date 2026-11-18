@@ -16,6 +16,10 @@ data class ImportedArrowProgress(
  val hearts:Int,
  val erasersUsed:Int,
  val undoStack:List<Int>,
+ val dailyCompletedDate:String,
+ val lastDailyDate:String,
+ val dailyStreak:Int,
+ val dailyBest:Int,
  val mistakes:Int,
  val hintsUsed:Int,
  val rawSaveJson:String
@@ -48,13 +52,20 @@ object LegacySaveImporter{
   val hearts=(cur?.get("hearts")?.takeIf{it.isJsonPrimitive}?.asInt?:3).coerceIn(1,3)
   val mistakes=(cur?.get("wrong")?.takeIf{it.isJsonPrimitive}?.asInt?:0).coerceIn(0,3)
   val hints=(cur?.get("hintsUsed")?.takeIf{it.isJsonPrimitive}?.asInt?:0).coerceAtLeast(0)
+  val daily=root.get("daily")?.takeIf{it.isJsonObject}?.asJsonObject
+  val dailyDate=daily?.get("lastDate")?.takeIf{it.isJsonPrimitive}?.asString.orEmpty().replace("-","")
+  val dailyCompleted=daily?.get("completed")?.takeIf{it.isJsonPrimitive}?.asBoolean==true
+  val streaks=root.get("streaks")?.takeIf{it.isJsonObject}?.asJsonObject
   val erasers=(cur?.get("erasersUsed")?.takeIf{it.isJsonPrimitive}?.asInt?:0).coerceAtLeast(0)
   val undoIds=cur?.getAsJsonArray("undoIds")?.mapNotNull{runCatching{it.asInt}.getOrNull()}.orEmpty()
   val undoStack=currentPuzzle?.pieces?.mapIndexedNotNull{index,piece->if(!piece.alive&&piece.step in undoIds)index else null}?.takeLast(10).orEmpty()
   return ImportedArrowProgress(
    version=version,unlocked=unlocked,coins=coins,bestStars=stars,bestPlays=plays,
    sound=root.get("sound")?.takeIf{it.isJsonPrimitive&&it.asJsonPrimitive.isBoolean}?.asBoolean?:true,
-   currentPuzzle=currentPuzzle,currentLevel=currentLevel,hearts=hearts,erasersUsed=erasers,undoStack=undoStack,mistakes=mistakes,hintsUsed=hints,
+   currentPuzzle=currentPuzzle,currentLevel=currentLevel,hearts=hearts,erasersUsed=erasers,undoStack=undoStack,
+   dailyCompletedDate=if(dailyCompleted)dailyDate else "",lastDailyDate=if(dailyCompleted)dailyDate else "",
+   dailyStreak=if(dailyCompleted)(streaks?.get("current")?.asInt?:0).coerceAtLeast(0)else 0,
+   dailyBest=(streaks?.get("best")?.asInt?:0).coerceAtLeast(0),mistakes=mistakes,hintsUsed=hints,
    rawSaveJson=root.toString()
   )
  }
