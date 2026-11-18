@@ -10,7 +10,7 @@ Kotlin + Jetpack Compose Material 3, MVVM/UDF, Hilt, Coroutines/StateFlow, Room 
 - The generation step builds and solver-validates all 1,000 deterministic official levels before packaging the Android app. This keeps native level geometry identical to the web campaign without hand-maintained duplicate layouts.
 - Native rules validate winding paths and use the strict arrow-head exit ray for blockers.
 - Three-heart mistake rules, win/fail states, stars, coins, level unlocks, safe-arrow hints, one free eraser per level, undo and restart/continue are wired.
-- Native campaign progression reads the generated level catalog; pinch zoom/pan supports the larger boards.
+- Native campaign progression reads the generated level catalog; pinch zoom/pan supports the larger boards. The offline daily challenge is date-seeded from the canonical generator, awards bonus coins and tracks consecutive-day streaks.
 
 ## Browser save migration
 On the PWA open **Settings → Export progress for Android**. The save JSON is copied to the clipboard (with a manual copy fallback). In the Android app choose **Import existing PWA progress**, paste the JSON and import. The importer validates the actual `arrowOut.v2` / `arrowOut.v1` structure, restores a valid current puzzle where available, and retains the full original JSON snapshot so unported fields are not discarded. The browser save is not changed by import.
