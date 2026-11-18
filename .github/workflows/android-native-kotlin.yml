@@ -1,7 +1,7 @@
 name: Android Native Kotlin
 on:
   pull_request:
-    paths: ['android-native/**','.github/workflows/android-native-kotlin.yml']
+    paths: ['android-native/**','js/game.js','scripts/generate-native-levels.cjs','.github/workflows/android-native-kotlin.yml']
   push:
     branches: [main]
     paths: ['android-native/**','.github/workflows/android-native-kotlin.yml']
