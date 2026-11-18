@@ -161,4 +161,10 @@ test('Arrow Out guide page has a distinct search snippet and canonical', () => {
   assert.ok(guide.includes('href="https://gogocompany.in/arrowout/about.html"'));
   assert.equal([...guide.matchAll(/<h1\b/gi)].length, 1);
   assert.ok(guide.includes('clear blocked exit corridors'));
+  const schemaMatch = guide.match(/<script type="application\\/ld\\+json">([\\s\\S]*?)<\\/script>/);
+  assert.ok(schemaMatch, 'guide should expose crawlable structured data');
+  const schema = JSON.parse(schemaMatch[1]);
+  const faq = schema['@graph'].find(node => node['@type'] === 'FAQPage');
+  assert.ok(faq && faq.mainEntity.length >= 5, 'FAQ schema must match the visible guide FAQs');
+  assert.ok(schema['@graph'].some(node => node['@type'] === 'WebPage'));
 });
