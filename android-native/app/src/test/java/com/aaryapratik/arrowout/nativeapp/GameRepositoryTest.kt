@@ -17,7 +17,8 @@ class GameRepositoryTest{
   val levels=mockk<ArrowLevelCatalog>()
   coEvery{dao.get("arrow-out")} returns GameProgress("arrow-out","{broken",1L)
   val repository=GameRepository(dao,levels)
-  assertThrows(JsonSyntaxException::class.java){runBlocking{repository.load()}}
+  assertThrows(JsonSyntaxException::class.java){repository.load()}
+  Unit
  }
  @Test fun exitingDailyChallengeReturnsToCampaignAndPreservesProgress(){
   val dao=mockk<GameProgressDao>()
