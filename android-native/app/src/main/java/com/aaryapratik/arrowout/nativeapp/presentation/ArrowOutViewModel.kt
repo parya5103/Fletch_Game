@@ -46,6 +46,7 @@ import kotlinx.coroutines.launch
   if(_isRestoring.value)return
   when(event){
    is ArrowUiEvent.TapCell->{_uiState.update{engine.tap(it,event.cell)};saveQueue.trySend(_uiState.value)}
+   ArrowUiEvent.Hint->{_uiState.update{engine.hint(it)};saveQueue.trySend(_uiState.value)}
    ArrowUiEvent.Restart,ArrowUiEvent.Continue->{
     val current=_uiState.value
     val target=when(event){
