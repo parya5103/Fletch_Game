@@ -8,6 +8,13 @@ data class ArrowGameState(
  val message:String="Tap an arrow to clear its exit path",
  val isSolved:Boolean=false,
  val isFailed:Boolean=false,
+ val isDaily:Boolean=false,
+ val dailyDate:String="",
+ val lastDailyDate:String="",
+ val dailyCompletedDate:String="",
+ val dailyStreak:Int=0,
+ val dailyBest:Int=0,
+ val dailyStars:Int=0,
  val level:Int=1,
  val unlockedLevel:Int=1,
  val hearts:Int=3,
@@ -29,5 +36,5 @@ data class ArrowGameState(
 sealed interface ArrowUiEvent{
  data class TapCell(val cell:Cell):ArrowUiEvent
  data object Restart:ArrowUiEvent
- data object Continue:ArrowUiEvent;data object Hint:ArrowUiEvent;data object ToggleEraser:ArrowUiEvent;data object Undo:ArrowUiEvent
+ data object Continue:ArrowUiEvent;data object Hint:ArrowUiEvent;data object ToggleEraser:ArrowUiEvent;data object Undo:ArrowUiEvent;data object DailyChallenge:ArrowUiEvent
 }
