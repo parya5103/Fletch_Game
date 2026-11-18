@@ -37,6 +37,9 @@ hilt-compiler={module="com.google.dagger:hilt-compiler",version.ref="hilt"}
 junit={module="junit:junit",version.ref="junit"}
 mockk={module="io.mockk:mockk",version.ref="mockk"}
 turbine={module="app.cash.turbine:turbine",version.ref="turbine"}
+user-messaging-platform = { module = "com.google.android.ump:user-messaging-platform", version.ref = "ump" }
+mobile-ads-nextgen = { module = "com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk", version.ref = "mobileAdsNextGen" }
+
 [plugins]
 android-application={id="com.android.application",version.ref="agp"}
 kotlin-android={id="org.jetbrains.kotlin.android",version.ref="kotlin"}
