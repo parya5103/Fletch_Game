@@ -1,12 +1,13 @@
 package com.aaryapratik.arrowout.nativeapp.domain.engine
 import com.aaryapratik.arrowout.nativeapp.domain.model.*
+import kotlin.math.abs
 class ArrowPuzzleEngine{
- companion object{const val FREE_HINTS=3}
+ companion object{const val FREE_HINTS=3;private const val MAX_UNDO=10}
  fun newGame()=ArrowGameState(ArrowBoard(6,6,listOf(
   ArrowPiece(listOf(Cell(0,2),Cell(1,2),Cell(1,1),Cell(2,1)),Direction.RIGHT,0),
   ArrowPiece(listOf(Cell(4,1),Cell(5,1)),Direction.RIGHT,1),
   ArrowPiece(listOf(Cell(2,3),Cell(2,4),Cell(2,5)),Direction.DOWN,2)
- )))
+  )))
  fun valid(board:ArrowBoard):Boolean{
   if(board.width !in 2..72||board.height !in 2..72)return false
   if(board.activeCells.any{it.x !in 0 until board.width||it.y !in 0 until board.height})return false
@@ -14,7 +15,7 @@ class ArrowPuzzleEngine{
   for(piece in board.pieces){
    if(piece.cells.size<2||piece.cells.distinct().size!=piece.cells.size)return false
    if(piece.cells.any{it.x !in 0 until board.width||it.y !in 0 until board.height})return false
-   if(piece.cells.zipWithNext().any{(a,b)->kotlin.math.abs(a.x-b.x)+kotlin.math.abs(a.y-b.y)!=1})return false
+   if(piece.cells.zipWithNext().any{(a,b)->abs(a.x-b.x)+abs(a.y-b.y)!=1})return false
    if(piece.cells.any{!occupied.add(it)})return false
    if(board.activeCells.isNotEmpty()&&piece.cells.any{it !in board.activeCells})return false
    val head=piece.cells.last();val previous=piece.cells[piece.cells.lastIndex-1]
@@ -39,18 +40,48 @@ class ArrowPuzzleEngine{
    ?:return state.copy(message="No safe arrow found — restart this puzzle")
   return state.copy(hintedPieceIndex=next,hintsUsed=state.hintsUsed+1,message="Hint: release the highlighted arrow")
  }
+ fun toggleEraser(state:ArrowGameState):ArrowGameState{
+  if(state.isSolved||state.isFailed)return state
+  if(state.erasersRemaining<=0)return state.copy(message="No erasers remaining")
+  val enabled=!state.eraserMode
+  return state.copy(eraserMode=enabled,message=if(enabled)"Eraser ready — tap any arrow to remove it" else "Eraser cancelled")
+ }
+ fun undo(state:ArrowGameState):ArrowGameState{
+  if(state.isFailed)return state
+  val index=state.undoStack.lastOrNull()?:return state.copy(message="No move to undo")
+  if(index !in state.board.pieces.indices)return state.copy(undoStack=emptyList(),message="Undo history was invalid")
+  val pieces=state.board.pieces.toMutableList();pieces[index]=pieces[index].copy(alive=true)
+  return state.copy(board=state.board.copy(pieces=pieces),isSolved=false,undoStack=state.undoStack.dropLast(1),undosUsed=state.undosUsed+1,eraserMode=false,hintedPieceIndex=-1,message="Last move undone")
+ }
  fun tap(state:ArrowGameState,cell:Cell):ArrowGameState{
   if(state.isSolved||state.isFailed||cell.x !in 0 until state.board.width||cell.y !in 0 until state.board.height)return state
+  if(state.eraserMode)return erase(state,cell)
   val index=state.board.pieces.indexOfFirst{it.alive&&it.cells.contains(cell)}
   if(index<0)return state.copy(message="Tap an arrow body")
   val blocker=blocker(state.board,index)
   if(blocker==-2)return state.copy(message="Puzzle data is invalid")
   if(blocker>=0){val hearts=(state.hearts-1).coerceAtLeast(0);return state.copy(hearts=hearts,mistakes=state.mistakes+1,isFailed=hearts==0,message=if(hearts==0)"No hearts left — retry the level" else "Blocked — one heart lost. Clear the exit lane first")}
   val pieces=state.board.pieces.toMutableList();pieces[index]=pieces[index].copy(alive=false)
-  val board=state.board.copy(pieces=pieces);val solved=board.pieces.none{it.alive}
-  val stars=when{state.mistakes==0&&state.hintsUsed==0->3;state.mistakes<=2&&state.hintsUsed<=1->2;else->1}
+  val history=(state.undoStack+index).takeLast(MAX_UNDO)
+  return finishMove(state.copy(hintedPieceIndex=-1),state.board.copy(pieces=pieces),history,"Arrow cleared — find the next exit")
+ }
+ private fun erase(state:ArrowGameState,cell:Cell):ArrowGameState{
+  if(state.erasersRemaining<=0)return state.copy(eraserMode=false,message="No erasers remaining")
+  val index=state.board.pieces.indexOfFirst{it.alive&&it.cells.contains(cell)}
+  if(index<0)return state.copy(message="Tap an arrow to erase")
+  val pieces=state.board.pieces.toMutableList();pieces[index]=pieces[index].copy(alive=false)
+  val history=(state.undoStack+index).takeLast(MAX_UNDO)
+  return finishMove(state.copy(erasersRemaining=state.erasersRemaining-1,erasersUsed=state.erasersUsed+1,eraserMode=false,hintedPieceIndex=-1),state.board.copy(pieces=pieces),history,"Eraser used — arrow removed")
+ }
+ private fun finishMove(state:ArrowGameState,board:ArrowBoard,history:List<Int>,ongoingMessage:String):ArrowGameState{
+  val solved=board.pieces.none{it.alive}
+  val stars=when{
+   state.mistakes==0&&state.hintsUsed==0&&state.erasersUsed==0&&state.undosUsed==0->3
+   state.mistakes<=2&&state.hintsUsed<=1&&state.erasersUsed<=1&&state.undosUsed<=2->2
+   else->1
+  }
   val nextBest=if(solved)state.bestStars.toMutableMap().apply{this[state.level]=maxOf(this[state.level]?:0,stars)}else state.bestStars
   val nextPlays=if(solved)state.bestPlays.toMutableMap().apply{this[state.level]=(this[state.level]?:0)+1}else state.bestPlays
-  return state.copy(board=board,isSolved=solved,hintedPieceIndex=-1,unlockedLevel=if(solved)maxOf(state.unlockedLevel,(state.level+1).coerceAtMost(1000))else state.unlockedLevel,coins=if(solved)state.coins+10 else state.coins,bestStars=nextBest,bestPlays=nextPlays,message=if(solved)"Puzzle solved! +10 coins" else "Arrow cleared — find the next exit")
+  return state.copy(board=board,undoStack=history,isSolved=solved,eraserMode=false,hintedPieceIndex=-1,unlockedLevel=if(solved)maxOf(state.unlockedLevel,(state.level+1).coerceAtMost(1000))else state.unlockedLevel,coins=if(solved)state.coins+10 else state.coins,bestStars=nextBest,bestPlays=nextPlays,message=if(solved)"Puzzle solved! +10 coins" else ongoingMessage)
  }
 }
