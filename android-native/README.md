@@ -1,5 +1,5 @@
 # Arrow Out — Native Android (Kotlin)
-Separate native Android app. Existing PWA and TWA manifest remain untouched.
+Separate native Android app (`in.gogocompany.arrowout`). Existing PWA and TWA manifest (`com.aaryapratik.arrowout`) remain untouched; this avoids a Play package/signing-key collision until the intended Play Console upgrade path is verified.
 Stack: Kotlin 2.4.21, AGP 9.3.1, Gradle 9.5.0, Compose BOM 2026.09.00, Material 3, MVVM/UDF, Hilt, Coroutines/StateFlow, Room and DataStore.
 First playable slice: 6x6 winding-path puzzle, path/occupancy validation, strict head-ray blocker checks, arrow removal, restart, animated Compose cells and persisted puzzle state.
 Legacy importer recognizes arrowOut.v2 and arrowOut.v1 save versions and maps unlocked level, best stars/plays, coins and sound setting. Full cosmetic, daily, achievement and 1,000-level campaign import remains to be integrated and tested.
