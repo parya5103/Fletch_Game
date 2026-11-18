@@ -59,7 +59,7 @@ import java.util.TimeZone
     if(current.isDaily)viewModelScope.launch(io){
      try{val campaign=repository.newGame(current.unlockedLevel,current);_uiState.value=campaign;saveQueue.trySend(campaign)}
      catch(cancelled:CancellationException){throw cancelled}
-     catch(error:Exception){_uiState.update{it.copy(message=\"Could not return to campaign: ${error.message?: \"unknown error\"}\")}}
+     catch(error:Exception){_uiState.update{it.copy(message="Could not return to campaign: ${error.message?: "unknown error"}")}}
     }
    }
    ArrowUiEvent.Restart,ArrowUiEvent.Continue->{
