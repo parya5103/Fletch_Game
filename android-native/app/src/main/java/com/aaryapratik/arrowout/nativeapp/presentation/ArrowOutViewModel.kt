@@ -47,6 +47,8 @@ import kotlinx.coroutines.launch
   when(event){
    is ArrowUiEvent.TapCell->{_uiState.update{engine.tap(it,event.cell)};saveQueue.trySend(_uiState.value)}
    ArrowUiEvent.Hint->{_uiState.update{engine.hint(it)};saveQueue.trySend(_uiState.value)}
+   ArrowUiEvent.ToggleEraser->{_uiState.update{engine.toggleEraser(it)};saveQueue.trySend(_uiState.value)}
+   ArrowUiEvent.Undo->{_uiState.update{engine.undo(it)};saveQueue.trySend(_uiState.value)}
    ArrowUiEvent.Restart,ArrowUiEvent.Continue->{
     val current=_uiState.value
     val target=when(event){
