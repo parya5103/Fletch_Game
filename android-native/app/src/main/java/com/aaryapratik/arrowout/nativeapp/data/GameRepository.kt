@@ -29,6 +29,11 @@ import kotlinx.coroutines.flow.Flow
   if(!json.has("mistakes"))json.addProperty("mistakes",0)
   if(!json.has("hintsUsed"))json.addProperty("hintsUsed",0)
   if(!json.has("hintedPieceIndex"))json.addProperty("hintedPieceIndex",-1)
+  if(!json.has("erasersRemaining"))json.addProperty("erasersRemaining",1)
+  if(!json.has("erasersUsed"))json.addProperty("erasersUsed",0)
+  if(!json.has("eraserMode"))json.addProperty("eraserMode",false)
+  if(!json.has("undoStack"))json.add("undoStack",JsonArray())
+  if(!json.has("undosUsed"))json.addProperty("undosUsed",0)
   if(!json.has("coins"))json.addProperty("coins",0)
   if(!json.has("bestStars"))json.add("bestStars",JsonObject())
   if(!json.has("bestPlays"))json.add("bestPlays",JsonObject())
@@ -47,7 +52,7 @@ import kotlinx.coroutines.flow.Flow
   val board=imported.currentPuzzle?:levels.boardFor(level)
   val state=ArrowGameState(
    board=board,level=level,unlockedLevel=imported.unlocked,hearts=imported.hearts,
-   mistakes=imported.mistakes,hintsUsed=imported.hintsUsed,coins=imported.coins,
+   mistakes=imported.mistakes,hintsUsed=imported.hintsUsed,erasersUsed=imported.erasersUsed,erasersRemaining=(1-imported.erasersUsed).coerceAtLeast(0),undoStack=imported.undoStack,coins=imported.coins,
    bestStars=imported.bestStars,bestPlays=imported.bestPlays,legacySaveJson=imported.rawSaveJson,
    message="PWA progress imported — continue your level"
   )
