@@ -9,7 +9,7 @@ Kotlin + Jetpack Compose Material 3, MVVM/UDF, Hilt, Coroutines/StateFlow, Room 
 - The CI build generates `arrow-levels.v1.json` from the canonical `js/game.js` generator using `scripts/generate-native-levels.cjs`.
 - The generation step builds and solver-validates all 1,000 deterministic official levels before packaging the Android app. This keeps native level geometry identical to the web campaign without hand-maintained duplicate layouts.
 - Native rules validate winding paths and use the strict arrow-head exit ray for blockers.
-- Three-heart mistake rules, win/fail states, stars, coins, level unlocks and restart/continue are wired.
+- Three-heart mistake rules, win/fail states, stars, coins, level unlocks, safe-arrow hints, one free eraser per level, undo and restart/continue are wired.
 - Native campaign progression reads the generated level catalog; pinch zoom/pan supports the larger boards.
 
 ## Browser save migration
