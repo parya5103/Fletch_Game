@@ -24,6 +24,13 @@ import kotlinx.coroutines.flow.Flow
   val boardJson=json.getAsJsonObject("board")?:throw IllegalStateException("Saved Arrow Out board is missing")
   if(!boardJson.has("activeCells"))boardJson.add("activeCells",JsonArray())
   if(!json.has("isFailed"))json.addProperty("isFailed",false)
+  if(!json.has("isDaily"))json.addProperty("isDaily",false)
+  if(!json.has("dailyDate"))json.addProperty("dailyDate","")
+  if(!json.has("lastDailyDate"))json.addProperty("lastDailyDate","")
+  if(!json.has("dailyCompletedDate"))json.addProperty("dailyCompletedDate","")
+  if(!json.has("dailyStreak"))json.addProperty("dailyStreak",0)
+  if(!json.has("dailyBest"))json.addProperty("dailyBest",0)
+  if(!json.has("dailyStars"))json.addProperty("dailyStars",0)
   if(!json.has("unlockedLevel"))json.addProperty("unlockedLevel",1)
   if(!json.has("hearts"))json.addProperty("hearts",3)
   if(!json.has("mistakes"))json.addProperty("mistakes",0)
@@ -44,7 +51,12 @@ import kotlinx.coroutines.flow.Flow
  fun newGame(level:Int,progress:ArrowGameState?=null):ArrowGameState{
   val safe=level.coerceIn(1,1000)
   val base=progress?:ArrowGameState(levels.boardFor(safe))
-  return base.copy(board=levels.boardFor(safe),level=safe,hearts=3,mistakes=0,hintsUsed=0,hintedPieceIndex=-1,erasersRemaining=1,erasersUsed=0,eraserMode=false,undoStack=emptyList(),undosUsed=0,isSolved=false,isFailed=false,message="Find a clear arrow and tap to release it")
+  return base.copy(board=levels.boardFor(safe),level=safe,hearts=3,mistakes=0,hintsUsed=0,hintedPieceIndex=-1,erasersRemaining=1,erasersUsed=0,eraserMode=false,undoStack=emptyList(),undosUsed=0,isSolved=false,isFailed=false,isDaily=false,dailyDate="",message="Find a clear arrow and tap to release it")
+ }
+ fun newDaily(dateKey:String,progress:ArrowGameState?=null):ArrowGameState{
+  val base=progress?:ArrowGameState(levels.dailyBoard(dateKey))
+  if(base.dailyCompletedDate==dateKey)return base.copy(isDaily=true,dailyDate=dateKey,isSolved=true,isFailed=false,message="Today's daily challenge is already complete")
+  return base.copy(board=levels.dailyBoard(dateKey),isDaily=true,dailyDate=dateKey,hearts=3,mistakes=0,hintsUsed=0,hintedPieceIndex=-1,erasersRemaining=1,erasersUsed=0,eraserMode=false,undoStack=emptyList(),undosUsed=0,isSolved=false,isFailed=false,message="Daily challenge — clear the board and build your streak")
  }
  suspend fun importLegacy(json:String):ArrowGameState{
   val imported=LegacySaveImporter.import(json)
