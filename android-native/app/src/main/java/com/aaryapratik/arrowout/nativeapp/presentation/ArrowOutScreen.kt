@@ -19,7 +19,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.drawscope.drawLine
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -54,8 +54,8 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
  val haptics=LocalHapticFeedback.current
  var showImport by remember{mutableStateOf(false)}
  var importText by remember{mutableStateOf("")}
- var zoom by remember(board.levelKey()){mutableFloatStateOf(1f)}
- var pan by remember(board.levelKey()){mutableStateOf(Offset.Zero)}
+ var zoom by remember(state.level,board.width,board.height){mutableFloatStateOf(1f)}
+ var pan by remember(state.level,board.width,board.height){mutableStateOf(Offset.Zero)}
  val transformState=rememberTransformableState{zoomChange,panChange,_->
   val next=(zoom*zoomChange).coerceIn(1f,4f)
   pan=if(next==1f)Offset.Zero else pan+panChange
@@ -123,7 +123,6 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
   }
  }
 }
-@Composable private fun ArrowBoard.levelKey():Int=this.hashCode()
 @Preview(showBackground=true) @Composable private fun ArrowPreviewLight(){ArrowOutTheme(false){ArrowOutScreen(ArrowPuzzleEnginePreview.state,{})}}
 @Preview(showBackground=true) @Composable private fun ArrowPreviewDark(){ArrowOutTheme(true){ArrowOutScreen(ArrowPuzzleEnginePreview.state,{})}}
 private object ArrowPuzzleEnginePreview{val state=com.aaryapratik.arrowout.nativeapp.domain.engine.ArrowPuzzleEngine().newGame()}
