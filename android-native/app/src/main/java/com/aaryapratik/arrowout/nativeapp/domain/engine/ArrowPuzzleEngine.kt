@@ -38,6 +38,9 @@ class ArrowPuzzleEngine{
   if(blocker>=0){val hearts=(state.hearts-1).coerceAtLeast(0);return state.copy(hearts=hearts,mistakes=state.mistakes+1,isFailed=hearts==0,message=if(hearts==0)"No hearts left — retry the level" else "Blocked — one heart lost. Clear the exit lane first")}
   val pieces=state.board.pieces.toMutableList();pieces[index]=pieces[index].copy(alive=false)
   val board=state.board.copy(pieces=pieces);val solved=board.pieces.none{it.alive}
-  return state.copy(board=board,isSolved=solved,message=if(solved)"Puzzle solved!" else "Arrow cleared — find the next exit")
+  val stars=when{state.mistakes==0&&state.hintsUsed==0->3;state.mistakes<=2&&state.hintsUsed<=1->2;else->1}
+  val nextBest=if(solved)state.bestStars.toMutableMap().apply{this[state.level]=maxOf(this[state.level]?:0,stars)}else state.bestStars
+  val nextPlays=if(solved)state.bestPlays.toMutableMap().apply{this[state.level]=(this[state.level]?:0)+1}else state.bestPlays
+  return state.copy(board=board,isSolved=solved,unlockedLevel=if(solved)maxOf(state.unlockedLevel,state.level+1)else state.unlockedLevel,coins=if(solved)state.coins+10 else state.coins,bestStars=nextBest,bestPlays=nextPlays,message=if(solved)"Puzzle solved! +10 coins" else "Arrow cleared — find the next exit")
  }
 }
