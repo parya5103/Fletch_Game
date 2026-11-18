@@ -22,8 +22,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.aaryapratik.arrowout.nativeapp.domain.model.*
 import com.aaryapratik.arrowout.nativeapp.presentation.theme.ArrowOutTheme
 private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D85FF),Color(0xFF4DD6A1),Color(0xFFFF718F))
-@Composable fun ArrowOutRoute(viewModel:ArrowOutViewModel=hiltViewModel(),privacyOptionsRequired:Boolean=false,onShowPrivacyOptions:()->Unit={},isRestoring:Boolean=false){val state by viewModel.uiState.collectAsStateWithLifecycle();val restoring by viewModel.isRestoring.collectAsStateWithLifecycle();ArrowOutScreen(state,viewModel::onEvent,privacyOptionsRequired=privacyOptionsRequired,onShowPrivacyOptions=onShowPrivacyOptions,isRestoring=restoring)}
-@Composable fun ArrowOutScreen(state:ArrowGameState,onEvent:(ArrowUiEvent)->Unit,modifier:Modifier=Modifier,privacyOptionsRequired:Boolean=false,onShowPrivacyOptions:()->Unit={}){
+@Composable fun ArrowOutRoute(viewModel:ArrowOutViewModel=hiltViewModel(),privacyOptionsRequired:Boolean=false,onShowPrivacyOptions:()->Unit={}){val state by viewModel.uiState.collectAsStateWithLifecycle();val restoring by viewModel.isRestoring.collectAsStateWithLifecycle();ArrowOutScreen(state,viewModel::onEvent,privacyOptionsRequired=privacyOptionsRequired,onShowPrivacyOptions=onShowPrivacyOptions,isRestoring=restoring)}
+@Composable fun ArrowOutScreen(state:ArrowGameState,onEvent:(ArrowUiEvent)->Unit,modifier:Modifier=Modifier,privacyOptionsRequired:Boolean=false,onShowPrivacyOptions:()->Unit={},isRestoring:Boolean=false){
  val board=state.board
  val haptics=LocalHapticFeedback.current
  Scaffold(modifier=modifier.fillMaxSize(),containerColor=Color(0xFF101827)){padding->
