@@ -635,6 +635,7 @@ const Storage = (function() {
   return {
     init: init,
     getSave: getSave,
+    exportSave: function() { return JSON.stringify(save); },
     updateSave: updateSave,
     updateLevelBest: updateLevelBest,
     updateDailyChallenge: updateDailyChallenge,
