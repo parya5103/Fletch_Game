@@ -1,6 +1,9 @@
 package com.aaryapratik.arrowout.nativeapp.domain.engine
 import com.aaryapratik.arrowout.nativeapp.domain.model.*
 import kotlin.math.abs
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 class ArrowPuzzleEngine{
  companion object{const val FREE_HINTS=3;private const val MAX_UNDO=10}
  fun newGame()=ArrowGameState(ArrowBoard(6,6,listOf(
@@ -73,6 +76,15 @@ class ArrowPuzzleEngine{
   val history=(state.undoStack+index).takeLast(MAX_UNDO)
   return finishMove(state.copy(erasersRemaining=state.erasersRemaining-1,erasersUsed=state.erasersUsed+1,eraserMode=false,hintedPieceIndex=-1),state.board.copy(pieces=pieces),history,"Eraser used — arrow removed")
  }
+ private fun nextDailyStreak(lastDate:String,currentDate:String,currentStreak:Int):Int{
+  if(lastDate==currentDate)return currentStreak
+  return runCatching{
+   val format=SimpleDateFormat("yyyyMMdd",Locale.US)
+   val last=format.parse(lastDate)?:return@runCatching 1
+   val calendar=Calendar.getInstance().apply{time=last;add(Calendar.DAY_OF_YEAR,1)}
+   if(format.format(calendar.time)==currentDate)currentStreak+1 else 1
+  }.getOrDefault(1)
+ }
  private fun finishMove(state:ArrowGameState,board:ArrowBoard,history:List<Int>,ongoingMessage:String):ArrowGameState{
   val solved=board.pieces.none{it.alive}
   val stars=when{
@@ -80,8 +92,16 @@ class ArrowPuzzleEngine{
    state.mistakes<=2&&state.hintsUsed<=1&&state.erasersUsed<=1&&state.undosUsed<=2->2
    else->1
   }
-  val nextBest=if(solved)state.bestStars.toMutableMap().apply{this[state.level]=maxOf(this[state.level]?:0,stars)}else state.bestStars
-  val nextPlays=if(solved)state.bestPlays.toMutableMap().apply{this[state.level]=(this[state.level]?:0)+1}else state.bestPlays
-  return state.copy(board=board,undoStack=history,isSolved=solved,eraserMode=false,hintedPieceIndex=-1,unlockedLevel=if(solved)maxOf(state.unlockedLevel,(state.level+1).coerceAtMost(1000))else state.unlockedLevel,coins=if(solved)state.coins+10 else state.coins,bestStars=nextBest,bestPlays=nextPlays,message=if(solved)"Puzzle solved! +10 coins" else ongoingMessage)
+  val nextBest=if(solved&&!state.isDaily)state.bestStars.toMutableMap().apply{this[state.level]=maxOf(this[state.level]?:0,stars)}else state.bestStars
+  val nextPlays=if(solved&&!state.isDaily)state.bestPlays.toMutableMap().apply{this[state.level]=(this[state.level]?:0)+1}else state.bestPlays
+  val dailyStreak=if(solved&&state.isDaily)nextDailyStreak(state.lastDailyDate,state.dailyDate,state.dailyStreak)else state.dailyStreak
+  val dailyCompleted=if(solved&&state.isDaily)state.dailyDate else state.dailyCompletedDate
+  return state.copy(board=board,undoStack=history,isSolved=solved,eraserMode=false,hintedPieceIndex=-1,
+   unlockedLevel=if(solved&&!state.isDaily)maxOf(state.unlockedLevel,(state.level+1).coerceAtMost(1000))else state.unlockedLevel,
+   coins=if(solved)state.coins+if(state.isDaily)25 else 10 else state.coins,bestStars=nextBest,bestPlays=nextPlays,
+   dailyStreak=dailyStreak,dailyBest=if(solved&&state.isDaily)maxOf(state.dailyBest,dailyStreak)else state.dailyBest,
+   lastDailyDate=if(solved&&state.isDaily)state.dailyDate else state.lastDailyDate,dailyCompletedDate=dailyCompleted,
+   dailyStars=if(solved&&state.isDaily)stars else state.dailyStars,
+   message=if(solved&&state.isDaily)"Daily challenge complete! +25 coins · Streak ${dailyStreak}" else if(solved)"Puzzle solved! +10 coins" else ongoingMessage)
  }
 }
