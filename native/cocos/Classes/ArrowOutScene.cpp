@@ -131,8 +131,9 @@ void ArrowOutScene::redraw() {
   if(p.dir==1){tip.x+=r;left+=Vec2(-r*.5f,r*.65f);right+=Vec2(-r*.5f,-r*.65f);}
   if(p.dir==2){tip.y-=r;left+=Vec2(r*.65f,r*.5f);right+=Vec2(-r*.65f,r*.5f);}
   if(p.dir==3){tip.x-=r;left+=Vec2(r*.5f,-r*.65f);right+=Vec2(r*.5f,r*.65f);}
-  d->drawSolidTriangle(tip,left,right,col);
+  const Vec2 arrowPoints[3]={tip,left,right};
+  d->drawSolidPoly(arrowPoints,3,col);
  }
- d->setTag(900); d->setOpacity(0); addChild(d,1);
- d->runAction(FadeTo::create(.12f,255));
+ d->setTag(900); d->setScale(.985f); addChild(d,1);
+ d->runAction(ScaleTo::create(.12f,1.0f));
 }
