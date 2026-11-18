@@ -7,7 +7,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private data class ArrowLevelCatalogDto(val version:Int,val generator:String,val levels:List<ArrowLevelDto>,val dailyChallenges:List<ArrowDailyDto>)
+private data class ArrowLevelCatalogDto(val version:Int,val generator:String,val levels:List<ArrowLevelDto>)
+private data class ArrowDailyCatalogDto(val version:Int,val generator:String,val dailyChallenges:List<ArrowDailyDto>)
 private data class ArrowLevelDto(val level:Int,val cols:Int,val rows:Int,val shape:List<Int>,val arrows:List<ArrowDto>)
 private data class ArrowDailyDto(val date:String,val cols:Int,val rows:Int,val shape:List<Int>,val arrows:List<ArrowDto>)
 private data class ArrowDto(val cells:List<List<Int>>,val dir:Int,val color:Int,val step:Int)
@@ -17,7 +18,11 @@ private data class ArrowDto(val cells:List<List<Int>>,val dir:Int,val color:Int,
  private val engine=ArrowPuzzleEngine()
  private val catalog:ArrowLevelCatalogDto by lazy{
   context.assets.open("arrow-levels.v1.json").bufferedReader().use{gson.fromJson(it,ArrowLevelCatalogDto::class.java)}
-   .also{require(it.version==1&&it.generator=="GameCore"&&it.levels.size==1000&&it.dailyChallenges.size>=365){"Native Arrow Out level/daily catalog is incomplete"}}
+   .also{require(it.version==1&&it.generator=="GameCore"&&it.levels.size==1000){"Native Arrow Out campaign catalog is incomplete"}}
+ }
+ private val dailyCatalog:ArrowDailyCatalogDto by lazy{
+  context.assets.open("arrow-daily.v1.json").bufferedReader().use{gson.fromJson(it,ArrowDailyCatalogDto::class.java)}
+   .also{require(it.version==1&&it.generator=="GameCore"&&it.dailyChallenges.size>=365){"Native Arrow Out daily catalog is incomplete"}}
  }
  private fun board(cols:Int,rows:Int,shape:List<Int>,arrows:List<ArrowDto>):ArrowBoard{
   require(cols in 2..72&&rows in 2..72)
@@ -39,7 +44,7 @@ private data class ArrowDto(val cells:List<List<Int>>,val dir:Int,val color:Int,
   return board(data.cols,data.rows,data.shape,data.arrows)
  }
  fun dailyBoard(dateKey:String):ArrowBoard{
-  val data=catalog.dailyChallenges.firstOrNull{it.date==dateKey}
+  val data=dailyCatalog.dailyChallenges.firstOrNull{it.date==dateKey}
    ?:throw IllegalStateException("Daily challenge $dateKey is not included in this build. Update the app to refresh daily puzzles.")
   return board(data.cols,data.rows,data.shape,data.arrows)
  }
