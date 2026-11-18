@@ -14,6 +14,7 @@ android{
   targetSdk=37
   versionCode=3
   versionName="1.2.0"
+  resValue("string", "admob_app_id", (project.findProperty("ADMOB_APP_ID") ?: "ca-app-pub-3940256099942544~3347511713"))
   testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
  }
  buildFeatures{compose=true}
@@ -39,6 +40,8 @@ dependencies{
  implementation(libs.androidx.datastore.preferences)
  implementation(libs.kotlinx.coroutines.android)
  implementation(libs.gson)
+ implementation(libs.user.messaging.platform)
+ implementation(libs.mobile.ads.nextgen)
  implementation(libs.hilt.android)
  ksp(libs.hilt.compiler)
  testImplementation(libs.junit)
