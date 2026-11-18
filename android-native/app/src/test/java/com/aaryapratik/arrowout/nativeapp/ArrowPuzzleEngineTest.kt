@@ -30,6 +30,13 @@ class ArrowPuzzleEngineTest{
   val restored=engine.undo(erased)
   assertEquals(3,restored.remaining);assertEquals(1,restored.undosUsed);assertEquals(0,restored.undoStack.size)
  }
+ @Test fun dailyChallengeAwardsCoinsAndExtendsConsecutiveDayStreak(){
+  val board=ArrowBoard(4,4,listOf(ArrowPiece(listOf(Cell(0,0),Cell(1,0)),Direction.RIGHT,0)))
+  val start=ArrowGameState(board,isDaily=true,dailyDate="20261119",lastDailyDate="20261118",dailyStreak=3)
+  val result=engine.tap(start,Cell(0,0))
+  assertTrue(result.isSolved);assertEquals(4,result.dailyStreak);assertEquals(4,result.dailyBest)
+  assertEquals(25,result.coins);assertEquals("20261119",result.dailyCompletedDate);assertEquals(1,result.unlockedLevel)
+ }
  @Test fun malformedOverlappingPathsAreRejected(){val board=ArrowBoard(4,4,listOf(ArrowPiece(listOf(Cell(0,1),Cell(1,1)),Direction.RIGHT,0),ArrowPiece(listOf(Cell(0,1),Cell(0,2)),Direction.DOWN,1)));assertFalse(engine.valid(board))}
  @Test fun freeHintsAreLimitedToThreePerLevel(){
   var state=engine.newGame()
