@@ -2,7 +2,13 @@ package com.aaryapratik.arrowout.nativeapp.data
 import com.google.gson.Gson
 import com.aaryapratik.arrowout.nativeapp.data.local.GameProgress
 import com.aaryapratik.arrowout.nativeapp.data.local.GameProgressDao
+import com.aaryapratik.arrowout.nativeapp.domain.model.ArrowGameState
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
-@Singleton class GameRepository @Inject constructor(private val dao:GameProgressDao){private val gson=Gson();fun observe():Flow<GameProgress?>=dao.observe("arrow-out");suspend fun save(unlocked:Int,remaining:Int){dao.upsert(GameProgress("arrow-out",gson.toJson(mapOf("unlocked" to unlocked,"remaining" to remaining)),System.currentTimeMillis()))}}
+@Singleton class GameRepository @Inject constructor(private val dao:GameProgressDao){
+ private val gson=Gson()
+ fun observe():Flow<GameProgress?> = dao.observe("arrow-out")
+ suspend fun load():ArrowGameState? = dao.get("arrow-out")?.payload?.let{runCatching{gson.fromJson(it,ArrowGameState::class.java)}.getOrNull()}
+ suspend fun save(state:ArrowGameState){dao.upsert(GameProgress("arrow-out",gson.toJson(state),System.currentTimeMillis()))}
+}
