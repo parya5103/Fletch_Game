@@ -14,6 +14,8 @@ data class ImportedArrowProgress(
  val currentPuzzle:ArrowBoard?,
  val currentLevel:Int,
  val hearts:Int,
+ val erasersUsed:Int,
+ val undoStack:List<Int>,
  val mistakes:Int,
  val hintsUsed:Int,
  val rawSaveJson:String
