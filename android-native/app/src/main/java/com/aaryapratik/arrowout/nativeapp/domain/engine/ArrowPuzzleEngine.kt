@@ -1,6 +1,7 @@
 package com.aaryapratik.arrowout.nativeapp.domain.engine
 import com.aaryapratik.arrowout.nativeapp.domain.model.*
 class ArrowPuzzleEngine{
+ companion object{const val FREE_HINTS=3}
  fun newGame()=ArrowGameState(ArrowBoard(6,6,listOf(
   ArrowPiece(listOf(Cell(0,2),Cell(1,2),Cell(1,1),Cell(2,1)),Direction.RIGHT,0),
   ArrowPiece(listOf(Cell(4,1),Cell(5,1)),Direction.RIGHT,1),
@@ -33,6 +34,7 @@ class ArrowPuzzleEngine{
  }
  fun hint(state:ArrowGameState):ArrowGameState{
   if(state.isSolved||state.isFailed)return state
+  if(state.hintsUsed>=FREE_HINTS)return state.copy(message="No free hints remaining — continue without a hint")
   val next=state.board.pieces.indices.sortedByDescending{state.board.pieces[it].step}.firstOrNull{state.board.pieces[it].alive&&blocker(state.board,it)==-1}
    ?:return state.copy(message="No safe arrow found — restart this puzzle")
   return state.copy(hintedPieceIndex=next,hintsUsed=state.hintsUsed+1,message="Hint: release the highlighted arrow")
