@@ -35,7 +35,7 @@ android{
  buildTypes{
   getByName("release"){if(hasReleaseSigning)signingConfig=signingConfigs.getByName("release")}
  }
- buildFeatures{compose=true}
+ buildFeatures{resValues=true;compose=true}
  compileOptions{sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17}
  kotlin{compilerOptions{jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)}}
  packaging{resources.excludes+="/META-INF/{AL2.0,LGPL2.1}"}
