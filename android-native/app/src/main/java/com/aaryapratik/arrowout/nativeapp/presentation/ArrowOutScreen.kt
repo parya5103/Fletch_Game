@@ -91,9 +91,9 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
     for(cell in board.activeCells){
      drawRect(Color(0xFF263751),topLeft=Offset(cell.x*cw+1f,cell.y*ch+1f),size=androidx.compose.ui.geometry.Size(cw-2f,ch-2f))
     }
-    for(piece in board.pieces.filter{it.alive}){
+    for((pieceIndex,piece) in board.pieces.withIndex().filter{it.value.alive}){
      if(piece.cells.isEmpty())continue
-     val color=arrowColors[piece.colorIndex%arrowColors.size]
+     val color=if(pieceIndex==state.hintedPieceIndex)Color(0xFFFFD166)else arrowColors[piece.colorIndex%arrowColors.size]
      val points=piece.cells.map{Offset((it.x+0.5f)*cw,(it.y+0.5f)*ch)}
      val path=Path().apply{moveTo(points.first().x,points.first().y);points.drop(1).forEach{lineTo(it.x,it.y)}}
      drawPath(path,color,style=Stroke(width=unit*0.48f,cap=StrokeCap.Round,join=StrokeJoin.Round))
@@ -108,6 +108,7 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
    }
    Text("Pinch to zoom · drag to explore larger boards",color=Color(0xFF8294B3),style=MaterialTheme.typography.labelSmall)
    if(state.isSolved)Button(onClick={onEvent(ArrowUiEvent.Continue)},enabled=!isRestoring&&state.level<1000,modifier=Modifier.fillMaxWidth()){Text(if(state.level<1000)"Continue to Level ${state.level+1}" else "All 1,000 levels cleared")}
+   Button(onClick={onEvent(ArrowUiEvent.Hint)},enabled=!isRestoring&&!state.isSolved&&!state.isFailed,modifier=Modifier.fillMaxWidth()){Text("Hint · ${state.hintsUsed}")}
    Button(onClick={onEvent(ArrowUiEvent.Restart)},enabled=!isRestoring,modifier=Modifier.fillMaxWidth()){Text(if(state.isFailed)"Retry level" else "Restart puzzle")}
    TextButton(onClick={showImport=!showImport},enabled=!isRestoring){Text(if(showImport)"Close progress import" else "Import existing PWA progress")}
    if(showImport){
