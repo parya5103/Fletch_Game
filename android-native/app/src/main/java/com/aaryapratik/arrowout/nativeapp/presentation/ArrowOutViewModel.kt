@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 @HiltViewModel class ArrowOutViewModel @Inject constructor(
  private val repository:GameRepository,
@@ -73,7 +74,7 @@ import java.util.Locale
  }
  private fun startDaily(){
   val current=_uiState.value
-  val dateKey=SimpleDateFormat("yyyyMMdd",Locale.US).format(Date())
+  val dateKey=utcDailyDateKey(Date())
   viewModelScope.launch(io){
    try{val daily=repository.newDaily(dateKey,current);_uiState.value=daily;saveQueue.trySend(daily)}
    catch(cancelled:CancellationException){throw cancelled}
@@ -89,4 +90,9 @@ import java.util.Locale
   }
  }
  override fun onCleared(){saveQueue.close();super.onCleared()}
+}
+internal fun utcDailyDateKey(date:Date):String{
+ val formatter=SimpleDateFormat("yyyyMMdd",Locale.US)
+ formatter.timeZone=TimeZone.getTimeZone("UTC")
+ return formatter.format(date)
 }
