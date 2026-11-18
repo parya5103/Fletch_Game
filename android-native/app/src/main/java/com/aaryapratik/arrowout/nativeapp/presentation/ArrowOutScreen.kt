@@ -110,6 +110,10 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
    Text("Pinch to zoom · drag to explore larger boards",color=Color(0xFF8294B3),style=MaterialTheme.typography.labelSmall)
    if(state.isSolved)Button(onClick={onEvent(ArrowUiEvent.Continue)},enabled=!isRestoring&&state.level<1000,modifier=Modifier.fillMaxWidth()){Text(if(state.level<1000)"Continue to Level ${state.level+1}" else "All 1,000 levels cleared")}
    Button(onClick={onEvent(ArrowUiEvent.Hint)},enabled=!isRestoring&&!state.isSolved&&!state.isFailed&&state.hintsUsed<ArrowPuzzleEngine.FREE_HINTS,modifier=Modifier.fillMaxWidth()){Text("Hint · ${ArrowPuzzleEngine.FREE_HINTS-state.hintsUsed} free left")}
+   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){
+    OutlinedButton(onClick={onEvent(ArrowUiEvent.Undo)},enabled=!isRestoring&&!state.isFailed&&state.undoStack.isNotEmpty(),modifier=Modifier.weight(1f)){Text("Undo")}
+    OutlinedButton(onClick={onEvent(ArrowUiEvent.ToggleEraser)},enabled=!isRestoring&&!state.isSolved&&!state.isFailed&&(state.erasersRemaining>0||state.eraserMode),modifier=Modifier.weight(1f)){Text(if(state.eraserMode)"Cancel eraser" else "Eraser · ${state.erasersRemaining}")}
+   }
    Button(onClick={onEvent(ArrowUiEvent.Restart)},enabled=!isRestoring,modifier=Modifier.fillMaxWidth()){Text(if(state.isFailed)"Retry level" else "Restart puzzle")}
    TextButton(onClick={showImport=!showImport},enabled=!isRestoring){Text(if(showImport)"Close progress import" else "Import existing PWA progress")}
    if(showImport){
