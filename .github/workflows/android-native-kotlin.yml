@@ -25,6 +25,8 @@ jobs:
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37" "build-tools;36.0.0"
+      - name: Generate and validate all 1,000 native levels
+        run: node scripts/generate-native-levels.cjs
       - name: Test and build
         working-directory: android-native
         run: gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug :app:bundleRelease
