@@ -8,7 +8,7 @@ android{
  namespace="com.aaryapratik.arrowout.nativeapp"
  compileSdk=37
  defaultConfig{
-  applicationId="com.aaryapratik.arrowout"
+  applicationId="in.gogocompany.arrowout"
   minSdk=24
   targetSdk=37
   versionCode=3
