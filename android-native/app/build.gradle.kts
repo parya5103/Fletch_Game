@@ -4,6 +4,11 @@ plugins{
  alias(libs.plugins.ksp)
  alias(libs.plugins.hilt)
 }
+val releaseStorePath=providers.gradleProperty("ANDROID_KEYSTORE_PATH").orNull
+val releaseStorePassword=providers.gradleProperty("ANDROID_KEYSTORE_PASSWORD").orNull
+val releaseKeyAlias=providers.gradleProperty("ANDROID_KEY_ALIAS").orNull
+val releaseKeyPassword=providers.gradleProperty("ANDROID_KEY_PASSWORD").orNull
+val hasReleaseSigning=listOf(releaseStorePath,releaseStorePassword,releaseKeyAlias,releaseKeyPassword).all{!it.isNullOrBlank()}
 android{
  namespace="com.aaryapratik.arrowout.nativeapp"
  compileSdk=36
@@ -15,6 +20,19 @@ android{
   versionName="1.2.0"
   resValue("string", "admob_app_id", (project.findProperty("ADMOB_APP_ID") ?: "ca-app-pub-3940256099942544~3347511713"))
   testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
+ }
+ signingConfigs{
+  create("release"){
+   if(hasReleaseSigning){
+    storeFile=file(requireNotNull(releaseStorePath))
+    storePassword=requireNotNull(releaseStorePassword)
+    keyAlias=requireNotNull(releaseKeyAlias)
+    keyPassword=requireNotNull(releaseKeyPassword)
+   }
+  }
+ }
+ buildTypes{
+  getByName("release"){if(hasReleaseSigning)signingConfig=signingConfigs.getByName("release")}
  }
  buildFeatures{compose=true}
  compileOptions{sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17}
