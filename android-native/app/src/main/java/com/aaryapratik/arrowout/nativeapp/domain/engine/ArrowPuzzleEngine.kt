@@ -16,7 +16,7 @@ class ArrowPuzzleEngine{
   if(board.activeCells.any{it.x !in 0 until board.width||it.y !in 0 until board.height})return false
   val occupied=mutableSetOf<Cell>()
   for(piece in board.pieces){
-   if(piece.cells.size<2||piece.cells.distinct().size!=piece.cells.size)return false
+   if(piece.cells.size<2||piece.cells.distinct().size!=piece.cells.size||piece.colorIndex !in 0..7)return false
    if(piece.cells.any{it.x !in 0 until board.width||it.y !in 0 until board.height})return false
    if(piece.cells.zipWithNext().any{(a,b)->abs(a.x-b.x)+abs(a.y-b.y)!=1})return false
    if(piece.cells.any{!occupied.add(it)})return false
