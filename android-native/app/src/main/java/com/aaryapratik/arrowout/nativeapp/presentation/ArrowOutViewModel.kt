@@ -14,6 +14,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @HiltViewModel class ArrowOutViewModel @Inject constructor(
  private val repository:GameRepository,
@@ -49,11 +52,12 @@ import kotlinx.coroutines.launch
    ArrowUiEvent.Hint->{_uiState.update{engine.hint(it)};saveQueue.trySend(_uiState.value)}
    ArrowUiEvent.ToggleEraser->{_uiState.update{engine.toggleEraser(it)};saveQueue.trySend(_uiState.value)}
    ArrowUiEvent.Undo->{_uiState.update{engine.undo(it)};saveQueue.trySend(_uiState.value)}
+   ArrowUiEvent.DailyChallenge->startDaily()
    ArrowUiEvent.Restart,ArrowUiEvent.Continue->{
     val current=_uiState.value
     val target=when(event){
      ArrowUiEvent.Restart->current.level
-     ArrowUiEvent.Continue->if(current.isSolved)current.level+1 else current.level
+     ArrowUiEvent.Continue->if(current.isDaily)current.level else if(current.isSolved)current.level+1 else current.level
      else->current.level
     }.coerceIn(1,1000)
     if(event==ArrowUiEvent.Restart||current.isSolved)viewModelScope.launch(io){
@@ -65,6 +69,15 @@ import kotlinx.coroutines.launch
      catch(error:Exception){_uiState.update{it.copy(message="Could not open level: ${error.message?: "unknown error"}")}}
     }
    }
+  }
+ }
+ private fun startDaily(){
+  val current=_uiState.value
+  val dateKey=SimpleDateFormat("yyyyMMdd",Locale.US).format(Date())
+  viewModelScope.launch(io){
+   try{val daily=repository.newDaily(dateKey,current);_uiState.value=daily;saveQueue.trySend(daily)}
+   catch(cancelled:CancellationException){throw cancelled}
+   catch(error:Exception){_uiState.update{it.copy(message="Daily challenge unavailable: ${error.message?: "unknown error"}")}}
   }
  }
  fun importLegacy(json:String){
