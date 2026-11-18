@@ -1,11 +1,42 @@
 #include "ArrowCore.hpp"
-#include <cassert>
-int main(){
+#include <cstdlib>
+#include <iostream>
+#include <stdexcept>
+#define REQUIRE(x) do { if(!(x)) { std::cerr << "FAIL line " << __LINE__ << ": " #x "\n"; return EXIT_FAILURE; } } while(0)
+int main() {
  using namespace gogo::arrowout;
  Board b{5,4,{{{{0,1},{1,1}},1,0,true},{{{3,1}},1,1,true}}};
- auto occ=occupancy(b);assert(pieceBlocker(b,occ,0)==1);assert(!removePiece(b,0));
- assert(removePiece(b,1));occ=occupancy(b);assert(pieceBlocker(b,occ,0)==-1);assert(removePiece(b,0));
+ auto occ=occupancy(b);
+ REQUIRE(pieceBlocker(b,occ,0)==1);
+ REQUIRE(!removePiece(b,0));
+ REQUIRE(removePiece(b,1));
+ occ=occupancy(b);
+ REQUIRE(pieceBlocker(b,occ,0)==-1);
+ REQUIRE(removePiece(b,0));
+
+ // A projection from a winding body cell is not part of the exit ray.
  Board body{4,4,{{{{0,1},{1,1},{1,2}},1,0,true},{{{2,0}},2,1,true}}};
- auto o2=occupancy(body);assert(pieceBlocker(body,o2,0)==-1);
- return 0;
+ auto o2=occupancy(body);
+ REQUIRE(pieceBlocker(body,o2,0)==-1);
+
+ // Malformed/stale occupancy must never index outside the piece vector.
+ auto corrupt=o2;
+ corrupt[0]=999;
+ REQUIRE(pieceBlocker(body,corrupt,0)==-2);
+ corrupt=o2;
+ corrupt[0]=-2;
+ REQUIRE(pieceBlocker(body,corrupt,0)==-2);
+
+ // Invalid path loops and overlapping pieces are rejected.
+ Board loop{4,4,{{{{0,0},{1,0},{1,1},{0,0}},1,0,true}}};
+ REQUIRE(!valid(loop));
+ Board overlap{4,4,{{{{0,1}},1,0,true},{{{0,1}},1,1,true}}};
+ bool rejected=false;
+ try { (void)occupancy(overlap); } catch(const std::invalid_argument&) { rejected=true; }
+ REQUIRE(rejected);
+
+ Board dead{4,4,{{{{0,0}},1,0,false}}};
+ auto deadOcc=occupancy(dead);
+ REQUIRE(pieceBlocker(dead,deadOcc,0)==-2);
+ return EXIT_SUCCESS;
 }
