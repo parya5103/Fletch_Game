@@ -9,6 +9,7 @@ val releaseStorePassword=providers.gradleProperty("ANDROID_KEYSTORE_PASSWORD").o
 val releaseKeyAlias=providers.gradleProperty("ANDROID_KEY_ALIAS").orNull
 val releaseKeyPassword=providers.gradleProperty("ANDROID_KEY_PASSWORD").orNull
 val hasReleaseSigning=listOf(releaseStorePath,releaseStorePassword,releaseKeyAlias,releaseKeyPassword).all{!it.isNullOrBlank()}
+val admobAppId = providers.gradleProperty("ADMOB_APP_ID").orElse("ca-app-pub-3940256099942544~3347511713").get()
 android{
  namespace="com.aaryapratik.arrowout.nativeapp"
  compileSdk=36
@@ -18,7 +19,7 @@ android{
   targetSdk=36
   versionCode=3
   versionName="1.2.0"
-  resValue("string", "admob_app_id", (project.findProperty("ADMOB_APP_ID") ?: "ca-app-pub-3940256099942544~3347511713"))
+  resValue("string", "admob_app_id", admobAppId)
   testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
  }
  signingConfigs{
