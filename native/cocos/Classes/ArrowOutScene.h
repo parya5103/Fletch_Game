@@ -20,4 +20,5 @@ private:
  cocos2d::Label* status_=nullptr;
  cocos2d::Label* remaining_=nullptr;
  int selected_=-1;
+ bool levelComplete_=false;
 };
