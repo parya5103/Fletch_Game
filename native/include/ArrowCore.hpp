@@ -5,20 +5,23 @@
 #include <stdexcept>
 #include <algorithm>
 #include <cstddef>
+#include <string>
 
 namespace gogo::arrowout {
 struct Cell { int x=0,y=0; };
-struct Piece { std::vector<Cell> cells; int dir=0; int step=0; bool alive=true; };
-struct Board { int width=0,height=0; std::vector<Piece> pieces; };
+struct Piece { std::vector<Cell> cells; int dir=0; int step=0; bool alive=true; std::string color; };
+struct Board { int width=0,height=0; std::vector<Piece> pieces; std::vector<std::uint8_t> shape; };
 
 inline bool valid(const Board& b) {
  if(b.width<1||b.height<1||b.width>72||b.height>72) return false;
+ if(!b.shape.empty()&&b.shape.size()!=static_cast<std::size_t>(b.width)*static_cast<std::size_t>(b.height)) return false;
  const int dx[4]={0,1,0,-1},dy[4]={-1,0,1,0};
  for(const auto& p:b.pieces) {
   if(p.dir<0||p.dir>3||p.cells.size()<2) return false;
   for(std::size_t i=0;i<p.cells.size();++i) {
    const auto c=p.cells[i];
    if(c.x<0||c.y<0||c.x>=b.width||c.y>=b.height) return false;
+   if(!b.shape.empty()&&!b.shape[static_cast<std::size_t>(c.y*b.width+c.x)]) return false;
    if(i&&std::abs(c.x-p.cells[i-1].x)+std::abs(c.y-p.cells[i-1].y)!=1) return false;
    for(std::size_t j=0;j<i;++j)
     if(p.cells[j].x==c.x&&p.cells[j].y==c.y) return false;
