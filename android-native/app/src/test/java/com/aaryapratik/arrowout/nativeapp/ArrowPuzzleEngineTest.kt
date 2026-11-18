@@ -23,6 +23,13 @@ class ArrowPuzzleEngineTest{
   val hinted=engine.hint(engine.newGame())
   assertTrue(hinted.hintedPieceIndex>=0);assertEquals(-1,engine.blocker(hinted.board,hinted.hintedPieceIndex));assertEquals(1,hinted.hintsUsed)
  }
+ @Test fun eraserRemovesAnyArrowAndUndoRestoresIt(){
+  val eraser=engine.toggleEraser(engine.newGame())
+  val erased=engine.tap(eraser,Cell(0,2))
+  assertEquals(2,erased.remaining);assertEquals(0,erased.erasersRemaining);assertEquals(1,erased.erasersUsed)
+  val restored=engine.undo(erased)
+  assertEquals(3,restored.remaining);assertEquals(1,restored.undosUsed);assertEquals(0,restored.undoStack.size)
+ }
  @Test fun malformedOverlappingPathsAreRejected(){val board=ArrowBoard(4,4,listOf(ArrowPiece(listOf(Cell(0,1),Cell(1,1)),Direction.RIGHT,0),ArrowPiece(listOf(Cell(0,1),Cell(0,2)),Direction.DOWN,1)));assertFalse(engine.valid(board))}
  @Test fun freeHintsAreLimitedToThreePerLevel(){
   var state=engine.newGame()
