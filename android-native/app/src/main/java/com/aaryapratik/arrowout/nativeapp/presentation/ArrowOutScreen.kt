@@ -79,7 +79,7 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
      .clip(RoundedCornerShape(18.dp)).background(Color(0xFF202C40))
      .graphicsLayer{scaleX=zoom;scaleY=zoom;translationX=pan.x;translationY=pan.y}
      .transformable(transformState)
-     .pointerInput(board,zoom,pan,isRestoring){
+     .pointerInput(board,zoom,pan,isRestoring,state.isSolved,state.isFailed){
       detectTapGestures{point->
        if(!isRestoring&&!state.isSolved&&!state.isFailed){
         val localX=(point.x-pan.x)/zoom;val localY=(point.y-pan.y)/zoom
