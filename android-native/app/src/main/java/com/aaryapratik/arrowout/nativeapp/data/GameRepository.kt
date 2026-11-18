@@ -2,6 +2,7 @@ package com.aaryapratik.arrowout.nativeapp.data
 import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonParser
+import com.google.gson.JsonObject
 import com.aaryapratik.arrowout.nativeapp.data.local.GameProgress
 import com.aaryapratik.arrowout.nativeapp.data.local.GameProgressDao
 import com.aaryapratik.arrowout.nativeapp.domain.engine.ArrowPuzzleEngine
@@ -28,8 +29,8 @@ import kotlinx.coroutines.flow.Flow
   if(!json.has("mistakes"))json.addProperty("mistakes",0)
   if(!json.has("hintsUsed"))json.addProperty("hintsUsed",0)
   if(!json.has("coins"))json.addProperty("coins",0)
-  if(!json.has("bestStars"))json.add("bestStars",JsonArray())
-  if(!json.has("bestPlays"))json.add("bestPlays",JsonArray())
+  if(!json.has("bestStars"))json.add("bestStars",JsonObject())
+  if(!json.has("bestPlays"))json.add("bestPlays",JsonObject())
   val state=gson.fromJson(json,ArrowGameState::class.java)?:throw IllegalStateException("Saved Arrow Out state is empty")
   require(engine.valid(state.board)){"Saved Arrow Out puzzle is invalid"}
   return state
