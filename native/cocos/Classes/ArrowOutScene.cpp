@@ -96,6 +96,7 @@ bool ArrowOutScene::onTouchBegan(Touch* touch,Event*) {
  else if(removePiece(board_,pi)) {
   const auto left=static_cast<int>(std::count_if(board_.pieces.begin(),board_.pieces.end(),[](const Piece& p){return p.alive;}));
   remaining_->setString("Level "+std::to_string(currentLevel_)+" · Arrows: "+std::to_string(left));
+  remaining_->runAction(Sequence::create(ScaleTo::create(.08f,1.08f),ScaleTo::create(.12f,1.0f),nullptr));
   if(left==0) {
    levelComplete_=true;
    UserDefault::getInstance()->setIntegerForKey("arrowout.native.level.v1",std::min(1000,currentLevel_+1));
@@ -132,5 +133,6 @@ void ArrowOutScene::redraw() {
   if(p.dir==3){tip.x-=r;left+=Vec2(r*.5f,-r*.65f);right+=Vec2(r*.5f,r*.65f);}
   d->drawSolidTriangle(tip,left,right,col);
  }
- d->setTag(900); addChild(d,1);
+ d->setTag(900); d->setOpacity(0); addChild(d,1);
+ d->runAction(FadeTo::create(.12f,255));
 }
