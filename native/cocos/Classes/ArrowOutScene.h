@@ -11,7 +11,9 @@ private:
  bool pointToCell(const cocos2d::Vec2&,gogo::arrowout::Cell&) const;
  void redraw();
  void setStatus(const std::string&);
+ bool loadLevel(int level);
  void resetPuzzle();
+ int currentLevel_=1;
  gogo::arrowout::Board board_;
  cocos2d::Vec2 boardOrigin_;
  float cellSize_=0;
