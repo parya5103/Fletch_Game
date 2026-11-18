@@ -1,6 +1,10 @@
 package com.aaryapratik.arrowout.nativeapp
 import com.aaryapratik.arrowout.nativeapp.domain.engine.ArrowPuzzleEngine
 import com.aaryapratik.arrowout.nativeapp.domain.model.*
+import com.aaryapratik.arrowout.nativeapp.presentation.utcDailyDateKey
+import java.time.Instant
+import java.util.Date
+import java.util.TimeZone
 import org.junit.Assert.*
 import org.junit.Test
 class ArrowPuzzleEngineTest{
@@ -49,6 +53,14 @@ class ArrowPuzzleEngineTest{
   val afterUndo=engine.undo(solved)
   assertTrue(afterUndo.isSolved)
   assertEquals(10,afterUndo.coins)
+ }
+ @Test fun dailyDateKeyUsesUtcEvenWhenDeviceTimezoneDiffers(){
+  val original=TimeZone.getDefault()
+  try{
+   TimeZone.setDefault(TimeZone.getTimeZone("Asia/Kolkata"))
+   val instant=Date.from(Instant.parse("2026-11-18T23:30:00Z"))
+   assertEquals("20261118",utcDailyDateKey(instant))
+  }finally{TimeZone.setDefault(original)}
  }
  @Test fun malformedOverlappingPathsAreRejected(){val board=ArrowBoard(4,4,listOf(ArrowPiece(listOf(Cell(0,1),Cell(1,1)),Direction.RIGHT,0),ArrowPiece(listOf(Cell(0,1),Cell(0,2)),Direction.DOWN,1)));assertFalse(engine.valid(board))}
  @Test fun freeHintsAreLimitedToThreePerLevel(){
