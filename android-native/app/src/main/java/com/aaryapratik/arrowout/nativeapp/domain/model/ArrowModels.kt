@@ -7,6 +7,7 @@ data class ArrowGameState(
  val board:ArrowBoard,
  val message:String="Tap an arrow to clear its exit path",
  val isSolved:Boolean=false,
+ val isFailed:Boolean=false,
  val level:Int=1,
  val unlockedLevel:Int=1,
  val hearts:Int=3,
