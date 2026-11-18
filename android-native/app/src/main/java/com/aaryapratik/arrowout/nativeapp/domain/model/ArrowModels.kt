@@ -36,5 +36,5 @@ data class ArrowGameState(
 sealed interface ArrowUiEvent{
  data class TapCell(val cell:Cell):ArrowUiEvent
  data object Restart:ArrowUiEvent
- data object Continue:ArrowUiEvent;data object Hint:ArrowUiEvent;data object ToggleEraser:ArrowUiEvent;data object Undo:ArrowUiEvent;data object DailyChallenge:ArrowUiEvent;data object ExitDaily:ArrowUiEvent
+ data object Continue:ArrowUiEvent;data object Hint:ArrowUiEvent;data object ToggleEraser:ArrowUiEvent;data object Undo:ArrowUiEvent;data class SelectLevel(val level:Int):ArrowUiEvent;data object DailyChallenge:ArrowUiEvent;data object ExitDaily:ArrowUiEvent
 }
