@@ -108,7 +108,7 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
    }
    Text("Pinch to zoom · drag to explore larger boards",color=Color(0xFF8294B3),style=MaterialTheme.typography.labelSmall)
    if(state.isSolved)Button(onClick={onEvent(ArrowUiEvent.Continue)},enabled=!isRestoring&&state.level<1000,modifier=Modifier.fillMaxWidth()){Text(if(state.level<1000)"Continue to Level ${state.level+1}" else "All 1,000 levels cleared")}
-   Button(onClick={onEvent(ArrowUiEvent.Hint)},enabled=!isRestoring&&!state.isSolved&&!state.isFailed,modifier=Modifier.fillMaxWidth()){Text("Hint · ${state.hintsUsed}")}
+   Button(onClick={onEvent(ArrowUiEvent.Hint)},enabled=!isRestoring&&!state.isSolved&&!state.isFailed&&state.hintsUsed<ArrowPuzzleEngine.FREE_HINTS,modifier=Modifier.fillMaxWidth()){Text("Hint · ${ArrowPuzzleEngine.FREE_HINTS-state.hintsUsed} free left")}
    Button(onClick={onEvent(ArrowUiEvent.Restart)},enabled=!isRestoring,modifier=Modifier.fillMaxWidth()){Text(if(state.isFailed)"Retry level" else "Restart puzzle")}
    TextButton(onClick={showImport=!showImport},enabled=!isRestoring){Text(if(showImport)"Close progress import" else "Import existing PWA progress")}
    if(showImport){
