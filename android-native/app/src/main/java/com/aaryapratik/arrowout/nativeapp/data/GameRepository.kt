@@ -2,6 +2,7 @@ package com.aaryapratik.arrowout.nativeapp.data
 import com.google.gson.Gson
 import com.aaryapratik.arrowout.nativeapp.data.local.GameProgress
 import com.aaryapratik.arrowout.nativeapp.data.local.GameProgressDao
+import com.aaryapratik.arrowout.nativeapp.domain.engine.ArrowPuzzleEngine
 import com.aaryapratik.arrowout.nativeapp.domain.model.ArrowGameState
 import javax.inject.Inject
 import javax.inject.Singleton
