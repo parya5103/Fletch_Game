@@ -15,6 +15,11 @@ class LegacySaveImporterTest{
   assertEquals(2,imported.hearts);assertEquals(1,imported.mistakes);assertEquals(1,imported.hintsUsed);assertEquals("20261119",imported.dailyCompletedDate);assertEquals(7,imported.dailyStreak);assertEquals(9,imported.dailyBest)
   assertTrue(imported.rawSaveJson.contains("\"achievements\""));assertTrue(imported.rawSaveJson.contains("\"ownedBoards\""))
  }
+ @Test fun preservesSavedUndoOrderInsteadOfBoardOrder(){
+  val json="""{"v":2,"unlocked":3,"cur":{"level":2,"cols":4,"rows":4,"shapeIdx":[0,1,8,9],"arrows":[{"cells":[{"x":0,"y":0},{"x":1,"y":0}],"dir":1,"c":0,"step":9},{"cells":[{"x":0,"y":2},{"x":1,"y":2}],"dir":1,"c":1,"step":2}],"alive":[0,0],"undoIds":[2,9]}}"""
+  val imported=LegacySaveImporter.import(json)
+  assertEquals(listOf(1,0),imported.undoStack)
+ }
  @Test fun rejectsUnsupportedVersionsAndOversizedPayloads(){
   assertThrows(IllegalArgumentException::class.java){LegacySaveImporter.import("""{"v":3}""")}
   assertThrows(IllegalArgumentException::class.java){LegacySaveImporter.import(" ".repeat(LegacySaveImporter.MAX_SAVE_BYTES+1))}
