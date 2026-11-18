@@ -5,4 +5,12 @@ import androidx.activity.compose.setContent
 import dagger.hilt.android.AndroidEntryPoint
 import com.aaryapratik.arrowout.nativeapp.presentation.ArrowOutRoute
 import com.aaryapratik.arrowout.nativeapp.presentation.theme.ArrowOutTheme
-@AndroidEntryPoint class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{ArrowOutTheme{ArrowOutRoute()}}}}
+@AndroidEntryPoint class MainActivity:ComponentActivity(){
+ private lateinit var adsConsentManager:AdsConsentManager
+ override fun onCreate(savedInstanceState:Bundle?){
+  super.onCreate(savedInstanceState)
+  adsConsentManager=AdsConsentManager(this)
+  adsConsentManager.start()
+  setContent{ArrowOutTheme{ArrowOutRoute(privacyOptionsRequired=adsConsentManager.privacyOptionsRequired,onShowPrivacyOptions=adsConsentManager::showPrivacyOptions)}}
+ }
+}
