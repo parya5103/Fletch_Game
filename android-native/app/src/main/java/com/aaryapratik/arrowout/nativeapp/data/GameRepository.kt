@@ -64,7 +64,7 @@ import kotlinx.coroutines.flow.Flow
   val board=imported.currentPuzzle?:levels.boardFor(level)
   val state=ArrowGameState(
    board=board,level=level,unlockedLevel=imported.unlocked,hearts=imported.hearts,
-   mistakes=imported.mistakes,hintsUsed=imported.hintsUsed,erasersUsed=imported.erasersUsed,erasersRemaining=(1-imported.erasersUsed).coerceAtLeast(0),undoStack=imported.undoStack,coins=imported.coins,
+   mistakes=imported.mistakes,hintsUsed=imported.hintsUsed,erasersUsed=imported.erasersUsed,erasersRemaining=(1-imported.erasersUsed).coerceAtLeast(0),undoStack=imported.undoStack,coins=imported.coins,dailyCompletedDate=imported.dailyCompletedDate,lastDailyDate=imported.lastDailyDate,dailyStreak=imported.dailyStreak,dailyBest=imported.dailyBest,
    bestStars=imported.bestStars,bestPlays=imported.bestPlays,legacySaveJson=imported.rawSaveJson,
    message="PWA progress imported — continue your level"
   )
