@@ -13,8 +13,9 @@ struct Board { int width=0,height=0; std::vector<Piece> pieces; };
 
 inline bool valid(const Board& b) {
  if(b.width<1||b.height<1||b.width>72||b.height>72) return false;
+ const int dx[4]={0,1,0,-1},dy[4]={-1,0,1,0};
  for(const auto& p:b.pieces) {
-  if(p.dir<0||p.dir>3||p.cells.empty()) return false;
+  if(p.dir<0||p.dir>3||p.cells.size()<2) return false;
   for(std::size_t i=0;i<p.cells.size();++i) {
    const auto c=p.cells[i];
    if(c.x<0||c.y<0||c.x>=b.width||c.y>=b.height) return false;
@@ -22,6 +23,8 @@ inline bool valid(const Board& b) {
    for(std::size_t j=0;j<i;++j)
     if(p.cells[j].x==c.x&&p.cells[j].y==c.y) return false;
   }
+  const auto head=p.cells.back(), prev=p.cells[p.cells.size()-2];
+  if(head.x-prev.x!=dx[p.dir]||head.y-prev.y!=dy[p.dir]) return false;
  }
  return true;
 }
