@@ -24,4 +24,12 @@ class ArrowPuzzleEngineTest{
   assertTrue(hinted.hintedPieceIndex>=0);assertEquals(-1,engine.blocker(hinted.board,hinted.hintedPieceIndex));assertEquals(1,hinted.hintsUsed)
  }
  @Test fun malformedOverlappingPathsAreRejected(){val board=ArrowBoard(4,4,listOf(ArrowPiece(listOf(Cell(0,1),Cell(1,1)),Direction.RIGHT,0),ArrowPiece(listOf(Cell(0,1),Cell(0,2)),Direction.DOWN,1)));assertFalse(engine.valid(board))}
+ @Test fun freeHintsAreLimitedToThreePerLevel(){
+  var state=engine.newGame()
+  repeat(3){state=engine.hint(state)}
+  assertEquals(3,state.hintsUsed)
+  val exhausted=engine.hint(state)
+  assertEquals(3,exhausted.hintsUsed)
+  assertEquals("No free hints remaining — continue without a hint",exhausted.message)
+ }
 }
