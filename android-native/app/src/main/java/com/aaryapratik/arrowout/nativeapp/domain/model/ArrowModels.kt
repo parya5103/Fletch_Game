@@ -13,6 +13,7 @@ data class ArrowGameState(
  val hearts:Int=3,
  val mistakes:Int=0,
  val hintsUsed:Int=0,
+ val hintedPieceIndex:Int=-1,
  val coins:Int=0,
  val bestStars:Map<Int,Int> = emptyMap(),
  val bestPlays:Map<Int,Int> = emptyMap(),
@@ -23,5 +24,5 @@ data class ArrowGameState(
 sealed interface ArrowUiEvent{
  data class TapCell(val cell:Cell):ArrowUiEvent
  data object Restart:ArrowUiEvent
- data object Continue:ArrowUiEvent
+ data object Continue:ArrowUiEvent;data object Hint:ArrowUiEvent
 }
