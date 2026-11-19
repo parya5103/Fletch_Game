@@ -42,6 +42,7 @@ import java.util.TimeZone
  fun setSoundEffectsEnabled(enabled:Boolean){viewModelScope.launch(io){settingsStore.setSoundEffectsEnabled(enabled)}}
  fun setColorblindPaletteEnabled(enabled:Boolean){viewModelScope.launch(io){settingsStore.setColorblindPaletteEnabled(enabled)}}
  fun setLargeTextEnabled(enabled:Boolean){viewModelScope.launch(io){settingsStore.setLargeTextEnabled(enabled)}}
+ fun setReducedMotionEnabled(enabled:Boolean){viewModelScope.launch(io){settingsStore.setReducedMotionEnabled(enabled)}}
  private val saveQueue=Channel<ArrowGameState>(Channel.CONFLATED)
  init{
   viewModelScope.launch(io){
