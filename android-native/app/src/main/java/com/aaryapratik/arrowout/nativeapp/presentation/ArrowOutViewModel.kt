@@ -70,6 +70,9 @@ import java.util.TimeZone
    ArrowUiEvent.ShowSolution->{if(GameFeatureFlags.showSolution)_uiState.update{engine.showSolution(it)}}
    ArrowUiEvent.ClearSolution->{_uiState.update{engine.clearSolution(it)};saveQueue.trySend(_uiState.value)}
    is ArrowUiEvent.MarkStorySeen->{if(GameFeatureFlags.guardianStories){_uiState.update{it.copy(storySeenWorlds=(it.storySeenWorlds+event.worldId).distinct())};saveQueue.trySend(_uiState.value)}}
+   is ArrowUiEvent.PurchaseArrowSkin->{if(GameFeatureFlags.cosmetics){_uiState.update{ArrowOutProgression.purchase(it,event.skinId)};saveQueue.trySend(_uiState.value)}}
+   is ArrowUiEvent.SelectArrowSkin->{if(GameFeatureFlags.cosmetics){_uiState.update{ArrowOutProgression.select(it,event.skinId)};saveQueue.trySend(_uiState.value)}}
+   ArrowUiEvent.ClaimDailyReward->{if(GameFeatureFlags.achievements){_uiState.update{ArrowOutProgression.claimDailyReward(it,utcDailyDateKey(Date()))};saveQueue.trySend(_uiState.value)}}
    ArrowUiEvent.ExitDaily->{
     val current=_uiState.value
     if(current.isDaily)viewModelScope.launch(io){

@@ -109,7 +109,7 @@ import kotlin.math.min
  val board=state.board
  val boardCellColor=MaterialTheme.colorScheme.surfaceVariant
  val boardGridColor=MaterialTheme.colorScheme.outlineVariant
- val activeArrowColors=(if(settings.colorblindPaletteEnabled)ArrowColorPalette.colorblindArgb else ArrowColorPalette.standardArgb).map{Color(it)}
+ val activeArrowColors=(if(settings.colorblindPaletteEnabled)ArrowColorPalette.colorblindArgb else ArrowSkinCatalog.byId(state.selectedArrowSkin).colors).map{Color(it)}
  val haptics=LocalHapticFeedback.current
  val soundEffects=remember{NativeSoundEffects()}
  DisposableEffect(soundEffects){onDispose{soundEffects.release()}}
@@ -164,6 +164,12 @@ import kotlin.math.min
     Text("♥ ${state.hearts}    ARROWS LEFT  ${state.remaining}",color=MaterialTheme.colorScheme.onBackground)
    }
    Text("COINS ${state.coins}   ·   BEST ${if(state.isDaily)state.dailyStars else state.bestStars[state.level]?:0} ★   ·   ERASERS ${state.erasersRemaining}   ·   STREAK ${state.dailyStreak}",color=Color(0xFFFFD166),style=MaterialTheme.typography.labelMedium)
+   if(GameFeatureFlags.achievements || GameFeatureFlags.cosmetics) ArrowOutProgressionPanel(
+    state=state,
+    onPurchaseSkin={onEvent(ArrowUiEvent.PurchaseArrowSkin(it))},
+    onSelectSkin={onEvent(ArrowUiEvent.SelectArrowSkin(it))},
+    onClaimDailyReward={onEvent(ArrowUiEvent.ClaimDailyReward)}
+   )
    OutlinedButton(onClick={onEvent(ArrowUiEvent.DailyChallenge)},enabled=!isRestoring&&!state.isDaily,modifier=Modifier.fillMaxWidth()){Text("Daily Challenge · ${state.dailyStreak}-day streak")}
    Text("Unlocked campaign levels: ${state.unlockedLevel} / 1000",color=MaterialTheme.colorScheme.onSurfaceVariant,style=MaterialTheme.typography.labelSmall)
    if(state.isDaily)TextButton(onClick={onEvent(ArrowUiEvent.ExitDaily)},enabled=!isRestoring,modifier=Modifier.fillMaxWidth()){Text("Back to campaign")}
