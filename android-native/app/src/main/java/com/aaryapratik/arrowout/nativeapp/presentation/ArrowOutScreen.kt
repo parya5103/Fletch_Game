@@ -1,6 +1,7 @@
 package com.aaryapratik.arrowout.nativeapp.presentation
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -28,6 +29,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
@@ -83,6 +86,7 @@ import kotlin.math.min
     onSoundEffectsChange=viewModel::setSoundEffectsEnabled,
     onColorblindPaletteChange=viewModel::setColorblindPaletteEnabled,
     onLargeTextChange=viewModel::setLargeTextEnabled,
+    onReducedMotionChange=viewModel::setReducedMotionEnabled,
     onNavigateHome={destination="home"},
     onNavigateWorlds={destination=if(GameFeatureFlags.worldMap)"worlds" else "home"}
    )
@@ -105,6 +109,7 @@ import kotlin.math.min
  onSoundEffectsChange:(Boolean)->Unit={},
  onColorblindPaletteChange:(Boolean)->Unit={},
  onLargeTextChange:(Boolean)->Unit={},
+ onReducedMotionChange:(Boolean)->Unit={},
  onNavigateHome:()->Unit={},
  onNavigateWorlds:()->Unit={}
 ){
@@ -139,7 +144,7 @@ import kotlin.math.min
  var importText by remember{mutableStateOf("")}
  var zoom by remember(state.level,board.width,board.height){mutableFloatStateOf(1f)}
  var pan by remember(state.level,board.width,board.height){mutableStateOf(Offset.Zero)}
- val pieceAlphas=board.pieces.mapIndexed{index,piece->animateFloatAsState(targetValue=if(piece.alive)1f else 0f,animationSpec=tween(durationMillis=220),label="arrow-exit-$index").value}
+ val pieceAlphas=board.pieces.mapIndexed{index,piece->animateFloatAsState(targetValue=if(piece.alive)1f else 0f,animationSpec=if(settings.reducedMotionEnabled)snap() else tween(durationMillis=220),label="arrow-exit-$index").value}
  val transformState=rememberTransformableState{zoomChange,panChange,_->
   val next=(zoom*zoomChange).coerceIn(1f,4f)
   pan=if(next==1f)Offset.Zero else pan+panChange
@@ -161,6 +166,7 @@ import kotlin.math.min
     SettingsRow("Sound effects","Play optional puzzle feedback tones",settings.soundEffectsEnabled,onSoundEffectsChange)
     SettingsRow("Colorblind palette","Use a high-contrast, color-vision-friendly arrow palette",settings.colorblindPaletteEnabled,onColorblindPaletteChange)
     SettingsRow("Larger text","Increase in-game text size",settings.largeTextEnabled,onLargeTextChange)
+    SettingsRow("Reduce motion","Use instant arrow exits instead of movement animations",settings.reducedMotionEnabled,onReducedMotionChange)
    }
    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){
     Text(if(state.isDaily)"DAILY CHALLENGE" else "LEVEL ${state.level.toString().padStart(3,'0')}",color=MaterialTheme.colorScheme.onBackground)
@@ -191,7 +197,12 @@ import kotlin.math.min
    Canvas(
     Modifier.fillMaxWidth().aspectRatio(board.width.toFloat()/board.height.toFloat())
       .clip(RoundedCornerShape(18.dp)).background(MaterialTheme.colorScheme.surface)
-     .semantics { contentDescription = "Puzzle board. ${board.width} columns, ${board.height} rows, ${state.remaining} arrows remaining. Tap an arrow to move it." }
+     .semantics {
+      contentDescription = "Puzzle board. ${board.width} columns, ${board.height} rows, ${state.remaining} arrows remaining. Use custom actions to move individual arrows."
+      customActions = if(isRestoring || state.isSolved || state.isFailed) emptyList() else board.pieces.withIndex().filter { it.value.alive && it.value.cells.isNotEmpty() }.map { (index,piece) ->
+       CustomAccessibilityAction("Move arrow ${index + 1}") { onEvent(ArrowUiEvent.TapCell(piece.cells.last())); true }
+      }
+     }
      .graphicsLayer{scaleX=zoom;scaleY=zoom;translationX=pan.x;translationY=pan.y}
      .transformable(transformState)
      .pointerInput(board,zoom,pan,isRestoring,state.isSolved,state.isFailed){
