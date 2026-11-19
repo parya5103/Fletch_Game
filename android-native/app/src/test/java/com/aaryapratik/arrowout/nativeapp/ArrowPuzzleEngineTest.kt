@@ -83,13 +83,13 @@ class ArrowPuzzleEngineTest{
  }
 }
  @Test fun undoHistoryIsNotTruncatedAfterTenMoves(){
-  val pieces=(0 until 12).map{row->ArrowPiece(listOf(Cell(0,row*2),Cell(1,row*2)),Direction.RIGHT,row%8)}
+  val pieces=(0 until 13).map{row->ArrowPiece(listOf(Cell(0,row*2),Cell(1,row*2)),Direction.RIGHT,row%8)}
   val board=ArrowBoard(4,24,pieces)
   var state=ArrowGameState(board)
-  pieces.indices.forEach{index->state=engine.tap(state,Cell(1,index*2))}
+  pieces.indices.take(12).forEach{index->state=engine.tap(state,Cell(1,index*2))}
   assertEquals(12,state.undoStack.size)
   repeat(12){state=engine.undo(state)}
-  assertEquals(12,state.remaining)
+  assertEquals(13,state.remaining)
  }
  @Test fun solutionOverlayReturnsACompleteValidExitOrderWithoutChangingPuzzle(){
   val state=engine.newGame()
