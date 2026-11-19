@@ -48,6 +48,8 @@ import kotlinx.coroutines.flow.Flow
   if(!json.has("storySeenWorlds"))json.add("storySeenWorlds",JsonArray())
   if(!json.has("unlockedArrowSkins"))json.add("unlockedArrowSkins",JsonArray().apply{add("classic")})
   if(!json.has("selectedArrowSkin"))json.addProperty("selectedArrowSkin","classic")
+  if(!json.has("lastLoginRewardDate"))json.addProperty("lastLoginRewardDate","")
+  if(!json.has("loginRewardStreak"))json.addProperty("loginRewardStreak",0)
   val state=gson.fromJson(json,ArrowGameState::class.java)?:throw IllegalStateException("Saved Arrow Out state is empty")
   require(engine.valid(state.board)){"Saved Arrow Out puzzle is invalid"}
   return state
