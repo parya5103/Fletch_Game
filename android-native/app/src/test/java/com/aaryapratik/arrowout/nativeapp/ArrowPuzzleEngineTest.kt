@@ -82,3 +82,26 @@ class ArrowPuzzleEngineTest{
   assertEquals("No free hints remaining — continue without a hint",exhausted.message)
  }
 }
+ @Test fun undoHistoryIsNotTruncatedAfterTenMoves(){
+  val pieces=(0 until 12).map{row->ArrowPiece(listOf(Cell(0,row*2),Cell(1,row*2)),Direction.RIGHT,row%8)}
+  val board=ArrowBoard(4,24,pieces)
+  var state=ArrowGameState(board)
+  pieces.indices.forEach{index->state=engine.tap(state,Cell(1,index*2))}
+  assertEquals(12,state.undoStack.size)
+  repeat(12){state=engine.undo(state)}
+  assertEquals(12,state.remaining)
+ }
+ @Test fun solutionOverlayReturnsACompleteValidExitOrderWithoutChangingPuzzle(){
+  val state=engine.newGame()
+  val solution=engine.solution(state)
+  assertEquals(state.remaining,solution.size)
+  var board=state.board
+  solution.forEach{index->
+   assertEquals(-1,engine.blocker(board,index))
+   val pieces=board.pieces.toMutableList()
+   pieces[index]=pieces[index].copy(alive=false)
+   board=board.copy(pieces=pieces)
+  }
+  assertEquals(state.remaining,engine.solution(state).size)
+ }
+
