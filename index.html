@@ -9,8 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Arrow Out!" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://googleads.g.doubleclick.net https://fundingchoicesmessages.google.com https://www.gstatic.com https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' data:; connect-src 'self' https://usszcnaaylbsgqaehsgp.supabase.co https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://identitytoolkit.googleapis.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://fundingchoicesmessages.google.com https://gogo-central-backend.onrender.com; frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://pagead2.googlesyndication.com https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://fundingchoicesmessages.google.com https://www.google.com; object-src 'none'; base-uri 'none'" />
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2895136878543415" crossorigin="anonymous"></script>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' data:; connect-src 'self' https://www.gstatic.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://gogo-central-backend.onrender.com; object-src 'none'; base-uri 'none'" />
   <title>Arrow Out! | Free Tap-Away Arrow Puzzle Game</title>
   <link rel="canonical" href="https://gogocompany.in/arrowout/" />
   <meta property="og:title" content="Arrow Out! | Free Tap-Away Arrow Puzzle Game" />
@@ -375,8 +374,8 @@
     <div class="card">
       <button class="btn icon close-x" data-close type="button" aria-label="Close reminder settings">&times;</button>
       <h2 id="reminders-title">Notifications &amp; reminders</h2>
-      <p class="sub">Local reminders plus optional daily push. No account needed.</p>
-      <p id="reminder-limit">Local reminder checks run only while this game page can execute; a closed browser cannot schedule them. The Daily push reminders below use real Web Push and reach you roughly five times a day even when the game is closed.</p>
+      <p class="sub">Local inactivity reminders and optional GoGo Central notifications.</p>
+      <p id="reminder-limit">Local reminder checks run only while this game page can execute. A closed or suspended browser cannot schedule them. Optional system notifications may be delayed or suppressed by browser and operating-system settings.</p>
       <div class="stack">
         <label class="row" for="chk-notifs">Enable in-game reminders <input type="checkbox" id="chk-notifs" aria-describedby="reminder-limit" /></label>
         <label for="reminder-minutes">Remind me after no interaction for</label>
@@ -387,14 +386,13 @@
         <button class="btn" id="btn-notif-permission" type="button" aria-describedby="system-reminder-help">Allow system notifications</button>
         <label class="row" for="chk-system-notifs">Also use system notifications <input type="checkbox" id="chk-system-notifs" aria-describedby="system-reminder-help" /></label>
         <p id="reminder-permission"></p>
-        <p id="push-help">Daily push reminders are delivered by Web Push roughly five times a day, even when the game is closed. Your browser keeps the subscription; the game saves it to the developer's free delivery roster. Toggling off removes this device from that roster immediately.</p>
-        <label class="row" for="chk-push">Daily push reminders <input type="checkbox" id="chk-push" aria-describedby="push-help" /></label>
-        <p id="push-status" role="status" aria-live="polite"></p>
+        <p id="reminder-legacy" role="status" aria-live="polite" hidden></p>
+        <button class="btn small" id="btn-reminder-cleanup" type="button" hidden>Retry old notification cleanup</button>
         <p id="reminder-status" role="status" aria-live="polite"></p>
         <button class="btn small" id="btn-notif-test" type="button">Send test notification</button>
         <p id="reminder-test-status" role="status" aria-live="polite"></p>
       </div>
-      <p>At most one reminder per inactivity period. Interacting starts a new period; system tests are limited to one per minute. Permission is requested only by explicit buttons; a dismissed prompt can be asked again by the same button. Disabling reminders closes local notifications; toggling off daily push removes this device from the delivery roster.</p>
+      <p>At most one reminder per inactivity period. Interacting starts a new period; system tests are limited to one per minute. Permission is requested only by explicit buttons; a dismissed prompt can be asked again by the same button. Disabling reminders closes local notifications. Old browser push subscriptions are retired where possible; historical server records require separate owner cleanup.</p>
     </div>
   </div>
 
@@ -760,7 +758,6 @@
   <script src="js/ui.js"></script>
   <script src="js/reminders.js"></script>
   <script src="js/render.js"></script>
-  <script src="js/ads.js"></script>
   <script src="js/main.js"></script>
   <script src="js/gogo-notifications.js"></script>
 </body>

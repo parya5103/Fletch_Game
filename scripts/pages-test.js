@@ -117,10 +117,12 @@ test('About catalogue/count claims agree with production and unsupported release
 test('Privacy describes the email contact flow and keeps the local/daily-push distinction', () => {
   const privacy=read('privacy.html');
   assert.match(privacy,/nothing is sent until you press send in your email app/i);
-  assert.match(privacy,/removes this device from the roster immediately/);
-  assert.match(privacy,/Provider-side retention \(Supabase backups or GitHub logs\) is managed by those providers/);
+  assert.match(privacy,/GoGo Central push notifications/);
+  assert.match(privacy,/Firebase Cloud Messaging/);
+  assert.match(privacy,/legacy Supabase/);
   assert.match(privacy,/no automated access-request service/);
-  assert.match(privacy,/one labelled display advertisement, served by Google AdSense/);
+  assert.match(privacy,/No advertising SDK is loaded/);
+  assert.doesNotMatch(privacy,/daily push reminders are delivered|one labelled display advertisement/);
   assert(!/GDPR|DPDP|will ask for it first/.test(privacy));
 });
 test('no visitor-facing GitHub links remain on the public info pages', () => {
@@ -146,8 +148,23 @@ test('public pages are precached with matching worker/display version and valid 
 });
 
 
+test('legacy Supabase daily push is retired while GoGo Central FCM remains isolated', () => {
+  const pwa = read('js/pwa.js'), reminders = read('js/reminders.js');
+  const worker = read('sw.js'), index = read('index.html');
+  assert.doesNotMatch(pwa,/SUPABASE_URL|VAPID_PUBLIC_KEY|subscribePush|submitPushSubscription/);
+  assert.doesNotMatch(reminders,/pushToggle|submitPushSubscription|chk-push/);
+  assert.doesNotMatch(worker,/addEventListener\(['"]push['"]/);
+  assert(!fs.existsSync(path.join(root,'.github/workflows/notify.yml')));
+  assert.match(index,/data-gogo-notifications/);
+  const fcmWorker = read('fcm/firebase-messaging-sw.js');
+  assert.match(fcmWorker,/onBackgroundMessage/);
+  assert.doesNotMatch(fcmWorker,/addEventListener\(['"]fetch['"]/);
+});
 test('game landing page has one primary heading and complete VideoGame publisher schema', () => {
   const index = read('index.html');
+  assert.doesNotMatch(index,/adsbygoogle\.js|js\/ads\.js/,'advertising remains disabled until a certified consent flow exists');
+  assert.doesNotMatch(index,/usszcnaaylbsgqaehsgp\.supabase\.co/,'legacy daily push roster is no longer a page dependency');
+  assert.match(index,/data-gogo-notifications/,'GoGo Central opt-in notifications remain available');
   assert.equal([...index.matchAll(/<h1\b/gi)].length, 1, 'only the visible game title should be H1');
   assert.match(index, /<title>Arrow Out! \| Free Tap-Away Arrow Puzzle Game<\/title>/);
   const schemas = [...index.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(m => JSON.parse(m[1]));

@@ -392,15 +392,15 @@ function runAll(deps) {
     assert.strictEqual(env.Game.claimStarChest(NaN), false, 'NaN rejected');
   });
 
-  test('Service worker bumped to arrow-out-v49 with story.js precached', function () {
-    assert.ok(deps.swSrc.indexOf('arrow-out-v49') !== -1, 'v49 cache name present');
+  test('Service worker bumped to arrow-out-v50 with story.js precached', function () {
+    assert.ok(deps.swSrc.indexOf('arrow-out-v50') !== -1, 'v50 cache name present');
     assert.strictEqual(deps.swSrc.indexOf('arrow-out-v47'), -1, 'v47 cache name gone');
     assert.ok(deps.swSrc.indexOf("'./js/story.js'") !== -1, 'story.js precached');
     assert.ok(deps.swSrc.indexOf("'./js/map.js'") !== -1, 'map.js precached');
   });
 
-  test('PWA module reports v49', function () {
-    assert.ok(deps.pwaSrc.indexOf("'v49'") !== -1, 'v49 reported');
+  test('PWA module reports v50', function () {
+    assert.ok(deps.pwaSrc.indexOf("'v50'") !== -1, 'v50 reported');
     assert.strictEqual(deps.pwaSrc.indexOf("'v47'"), -1, 'v47 gone');
   });
 
