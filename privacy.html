@@ -71,7 +71,7 @@
       <li>Turning notifications off asks GoGo Central to disable preferences, remove the registered device and delete the browser token. If a remote request fails, the interface reports that it could not fully turn notifications off; local data clearing alone cannot guarantee remote deletion.</li>
       <li>Firebase/Google and the GoGo Central service may process device tokens and associated technical metadata to deliver notifications. See <a href="https://policies.google.com/privacy">Google's Privacy Policy</a>. Provider-side retention is controlled by those services and the GoGo Central operator.</li>
     </ul>
-    <p>Earlier versions used a separate Supabase roster and scheduled GitHub Actions workflow for daily Web Push. This version no longer creates or sends through that legacy roster and attempts to unsubscribe an existing browser subscription. It cannot delete historical Supabase rows, backups, GitHub logs or old workflow secrets; those require separate operator cleanup. Do not post push tokens, endpoints or identifiers in public issues.</p>
+    <p>Earlier versions used a legacy Supabase roster and scheduled GitHub Actions workflow for daily Web Push. This version no longer creates or sends through that legacy roster and attempts to unsubscribe an existing browser subscription. It cannot delete historical Supabase rows, backups, GitHub logs or old workflow secrets; those require separate operator cleanup. Do not post push tokens, endpoints or identifiers in public issues.</p>
 
     <h2>Deleting your data</h2>
     <ul>
