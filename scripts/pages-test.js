@@ -155,10 +155,29 @@ test('game landing page has one primary heading and complete VideoGame publisher
   assert(game && game.publisher && game.publisher.logo === 'https://gogocompany.in/favicon.svg');
 });
 
+test('Canvas renderer respects device pixel ratio and Pointer Events', () => {
+  const renderer = read('js/render.js');
+  const input = read('js/main.js');
+  assert.match(renderer, /Math\.min\(ratio, 2\)/, 'Canvas DPR must be bounded on high-density devices');
+  assert.match(renderer, /canvas\.width = Math\.round\(w \* dpr\)/, 'Canvas backing width must follow CSS size × DPR');
+  assert.match(renderer, /canvas\.height = Math\.round\(h \* dpr\)/, 'Canvas backing height must follow CSS size × DPR');
+  assert.match(renderer, /ctx\.setTransform\(dpr, 0, 0, dpr, 0, 0\)/, 'Canvas drawing coordinates must use the DPR transform');
+  for (const event of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel']) {
+    assert.ok(input.includes("'" + event + "'"), 'game input must handle ' + event);
+  }
+});
+
 test('Arrow Out guide page has a distinct search snippet and canonical', () => {
   const guide = read('about.html');
   assert.ok(guide.includes('<title>Arrow Out Guide: How to Play &amp; Solve Arrow Puzzles</title>'));
   assert.ok(guide.includes('href="https://gogocompany.in/arrowout/about.html"'));
+  assert.ok(guide.includes('rel="icon"') && guide.includes('https://gogocompany.in/favicon.svg'));
   assert.equal([...guide.matchAll(/<h1\b/gi)].length, 1);
   assert.ok(guide.includes('clear blocked exit corridors'));
+  const schemaMatch = guide.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+  assert.ok(schemaMatch, 'guide should expose crawlable structured data');
+  const schema = JSON.parse(schemaMatch[1]);
+  const faq = schema['@graph'].find(node => node['@type'] === 'FAQPage');
+  assert.ok(faq && faq.mainEntity.length >= 5, 'FAQ schema must match the visible guide FAQs');
+  assert.ok(schema['@graph'].some(node => node['@type'] === 'WebPage'));
 });
