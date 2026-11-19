@@ -23,9 +23,9 @@ android{
   versionCode=3
   versionName="1.2.0"
   resValue("string", "admob_app_id", admobAppId)
- buildConfigField("String","ADMOB_INTERSTITIAL_UNIT_ID","\\\"$admobInterstitialUnitId\\\"")
- buildConfigField("String","ADMOB_REWARDED_UNIT_ID","\\\"$admobRewardedUnitId\\\"")
- buildConfigField("String","REMOVE_ADS_PRODUCT_ID","\\\"$removeAdsProductId\\\"")
+ buildConfigField("String","ADMOB_INTERSTITIAL_UNIT_ID","\"$admobInterstitialUnitId\"")
+ buildConfigField("String","ADMOB_REWARDED_UNIT_ID","\"$admobRewardedUnitId\"")
+ buildConfigField("String","REMOVE_ADS_PRODUCT_ID","\"$removeAdsProductId\"")
   testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
  }
  signingConfigs{
