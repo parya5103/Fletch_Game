@@ -39,6 +39,9 @@ import java.util.TimeZone
  val settings=settingsStore.settings.stateIn(viewModelScope,SharingStarted.WhileSubscribed(5_000),NativeSettings())
  fun setDarkTheme(enabled:Boolean){viewModelScope.launch(io){settingsStore.setDarkTheme(enabled)}}
  fun setHapticsEnabled(enabled:Boolean){viewModelScope.launch(io){settingsStore.setHapticsEnabled(enabled)}}
+ fun setSoundEffectsEnabled(enabled:Boolean){viewModelScope.launch(io){settingsStore.setSoundEffectsEnabled(enabled)}}
+ fun setColorblindPaletteEnabled(enabled:Boolean){viewModelScope.launch(io){settingsStore.setColorblindPaletteEnabled(enabled)}}
+ fun setLargeTextEnabled(enabled:Boolean){viewModelScope.launch(io){settingsStore.setLargeTextEnabled(enabled)}}
  private val saveQueue=Channel<ArrowGameState>(Channel.CONFLATED)
  init{
   viewModelScope.launch(io){
