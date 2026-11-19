@@ -65,7 +65,7 @@ import java.util.TimeZone
    is ArrowUiEvent.SelectLevel->{if(event.level in 1.._uiState.value.unlockedLevel)openLevel(event.level)else _uiState.update{it.copy(message="Unlock level ${event.level} first")}}
    ArrowUiEvent.DailyChallenge->startDaily()
    ArrowUiEvent.ShowSolution->{if(GameFeatureFlags.showSolution)_uiState.update{engine.showSolution(it)}}
-   ArrowUiEvent.ClearSolution->{_uiState.update{engine.clearSolution(it)}}
+   ArrowUiEvent.ClearSolution->{_uiState.update{engine.clearSolution(it)};saveQueue.trySend(_uiState.value)}
    ArrowUiEvent.ExitDaily->{
     val current=_uiState.value
     if(current.isDaily)viewModelScope.launch(io){
