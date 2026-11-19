@@ -60,6 +60,8 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
  onHapticsChange:(Boolean)->Unit={}
 ){
  val board=state.board
+ val boardCellColor=MaterialTheme.colorScheme.surfaceVariant
+ val boardGridColor=MaterialTheme.colorScheme.outlineVariant
  val haptics=LocalHapticFeedback.current
  var showImport by remember{mutableStateOf(false)}
  var showSettings by remember{mutableStateOf(false)}
@@ -84,7 +86,7 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
    }
    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){
     Text(if(state.isDaily)"DAILY CHALLENGE" else "LEVEL ${state.level.toString().padStart(3,'0')}",color=MaterialTheme.colorScheme.onBackground)
-    Text("♥ ${state.hearts}    ARROWS LEFT  ${state.remaining}",color=Color.White)
+    Text("♥ ${state.hearts}    ARROWS LEFT  ${state.remaining}",color=MaterialTheme.colorScheme.onBackground)
    }
    Text("COINS ${state.coins}   ·   BEST ${if(state.isDaily)state.dailyStars else state.bestStars[state.level]?:0} ★   ·   ERASERS ${state.erasersRemaining}   ·   STREAK ${state.dailyStreak}",color=Color(0xFFFFD166),style=MaterialTheme.typography.labelMedium)
    OutlinedButton(onClick={onEvent(ArrowUiEvent.DailyChallenge)},enabled=!isRestoring&&!state.isDaily,modifier=Modifier.fillMaxWidth()){Text("Daily Challenge · ${state.dailyStreak}-day streak")}
@@ -95,7 +97,7 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
     Button(onClick={selectedLevel?.let{onEvent(ArrowUiEvent.SelectLevel(it))}},enabled=!isRestoring&&!state.isDaily&&selectedLevel!=null&&selectedLevel in 1..state.unlockedLevel){Text("Play")}
    }
    if(state.isDaily)TextButton(onClick={onEvent(ArrowUiEvent.ExitDaily)},enabled=!isRestoring,modifier=Modifier.fillMaxWidth()){Text("Back to campaign")}
-   Text(if(isRestoring)"Restoring your progress…" else if(state.eraserMode)"Tap an arrow to erase it" else state.message,color=if(state.eraserMode)Color(0xFFFFD166)else Color(0xFFB8C8E0),style=MaterialTheme.typography.bodyMedium)
+   Text(if(isRestoring)"Restoring your progress…" else if(state.eraserMode)"Tap an arrow to erase it" else state.message,color=if(state.eraserMode)Color(0xFFFFD166)else MaterialTheme.colorScheme.onSurfaceVariant,style=MaterialTheme.typography.bodyMedium)
    Canvas(
     Modifier.fillMaxWidth().aspectRatio(board.width.toFloat()/board.height.toFloat())
      .clip(RoundedCornerShape(18.dp)).background(MaterialTheme.colorScheme.surface)
@@ -113,7 +115,7 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
    ){
     val cw=size.width/board.width;val ch=size.height/board.height;val unit=min(cw,ch)
     for(cell in board.activeCells){
-     drawRect(MaterialTheme.colorScheme.surfaceVariant,topLeft=Offset(cell.x*cw+1f,cell.y*ch+1f),size=androidx.compose.ui.geometry.Size(cw-2f,ch-2f))
+     drawRect(boardCellColor,topLeft=Offset(cell.x*cw+1f,cell.y*ch+1f),size=androidx.compose.ui.geometry.Size(cw-2f,ch-2f))
     }
     for((pieceIndex,piece) in board.pieces.withIndex().filter{it.value.alive}){
      if(piece.cells.isEmpty())continue
@@ -127,8 +129,8 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
      val arrowHead=Path().apply{moveTo(tip.x,tip.y);lineTo(base.x+px*unit*0.31f,base.y+py*unit*0.31f);lineTo(base.x-px*unit*0.31f,base.y-py*unit*0.31f);close()}
      drawPath(arrowHead,Color.White)
     }
-    for(x in 0..board.width)drawLine(MaterialTheme.colorScheme.outlineVariant,Offset(x*cw,0f),Offset(x*cw,size.height),1f)
-    for(y in 0..board.height)drawLine(Color(0x222A3D59),Offset(0f,y*ch),Offset(size.width,y*ch),1f)
+    for(x in 0..board.width)drawLine(boardGridColor,Offset(x*cw,0f),Offset(x*cw,size.height),1f)
+    for(y in 0..board.height)drawLine(boardGridColor.copy(alpha=0.35f),Offset(0f,y*ch),Offset(size.width,y*ch),1f)
    }
    Text("Pinch to zoom · drag to explore larger boards",color=MaterialTheme.colorScheme.onSurfaceVariant,style=MaterialTheme.typography.labelSmall)
    if(state.isSolved)Button(onClick={onEvent(ArrowUiEvent.Continue)},enabled=!isRestoring&&(state.isDaily||state.level<1000),modifier=Modifier.fillMaxWidth()){Text(if(state.isDaily)"Return to campaign" else if(state.level<1000)"Continue to Level ${state.level+1}" else "All 1,000 levels cleared")}
@@ -140,15 +142,15 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
    Button(onClick={onEvent(ArrowUiEvent.Restart)},enabled=!isRestoring,modifier=Modifier.fillMaxWidth()){Text(if(state.isFailed)"Retry level" else "Restart puzzle")}
    TextButton(onClick={showImport=!showImport},enabled=!isRestoring){Text(if(showImport)"Close progress import" else "Import existing PWA progress")}
    if(showImport){
-    Text("On the PWA, open Settings → Export progress for Android, then paste the copied JSON here. Your browser save remains unchanged.",color=Color(0xFF9EB0CE),style=MaterialTheme.typography.bodySmall)
+    Text("On the PWA, open Settings → Export progress for Android, then paste the copied JSON here. Your browser save remains unchanged.",color=MaterialTheme.colorScheme.onSurfaceVariant,style=MaterialTheme.typography.bodySmall)
     OutlinedTextField(value=importText,onValueChange={importText=it},modifier=Modifier.fillMaxWidth(),minLines=3,maxLines=6,label={Text("Arrow Out save JSON")})
     Button(onClick={onImportSave(importText)},enabled=!isRestoring&&importText.isNotBlank(),modifier=Modifier.fillMaxWidth()){Text("Import and restore progress")}
     if(importMessage.isNotBlank())Text(importMessage,color=Color(0xFF9EB0CE),style=MaterialTheme.typography.bodySmall)
    }
-   if(privacyOptionsRequired)TextButton(onClick=onShowPrivacyOptions){Text("Privacy options",color=Color(0xFFB8C8E0))}
+   if(privacyOptionsRequired)TextButton(onClick=onShowPrivacyOptions){Text("Privacy options",color=MaterialTheme.colorScheme.onSurfaceVariant)}
    if(state.isSolved)Text("Great job! +10 coins earned. You cleared every arrow.",color=Color(0xFF61DDA8))
    if(state.isFailed)Text("No hearts left. Retry to try this puzzle again.",color=Color(0xFFFF8A8A))
-   Text("Only another arrow in the head's straight exit lane blocks a move.",color=Color(0xFF8294B3),style=MaterialTheme.typography.bodySmall)
+   Text("Only another arrow in the head's straight exit lane blocks a move.",color=MaterialTheme.colorScheme.onSurfaceVariant,style=MaterialTheme.typography.bodySmall)
   }
  }
 }
