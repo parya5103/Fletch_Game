@@ -1,11 +1,12 @@
 package com.aaryapratik.arrowout.nativeapp.domain.engine
 import com.aaryapratik.arrowout.nativeapp.domain.model.*
+import com.aaryapratik.arrowout.nativeapp.core.config.GameFeatureFlags
 import kotlin.math.abs
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 class ArrowPuzzleEngine{
- companion object{const val FREE_HINTS=3}
+ companion object{const val FREE_HINTS=3;private const val MAX_UNDO=10}
  fun newGame()=ArrowGameState(ArrowBoard(6,6,listOf(
   ArrowPiece(listOf(Cell(0,2),Cell(1,2),Cell(1,1),Cell(2,1)),Direction.RIGHT,0),
   ArrowPiece(listOf(Cell(4,1),Cell(5,1)),Direction.RIGHT,1),
@@ -83,7 +84,7 @@ class ArrowPuzzleEngine{
   if(blocker==-2)return state.copy(message="Puzzle data is invalid")
   if(blocker>=0){val hearts=(state.hearts-1).coerceAtLeast(0);return state.copy(hearts=hearts,mistakes=state.mistakes+1,isFailed=hearts==0,message=if(hearts==0)"No hearts left — retry the level" else "Blocked — one heart lost. Clear the exit lane first")}
   val pieces=state.board.pieces.toMutableList();pieces[index]=pieces[index].copy(alive=false)
-  val history=state.undoStack+index
+  val history=if(GameFeatureFlags.unlimitedUndo)state.undoStack+index else (state.undoStack+index).takeLast(MAX_UNDO)
   val remainingSolution=if(state.solutionOrder.firstOrNull()==index)state.solutionOrder.drop(1)else emptyList()
   return finishMove(state.copy(hintedPieceIndex=-1,solutionOrder=remainingSolution),state.board.copy(pieces=pieces),history,"Arrow cleared — find the next exit")
  }
@@ -92,7 +93,7 @@ class ArrowPuzzleEngine{
   val index=state.board.pieces.indexOfFirst{it.alive&&it.cells.contains(cell)}
   if(index<0)return state.copy(message="Tap an arrow to erase")
   val pieces=state.board.pieces.toMutableList();pieces[index]=pieces[index].copy(alive=false)
-  val history=state.undoStack+index
+  val history=if(GameFeatureFlags.unlimitedUndo)state.undoStack+index else (state.undoStack+index).takeLast(MAX_UNDO)
   return finishMove(state.copy(erasersRemaining=state.erasersRemaining-1,erasersUsed=state.erasersUsed+1,eraserMode=false,hintedPieceIndex=-1,solutionOrder=emptyList()),state.board.copy(pieces=pieces),history,"Eraser used — arrow removed")
  }
  private fun nextDailyStreak(lastDate:String,currentDate:String,currentStreak:Int):Int{
