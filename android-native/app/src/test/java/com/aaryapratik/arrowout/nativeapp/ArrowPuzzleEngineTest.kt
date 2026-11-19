@@ -109,5 +109,9 @@ class ArrowPuzzleEngineTest{
   assertEquals(solution,shown.solutionOrder)
   assertEquals(0,state.hintsUsed)
   assertEquals(0,shown.hintsUsed)
+  val nextIndex=shown.solutionOrder.first()
+  val nextPiece=shown.board.pieces[nextIndex]
+  val progressed=engine.tap(shown,nextPiece.cells.last())
+  assertEquals(shown.solutionOrder.drop(1),progressed.solutionOrder)
  }
 }
