@@ -115,7 +115,7 @@ import kotlin.math.min
  var previousRemaining by remember(state.level){mutableIntStateOf(state.remaining)}
  var previousHearts by remember(state.level){mutableIntStateOf(state.hearts)}
  var previousHints by remember(state.level){mutableIntStateOf(state.hintsUsed)}
- LaunchedEffect(state.remaining,state.hearts,state.hintsUsed,state.isSolved){
+ LaunchedEffect(state.remaining,state.hearts,state.hintsUsed,state.isSolved,settings.soundEffectsEnabled){
   if(settings.soundEffectsEnabled){
    when{
     state.isSolved && previousRemaining>0->soundEffects.playWin()
