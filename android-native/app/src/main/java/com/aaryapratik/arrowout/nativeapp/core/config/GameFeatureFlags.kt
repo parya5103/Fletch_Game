@@ -11,6 +11,7 @@ object GameFeatureFlags {
     const val dailyChallenge = true
     const val legacySaveImport = true
     const val playerSettings = true
+    const val worldMap = true
     const val achievements = false
     const val cosmetics = false
     const val rewardedAds = false
