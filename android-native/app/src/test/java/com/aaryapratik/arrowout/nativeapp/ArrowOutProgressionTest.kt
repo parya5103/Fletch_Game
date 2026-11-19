@@ -30,7 +30,8 @@ class ArrowOutProgressionTest {
             unlockedLevel = 126,
             coins = 120,
             bestStars = (1..25).associateWith { 3 },
-            dailyStreak = 7
+            dailyStreak = 7,
+            dailyBest = 7
         )
         val achievements = ArrowOutProgression.achievements(state)
         assertTrue(achievements.first { it.id == "first_clear" }.unlocked)
@@ -39,7 +40,7 @@ class ArrowOutProgressionTest {
         assertTrue(achievements.first { it.id == "coin_hoarder" }.unlocked)
     }
 
-    private fun board() = ArrowBoard(4, 4, listOf(
+    @Test fun purchaseUsesCoinsAndPersistsUnlockedSelectionInState() {\n        val initial = ArrowGameState(board = board(), coins = 100)\n        val purchased = ArrowOutProgression.purchase(initial, "aurora")\n        assertEquals(25, purchased.coins)\n        assertTrue(purchased.unlockedArrowSkins.contains("aurora"))\n        assertEquals("aurora", purchased.selectedArrowSkin)\n    }\n\n    @Test fun purchaseCannotSpendCoinsTwiceOrEquipLockedSkins() {\n        val initial = ArrowGameState(board = board(), coins = 100)\n        val purchased = ArrowOutProgression.purchase(initial, "aurora")\n        val duplicate = ArrowOutProgression.purchase(purchased, "aurora")\n        assertEquals(25, duplicate.coins)\n        assertEquals("aurora", duplicate.selectedArrowSkin)\n        val locked = ArrowOutProgression.select(initial, "ember")\n        assertEquals("classic", locked.selectedArrowSkin)\n    }\n\n    private fun board() = ArrowBoard(4, 4, listOf(
         ArrowPiece(listOf(Cell(0, 0), Cell(1, 0)), Direction.RIGHT, 0)
     ))
 }
