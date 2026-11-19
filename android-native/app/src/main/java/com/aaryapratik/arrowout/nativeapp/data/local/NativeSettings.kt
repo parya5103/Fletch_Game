@@ -6,5 +6,6 @@ data class NativeSettings(
     val hapticsEnabled: Boolean = true,
     val soundEffectsEnabled: Boolean = false,
     val colorblindPaletteEnabled: Boolean = false,
-    val largeTextEnabled: Boolean = false
+    val largeTextEnabled: Boolean = false,
+    val reducedMotionEnabled: Boolean = false
 )
