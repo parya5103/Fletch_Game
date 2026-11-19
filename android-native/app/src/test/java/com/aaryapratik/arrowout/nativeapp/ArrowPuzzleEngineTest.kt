@@ -107,4 +107,4 @@ class ArrowPuzzleEngineTest{
   assertEquals(0,state.hintsUsed)
   assertEquals(0,shown.hintsUsed)
  }
-
+}
