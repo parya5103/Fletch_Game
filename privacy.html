@@ -46,12 +46,12 @@
 <body>
   <main class="wrap">
     <h1>Arrow Out! &mdash; Privacy Policy</h1>
-    <p class="sub">Last updated: 19 November 2026 &middot; Game progress stays on your device. Reminders are local; system notifications and daily push are optional.</p>
+    <p class="sub">Last updated: 19 November 2026 &middot; Game progress stays on your device. Reminders are local; GoGo Central push notifications are separate and optional.</p>
 
     <h2>What the game stores</h2>
     <p>Arrow Out! has no accounts or sign-in. There is no server database for game progress. All your progress &mdash; current level, stars, coins, owned arrow styles and board themes, streaks, achievements and settings &mdash; is saved in your browser's <b>localStorage</b>, on your own device. The game does not upload this save. Reminder preferences and whether permission has already been requested are included in it. Separate local reminder metadata records interaction time and deduplication/test timestamps; it is not uploaded. Using Share sends the level, score or link you choose to share through your browser or clipboard.</p>
     <ul>
-      <li>Normal gameplay needs no external API. Loading or updating the public site contacts GitHub Pages (preview builds may use a different host); local reminders make no network requests. Enabling Daily push reminders contacts the developer's Supabase roster and your browser's push service.</li>
+      <li>Normal gameplay and local reminders need no external API. Loading or updating the public site contacts its host. Enabling GoGo Central notifications contacts Firebase services and the GoGo Central backend as described below.</li>
       <li>The game itself sets no cookies and runs no analytics or trackers. Progress lives in localStorage, and the service worker keeps cached copies of the game files for offline play &mdash; both stay on your device (see Advertising below).</li>
       <li>Installing the game (PWA) copies it to your device for offline play; it does not add any new data collection.</li>
       <li>The <a href="contact.html">Contact page</a> sends nothing to this site: with JavaScript enabled it prepares an email draft locally. Opening its link opens your email app with the subject and message pre-filled; nothing is sent until you press send in your email app. Without JavaScript, submitting the form opens your email app directly. The message goes to the developer's mailbox at officialgogocompany@gmail.com. Email is not encrypted end-to-end, so do not include high-risk credentials in it.</li>
@@ -75,12 +75,12 @@
 
     <h2>Deleting your data</h2>
     <ul>
-      <li>In the game: Settings &rarr; <b>Reset all progress</b> resets game progress and preferences. It also resets local reminder timing and disables reminders, and attempts to close local notifications. It does not clear the offline cache, revoke browser permission or erase provider-side records; toggling Daily push off removes this device from the delivery roster immediately.</li>
-      <li>In your browser: clearing site data removes local game data. Use browser notification settings to revoke permission. Clearing local data cannot itself erase provider-side records; toggle Daily push off first to leave the delivery roster.</li>
+      <li>In the game: Settings &rarr; <b>Reset all progress</b> resets game progress and preferences. It also resets local reminder timing and disables reminders, and attempts to close local notifications. It does not clear the offline cache, revoke browser permission or erase provider-side records. Turn GoGo Central notifications off from the notifications card; if the device is offline, remote removal may not be confirmed.</li>
+      <li>In your browser: clearing site data removes local game data. Use browser notification settings to revoke permission. Clearing local data cannot itself erase a GoGo Central device registration or provider-side records. Turn notifications off while online before clearing site data, and verify that the interface confirms success.</li>
     </ul>
 
     <h2>Advertising</h2>
-    <p>Advertising is currently disabled: this version does not load the Google AdSense SDK or display advertising. The extra-hint screen is a labelled five-second demo, not a rewarded advertisement. No advertising cookies or ad measurement SDK are intentionally loaded by the game. Any future advertising release will require a separate consent and policy review, an implemented certified consent flow where required, and an updated privacy notice before ads are enabled.</p>
+    <p>Advertising is currently disabled: this version does not load the Google AdSense SDK or display advertising. The extra-hint screen is a labelled five-second demo, not a rewarded advertisement. No advertising SDK is loaded, and no advertising cookies or ad measurement SDK are intentionally used by the game. Any future advertising release will require a separate consent and policy review, an implemented certified consent flow where required, and an updated privacy notice before ads are enabled.</p>
 
     <h2>Security</h2>
     <p>Your game progress stays on your device, which limits exposure, and the public GitHub Pages site uses HTTPS. Still, no online service can guarantee absolute security: information that travels over the internet (requests to the hosting service or notification providers) can in principle be intercepted or accessed by the parties operating those services. Please keep passwords, payment details and other high-risk credentials out of contact emails.</p>
@@ -89,7 +89,7 @@
     <p>This page describes the implemented behaviour; it is not a legal compliance certification. There is no automated access-request service. For a general privacy question, use the <a href="contact.html">Contact page</a> without including unnecessary personal data. Do not put push endpoints, encryption keys or other identifiers in contact emails. Sensitive requests are handled by email on a best-effort basis; this page cannot guarantee provider-side deletion.</p>
 
     <h2>Children</h2>
-    <p>Arrow Out! has no accounts, and the game itself never asks for a name or email address; the <a href="contact.html">Contact page</a> asks only for a subject and message. Do not put personal details in them. Local reminders store only preferences and timing on your device; daily push identifiers are described above. The menu advertisement is a general-audience display ad; age-appropriate ad treatment is governed by Google&rsquo;s advertising policies (see Advertising).</p>
+    <p>Arrow Out! has no accounts, and the game itself never asks for a name or email address; the <a href="contact.html">Contact page</a> asks only for a subject and message. Do not put personal details in them. Local reminders store only preferences and timing on your device. Optional GoGo Central notifications use the device token and technical metadata described above. No advertising is currently shown; any future ad integration requires a separate age and consent review.</p>
 
     <h2>Changes</h2>
     <p>If this policy ever changes (for example, if a new provider or backup service is added), the updated policy will be published on this page with a new last-updated date.</p>
