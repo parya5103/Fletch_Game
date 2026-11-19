@@ -20,7 +20,7 @@ A mobile-first **tap-away arrow puzzle** game — an **installable PWA**, zero d
 - A piece can launch **only if its head's exit corridor is clear** — no other piece may sit between the head cell and the board edge along that direction. A blocked tap is a mistake (1 of 3 hearts lost).
 - Clear every arrow to win the level. Clear all **1000 levels** to complete the campaign 🏆
 - **Undo** reverses your last launch, **Restart** resets the level.
-- **Hints:** 3 free per level (a badge on the Hint button counts them down). After that, watch a short demo ad to reveal another hint.
+- **Hints:** 3 free per level (a badge on the Hint button counts them down). After that, a clearly labelled 5-second demo (not an advertisement) reveals another hint.
 
 ## Difficulty ramp
 
