@@ -28,3 +28,8 @@ CI performs the level-generation/solver-validation step, unit tests and debug AP
 
 ## Remaining release gates
 Final audio/haptics polish, full native cosmetics/daily challenges/achievements/leaderboards, physical-device profiling and crash testing, verified production AdMob IDs and consent behavior, Play package identity confirmation, signed AAB and Play Console review. CI success and a generated level catalog are not by themselves proof of a Play-ready release.
+
+
+## Free APK CI (feature branch)
+
+The `Arrow Out Free Android APK` workflow builds the current Kotlin/Compose Android app on GitHub-hosted Ubuntu runners. It runs the native level generator and unit tests, then uploads an unsigned debug APK as the `arrow-out-debug-apk` artifact for 14 days. This artifact is for device testing only; it is not a signed Play Store release. The separate Cocos2d-x v4 renderer/gameplay port is not yet implemented.
