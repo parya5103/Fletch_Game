@@ -1,6 +1,7 @@
 package com.aaryapratik.arrowout.nativeapp
 
 import com.aaryapratik.arrowout.nativeapp.presentation.ArrowOutWorldCatalog
+import com.aaryapratik.arrowout.nativeapp.presentation.pendingGuardianWorld
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
@@ -30,7 +31,8 @@ class ArrowOutWorldCatalogTest {
         assertEquals(2, pendingGuardianWorld(126, listOf(1))?.id)
         assertEquals(null, pendingGuardianWorld(1, listOf(1)))
         assertEquals(null, pendingGuardianWorld(1000, (1..8).toList()))
-        assertEquals(null, pendingGuardianWorld(125, emptyList())?.takeIf { it.id != 1 })
+        assertEquals(1, pendingGuardianWorld(125, emptyList())?.id)
+        assertEquals(2, pendingGuardianWorld(126, listOf(1))?.id)
     }
 
     @Test fun everyWorldHasStableStoryIdForSaveMigration(){
