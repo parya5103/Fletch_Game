@@ -38,14 +38,32 @@ class ArrowPuzzleEngine{
   return -1
  }
  fun solution(state:ArrowGameState):List<Int>{
-  if(!valid(state.board)||state.isSolved||state.isFailed)return emptyList()
-  val pieces=state.board.pieces.toMutableList()
-  val order=mutableListOf<Int>()
-  while(pieces.any{it.alive}){
-   val current=state.board.copy(pieces=pieces.toList())
-   val next=pieces.indices.sortedByDescending{pieces[it].step}.firstOrNull{pieces[it].alive&&blocker(current,it)==-1}?:return emptyList()
+  val board=state.board
+  if(!valid(board)||state.isSolved||state.isFailed)return emptyList()
+  val alive=BooleanArray(board.pieces.size){board.pieces[it].alive}
+  val occupied=HashMap<Cell,Int>()
+  board.pieces.forEachIndexed{index,piece->piece.cells.forEach{occupied[it]=index}}
+  val candidates=board.pieces.indices.sortedByDescending{board.pieces[it].step}
+  val order=ArrayList<Int>(alive.count{it})
+  while(alive.any{it}){
+   var next=-1
+   for(index in candidates){
+    if(!alive[index])continue
+    val piece=board.pieces[index]
+    var x=piece.cells.last().x+piece.direction.dx
+    var y=piece.cells.last().y+piece.direction.dy
+    var blocked=false
+    while(x in 0 until board.width&&y in 0 until board.height){
+     val other=occupied[Cell(x,y)]
+     if(other!=null&&other!=index&&alive[other]){blocked=true;break}
+     x+=piece.direction.dx
+     y+=piece.direction.dy
+    }
+    if(!blocked){next=index;break}
+   }
+   if(next<0)return emptyList()
    order+=next
-   pieces[next]=pieces[next].copy(alive=false)
+   alive[next]=false
   }
   return order
  }
