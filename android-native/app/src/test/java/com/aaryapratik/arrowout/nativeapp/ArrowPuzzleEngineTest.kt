@@ -73,6 +73,19 @@ class ArrowPuzzleEngineTest{
   }finally{TimeZone.setDefault(original)}
  }
  @Test fun malformedOverlappingPathsAreRejected(){val board=ArrowBoard(4,4,listOf(ArrowPiece(listOf(Cell(0,1),Cell(1,1)),Direction.RIGHT,0),ArrowPiece(listOf(Cell(0,1),Cell(0,2)),Direction.DOWN,1)));assertFalse(engine.valid(board))}
+ @Test fun undoHistoryMatchesWebLimitOfOneHundredMoves(){
+  val pieces=(0 until 72).map{x->ArrowPiece(listOf(Cell(x,1),Cell(x,0)),Direction.UP,x%8)}+
+   (0 until 72).map{x->ArrowPiece(listOf(Cell(x,70),Cell(x,71)),Direction.DOWN,x%8)}
+  val board=ArrowBoard(72,72,pieces)
+  assertTrue(engine.valid(board))
+  var state=ArrowGameState(board)
+  repeat(101){index->state=engine.tap(state,pieces[index].cells.last())}
+  assertEquals(43,state.remaining)
+  assertEquals(100,state.undoStack.size)
+  repeat(100){state=engine.undo(state)}
+  assertEquals(143,state.remaining)
+  assertTrue(state.undoStack.isEmpty())
+ }
  @Test fun freeHintsAreLimitedToThreePerLevel(){
   var state=engine.newGame()
   repeat(3){state=engine.hint(state)}
