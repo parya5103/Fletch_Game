@@ -1,0 +1,32 @@
+name: Native Arrow Out Core
+
+on:
+  push:
+    branches:
+      - feat/native-cocos2dx-v4-vertical-slice
+  pull_request:
+    branches: [main]
+    paths:
+      - "native/**"
+      - ".github/workflows/native-arrowout-core.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-arrowout-core-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-rules:
+    name: C++17 native rules (Ubuntu)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S native -B build/native -DCMAKE_BUILD_TYPE=Debug
+      - name: Build
+        run: cmake --build build/native --parallel 2
+      - name: Test
+        run: ctest --test-dir build/native --output-on-failure
