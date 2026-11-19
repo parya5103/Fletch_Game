@@ -102,7 +102,7 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
    if(state.solutionOrder.isNotEmpty()) Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.secondaryContainer)){
     Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
      Text("Solution guide",style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.onSecondaryContainer)
-     Text("Step 1: tap the highlighted arrow. ${state.solutionOrder.size} moves remain in this solution.",color=MaterialTheme.colorScheme.onSecondaryContainer)
+     Text("Tap the highlighted arrow next. ${state.solutionOrder.size} moves remain in this solution.",color=MaterialTheme.colorScheme.onSecondaryContainer)
      TextButton(onClick={onEvent(ArrowUiEvent.ClearSolution)}){Text("Hide solution")}
     }
    }
