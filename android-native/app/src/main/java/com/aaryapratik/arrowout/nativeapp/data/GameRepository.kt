@@ -68,7 +68,7 @@ import kotlinx.coroutines.flow.Flow
   val state=ArrowGameState(
    board=board,level=level,unlockedLevel=imported.unlocked,hearts=imported.hearts,
    mistakes=imported.mistakes,hintsUsed=imported.hintsUsed,erasersUsed=imported.erasersUsed,erasersRemaining=(1-imported.erasersUsed).coerceAtLeast(0),undoStack=imported.undoStack,coins=imported.coins,dailyCompletedDate=imported.dailyCompletedDate,lastDailyDate=imported.lastDailyDate,dailyStreak=imported.dailyStreak,dailyBest=imported.dailyBest,
-   bestStars=imported.bestStars,bestPlays=imported.bestPlays,legacySaveJson=imported.rawSaveJson,
+   bestStars=imported.bestStars,bestPlays=imported.bestPlays,legacySaveJson=imported.rawSaveJson,storySeenWorlds=imported.storySeenWorlds,
    message="PWA progress imported — continue your level"
   )
   require(engine.valid(state.board)){"Imported Arrow Out puzzle is invalid"}
