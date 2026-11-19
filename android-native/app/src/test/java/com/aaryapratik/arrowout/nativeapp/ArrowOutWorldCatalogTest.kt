@@ -18,6 +18,17 @@ class ArrowOutWorldCatalogTest {
         assertEquals(1000, worlds.last().lastLevel)
     }
 
+    @Test fun everyWorldHasThreeGuardianStoryActs(){
+        ArrowOutWorldCatalog.worlds.forEach { world ->
+            assertEquals(3, world.storyActs.size)
+            assertEquals(true, world.storyActs.all { it.isNotBlank() })
+        }
+    }
+
+    @Test fun everyWorldHasStableStoryIdForSaveMigration(){
+        assertEquals((1..8).toList(), ArrowOutWorldCatalog.worlds.map { it.id })
+    }
+
     @Test fun everyCampaignBoundaryMapsToItsExpectedWorld() {
         ArrowOutWorldCatalog.worlds.forEach { world ->
             assertEquals(world.id, ArrowOutWorldCatalog.forLevel(world.firstLevel).id)
