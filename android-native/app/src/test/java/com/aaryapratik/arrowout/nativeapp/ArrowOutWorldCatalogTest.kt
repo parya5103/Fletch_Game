@@ -25,6 +25,14 @@ class ArrowOutWorldCatalogTest {
         }
     }
 
+    @Test fun mapShowsOnlyFirstUnlockedWorldWithoutStoryMarker(){
+        assertEquals(1, pendingGuardianWorld(1, emptyList())?.id)
+        assertEquals(2, pendingGuardianWorld(126, listOf(1))?.id)
+        assertEquals(null, pendingGuardianWorld(1, listOf(1)))
+        assertEquals(null, pendingGuardianWorld(1000, (1..8).toList()))
+        assertEquals(null, pendingGuardianWorld(125, emptyList())?.takeIf { it.id != 1 })
+    }
+
     @Test fun everyWorldHasStableStoryIdForSaveMigration(){
         assertEquals((1..8).toList(), ArrowOutWorldCatalog.worlds.map { it.id })
     }
