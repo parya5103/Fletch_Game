@@ -4,7 +4,7 @@ on:
     paths: ['android-native/**','js/game.js','scripts/generate-native-levels.cjs','.github/workflows/android-native-kotlin.yml']
   push:
     branches: [main]
-    paths: ['android-native/**','.github/workflows/android-native-kotlin.yml']
+    paths: ['android-native/**','js/game.js','scripts/generate-native-levels.cjs','.github/workflows/android-native-kotlin.yml']
   workflow_dispatch:
 permissions:
   contents: read
