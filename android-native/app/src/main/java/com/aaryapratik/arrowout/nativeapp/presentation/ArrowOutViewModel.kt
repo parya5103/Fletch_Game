@@ -66,6 +66,7 @@ import java.util.TimeZone
    ArrowUiEvent.DailyChallenge->startDaily()
    ArrowUiEvent.ShowSolution->{if(GameFeatureFlags.showSolution)_uiState.update{engine.showSolution(it)}}
    ArrowUiEvent.ClearSolution->{_uiState.update{engine.clearSolution(it)};saveQueue.trySend(_uiState.value)}
+   is ArrowUiEvent.MarkStorySeen->{if(GameFeatureFlags.guardianStories){_uiState.update{it.copy(storySeenWorlds=(it.storySeenWorlds+event.worldId).distinct())};saveQueue.trySend(_uiState.value)}}
    ArrowUiEvent.ExitDaily->{
     val current=_uiState.value
     if(current.isDaily)viewModelScope.launch(io){
