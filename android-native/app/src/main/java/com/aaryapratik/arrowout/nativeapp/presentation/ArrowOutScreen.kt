@@ -167,7 +167,8 @@ import kotlin.math.min
    if(GameFeatureFlags.achievements || GameFeatureFlags.cosmetics) ArrowOutProgressionPanel(
     state=state,
     onPurchaseSkin={onEvent(ArrowUiEvent.PurchaseArrowSkin(it))},
-    onSelectSkin={onEvent(ArrowUiEvent.SelectArrowSkin(it))}
+    onSelectSkin={onEvent(ArrowUiEvent.SelectArrowSkin(it))},
+    onClaimDailyReward={onEvent(ArrowUiEvent.ClaimDailyReward)}
    )
    OutlinedButton(onClick={onEvent(ArrowUiEvent.DailyChallenge)},enabled=!isRestoring&&!state.isDaily,modifier=Modifier.fillMaxWidth()){Text("Daily Challenge · ${state.dailyStreak}-day streak")}
    Text("Unlocked campaign levels: ${state.unlockedLevel} / 1000",color=MaterialTheme.colorScheme.onSurfaceVariant,style=MaterialTheme.typography.labelSmall)
