@@ -31,7 +31,7 @@ jobs:
           TWA_KEYSTORE_B64: ${{ secrets.TWA_KEYSTORE_B64 }}
         run: |
           if [ -z "$TWA_KEYSTORE_B64" ]; then
-            echo "::error::Secret TWA_KEYSTORE_B64 is missing. Run the 'TWA signing key' workflow first and add the secrets it produces."
+            echo "::error::Secret TWA_KEYSTORE_B64 is missing. Generate and configure the signing keystore locally; see docs/ANDROID_SIGNING.md."
             exit 1
           fi
           printf '%s' "$TWA_KEYSTORE_B64" | base64 -d > android/android.keystore
