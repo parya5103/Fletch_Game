@@ -15,6 +15,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.aaryapratik.arrowout.nativeapp.domain.model.ArrowGameState
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
+import java.util.Date
 
 data class ArrowAchievement(
     val id: String,
@@ -48,6 +52,19 @@ internal object ArrowOutProgression {
         )
     }
 
+    private val loginRewards = listOf(10, 15, 20, 25, 30, 40, 50)
+
+    fun claimDailyReward(state: ArrowGameState, dateKey: String): ArrowGameState {
+        return try {
+            val today = LocalDate.parse(dateKey, DateTimeFormatter.BASIC_ISO_DATE)
+            val previous = state.lastLoginRewardDate.takeIf { it.isNotBlank() }
+                ?.let { LocalDate.parse(it, DateTimeFormatter.BASIC_ISO_DATE) }
+            if (previous != null && !today.isAfter(previous)) return state
+            val streak = if (previous?.plusDays(1) == today) (state.loginRewardStreak % loginRewards.size) + 1 else 1
+            val reward = loginRewards[streak - 1]
+            state.copy(coins = state.coins + reward, lastLoginRewardDate = dateKey, loginRewardStreak = streak, message = "Day $streak login reward claimed: +$reward coins")
+        } catch (_: DateTimeParseException) { state }
+    }
     fun purchase(state: ArrowGameState, skinId: String): ArrowGameState {
         val skin = ArrowSkinCatalog.all.firstOrNull { it.id == skinId } ?: return state
         if (skinId in state.unlockedArrowSkins) return state.copy(selectedArrowSkin = skinId)
@@ -71,6 +88,7 @@ internal fun ArrowOutProgressionPanel(
     state: ArrowGameState,
     onPurchaseSkin: (String) -> Unit,
     onSelectSkin: (String) -> Unit,
+    onClaimDailyReward: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -79,6 +97,14 @@ internal fun ArrowOutProgressionPanel(
                 Text("PLAYER PROGRESS", style = MaterialTheme.typography.titleMedium)
                 Text("${state.bestStars.count { it.value > 0 }} levels cleared · ${state.bestStars.values.sum()} stars · ${state.coins} coins")
                 Text("Daily streak: ${state.dailyStreak} days · best: ${state.dailyBest} days")
+                val todayKey = utcDailyDateKey(Date())
+                val alreadyClaimed = state.lastLoginRewardDate == todayKey
+                val nextRewardDay = if (alreadyClaimed) state.loginRewardStreak.coerceIn(1, 7) else (state.loginRewardStreak % 7) + 1
+                val rewardSchedule = listOf(10, 15, 20, 25, 30, 40, 50)
+                Text("7-day login calendar · Day $nextRewardDay reward: ${rewardSchedule[nextRewardDay - 1]} coins")
+                Button(onClick = onClaimDailyReward, enabled = !alreadyClaimed, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (alreadyClaimed) "Reward claimed today" else "Claim daily login reward")
+                }
                 ArrowOutProgression.achievements(state).forEach { achievement ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column(Modifier.weight(1f)) {
