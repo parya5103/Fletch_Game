@@ -26,6 +26,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.aaryapratik.arrowout.nativeapp.data.local.NativeSettings
@@ -96,6 +97,11 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
  val haptics=LocalHapticFeedback.current
  var showImport by remember{mutableStateOf(false)}
  var showSettings by remember{mutableStateOf(false)}
+ var showIdleSolution by remember(state.level){mutableStateOf(false)}
+ LaunchedEffect(state.level,state.remaining,state.undoStack.size,state.undosUsed,state.mistakes,state.hintsUsed,state.erasersUsed,isRestoring){
+  showIdleSolution=false
+  if(!isRestoring&&!state.isSolved&&!state.isFailed&&state.remaining>0){delay(14_000);showIdleSolution=true}
+ }
  var importText by remember{mutableStateOf("")}
  var zoom by remember(state.level,board.width,board.height){mutableFloatStateOf(1f)}
  var pan by remember(state.level,board.width,board.height){mutableStateOf(Offset.Zero)}
@@ -127,6 +133,16 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
    Text("Unlocked campaign levels: ${state.unlockedLevel} / 1000",color=MaterialTheme.colorScheme.onSurfaceVariant,style=MaterialTheme.typography.labelSmall)
    if(state.isDaily)TextButton(onClick={onEvent(ArrowUiEvent.ExitDaily)},enabled=!isRestoring,modifier=Modifier.fillMaxWidth()){Text("Back to campaign")}
    Text(if(isRestoring)"Restoring your progress…" else if(state.eraserMode)"Tap an arrow to erase it" else state.message,color=if(state.eraserMode)Color(0xFFFFD166)else MaterialTheme.colorScheme.onSurfaceVariant,style=MaterialTheme.typography.bodyMedium)
+   if(showIdleSolution&&state.solutionOrder.isEmpty()&&!state.isSolved&&!state.isFailed)Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.tertiaryContainer)){
+    Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
+     Text("Need a hand?",style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.onTertiaryContainer)
+     Text("You have been on this puzzle for a while. Reveal a safe exit sequence without using a free hint.",color=MaterialTheme.colorScheme.onTertiaryContainer)
+     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+      TextButton(onClick={showIdleSolution=false}){Text("Not now")}
+      Button(onClick={showIdleSolution=false;onEvent(ArrowUiEvent.ShowSolution)}){Text("Show solution")}
+     }
+    }
+   }
    if(state.solutionOrder.isNotEmpty()) Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.secondaryContainer)){
     Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
      Text("Solution guide",style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.onSecondaryContainer)
@@ -170,7 +186,7 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
    }
    Text("Pinch to zoom · drag to explore larger boards",color=MaterialTheme.colorScheme.onSurfaceVariant,style=MaterialTheme.typography.labelSmall)
    if(state.isSolved)Button(onClick={onEvent(ArrowUiEvent.Continue)},enabled=!isRestoring&&(state.isDaily||state.level<1000),modifier=Modifier.fillMaxWidth()){Text(if(state.isDaily)"Return to campaign" else if(state.level<1000)"Continue to Level ${state.level+1}" else "All 1,000 levels cleared")}
-   if(GameFeatureFlags.showSolution)OutlinedButton(onClick={onEvent(ArrowUiEvent.ShowSolution)},enabled=!isRestoring&&!state.isSolved&&!state.isFailed,modifier=Modifier.fillMaxWidth()){Text("Show solution")}
+   if(GameFeatureFlags.showSolution)OutlinedButton(onClick={showIdleSolution=false;onEvent(ArrowUiEvent.ShowSolution)},enabled=!isRestoring&&!state.isSolved&&!state.isFailed,modifier=Modifier.fillMaxWidth()){Text("Show solution")}
    Button(onClick={onEvent(ArrowUiEvent.Hint)},enabled=!isRestoring&&!state.isSolved&&!state.isFailed&&state.hintsUsed<ArrowPuzzleEngine.FREE_HINTS,modifier=Modifier.fillMaxWidth()){Text("Hint · ${ArrowPuzzleEngine.FREE_HINTS-state.hintsUsed} free left")}
    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){
     OutlinedButton(onClick={onEvent(ArrowUiEvent.Undo)},enabled=!isRestoring&&!state.isFailed&&state.undoStack.isNotEmpty(),modifier=Modifier.weight(1f)){Text("Undo")}
