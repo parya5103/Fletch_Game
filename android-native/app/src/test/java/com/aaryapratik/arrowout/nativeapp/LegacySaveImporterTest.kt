@@ -20,6 +20,10 @@ class LegacySaveImporterTest{
   val imported=LegacySaveImporter.import(json)
   assertEquals(listOf(1,0),imported.undoStack)
  }
+ @Test fun importsOneTimeGuardianStoryMarkersFromBrowserSave(){
+  val imported=LegacySaveImporter.import("""{"v":2,"unlocked":251,"storySeen":{"w1":true,"w2":true,"w3":false,"w9":true}}""")
+  assertEquals(listOf(1,2),imported.storySeenWorlds)
+ }
  @Test fun rejectsUnsupportedVersionsAndOversizedPayloads(){
   assertThrows(IllegalArgumentException::class.java){LegacySaveImporter.import("""{"v":3}""")}
   assertThrows(IllegalArgumentException::class.java){LegacySaveImporter.import(" ".repeat(LegacySaveImporter.MAX_SAVE_BYTES+1))}

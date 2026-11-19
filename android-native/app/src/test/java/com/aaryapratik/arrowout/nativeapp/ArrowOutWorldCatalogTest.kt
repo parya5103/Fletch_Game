@@ -1,6 +1,7 @@
 package com.aaryapratik.arrowout.nativeapp
 
 import com.aaryapratik.arrowout.nativeapp.presentation.ArrowOutWorldCatalog
+import com.aaryapratik.arrowout.nativeapp.presentation.pendingGuardianWorld
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
@@ -16,6 +17,26 @@ class ArrowOutWorldCatalogTest {
         }
         assertEquals(1, worlds.first().firstLevel)
         assertEquals(1000, worlds.last().lastLevel)
+    }
+
+    @Test fun everyWorldHasThreeGuardianStoryActs(){
+        ArrowOutWorldCatalog.worlds.forEach { world ->
+            assertEquals(3, world.storyActs.size)
+            assertEquals(true, world.storyActs.all { it.isNotBlank() })
+        }
+    }
+
+    @Test fun mapShowsOnlyFirstUnlockedWorldWithoutStoryMarker(){
+        assertEquals(1, pendingGuardianWorld(1, emptyList())?.id)
+        assertEquals(2, pendingGuardianWorld(126, listOf(1))?.id)
+        assertEquals(null, pendingGuardianWorld(1, listOf(1)))
+        assertEquals(null, pendingGuardianWorld(1000, (1..8).toList()))
+        assertEquals(1, pendingGuardianWorld(125, emptyList())?.id)
+        assertEquals(2, pendingGuardianWorld(126, listOf(1))?.id)
+    }
+
+    @Test fun everyWorldHasStableStoryIdForSaveMigration(){
+        assertEquals((1..8).toList(), ArrowOutWorldCatalog.worlds.map { it.id })
     }
 
     @Test fun everyCampaignBoundaryMapsToItsExpectedWorld() {

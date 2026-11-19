@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -24,10 +25,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.saveable.rememberSaveable
 import com.aaryapratik.arrowout.nativeapp.domain.model.ArrowGameState
 
 internal data class ArrowOutWorld(
@@ -38,21 +44,22 @@ internal data class ArrowOutWorld(
     val biome: String,
     val firstLevel: Int,
     val lastLevel: Int,
-    val story: String
+    val story: String,
+    val storyActs: List<String>
 ) {
     val rangeLabel: String get() = "Levels $firstLevel–$lastLevel"
 }
 
 internal object ArrowOutWorldCatalog {
     val worlds = listOf(
-        ArrowOutWorld(1, "Whisperwind Meadow", "Sunlit glades and whispering waystones", "Lyra · the Songkeeper", "Meadow", 1, 125, "Restore the meadow's lost song by freeing each winding arrow."),
-        ArrowOutWorld(2, "Tidecaller Coast", "The living tide and its quiet coves", "Orin · of the Living Tide", "Coast", 126, 250, "Unblock the old channels and let the coast breathe again."),
-        ArrowOutWorld(3, "Stormveil Woods", "A forest caught inside a looping storm", "Kaelen · the Verdant Warden", "Forest", 251, 375, "Unwind the crooked paths and release the storm from the trees."),
-        ArrowOutWorld(4, "Moonlit Ruins", "Ancient stones beneath a waiting moon", "Selene · the Moonwarden", "Ruins", 376, 500, "Carefully unbind the moonlit ruins, one clear path at a time."),
-        ArrowOutWorld(5, "Zephyr Skies", "Cloudward fleets and open skies", "Captain Zephyr", "Sky", 501, 625, "Free the fleet's tangled ropes and send the ships back into the wind."),
-        ArrowOutWorld(6, "Emberforge Peaks", "A sleeping forge beneath the mountains", "Valkor · the Forgemaster", "Volcanic", 626, 750, "Clear the forge vents and bring warmth back to the peaks."),
-        ArrowOutWorld(7, "Eclipse Sanctum", "A sanctuary held between light and shadow", "Archmage Thalor", "Eclipse", 751, 875, "Unbind the arches and let dawn return to the sanctum."),
-        ArrowOutWorld(8, "Starfall Court", "A constellation waiting to fall into place", "Queen Astraea", "Cosmic", 876, 1000, "Untangle the stars and complete the fletcher's thousand-level journey.")
+        ArrowOutWorld(1, "Whisperwind Meadow", "Sunlit glades and whispering waystones", "Lyra · the Songkeeper", "Meadow", 1, 125, "Restore the meadow's lost song by freeing each winding arrow.", listOf("A wrong wind scattered every arrow of the meadow, and the songs that kept the paths open fell silent. Lyra, the Songkeeper, hid the last true note inside a fletching made of leaf and light.","She asks you to walk the winding green and free each arrow in the old order — the one the wind undid. Every path you clear returns one note to the meadow’s quiet song.","When the last arrow flies, Lyra lifts her head and sings the meadow awake. ‘The song remembers you, fletcher,’ she says. ‘Carry it east.’")),
+        ArrowOutWorld(2, "Tidecaller Coast", "The living tide and its quiet coves", "Orin · of the Living Tide", "Coast", 126, 250, "Unblock the old channels and let the coast breathe again.", listOf("The tide at Orin’s coast stops mid-wave, frozen by a storm that lost its way inland. Orin, keeper of the living tide, cannot sing the water forward while arrows clog the old channels.","He lends you his patience: move only what the water would allow, one clean path at a time. The tide marks each arrow you free with a ring of light.","The wave Orin held finally falls, and the coast breathes again. ‘The tide now knows your hands,’ Orin says. ‘Kaelen waits where the sea meets trees.’")),
+        ArrowOutWorld(3, "Stormveil Woods", "A forest caught inside a looping storm", "Kaelen · the Verdant Warden", "Forest", 251, 375, "Unwind the crooked paths and release the storm from the trees.", listOf("Lightning struck the heart of Stormveil and never left — it loops the same crooked trail through the branches. Kaelen guards a wood where every tree grew around an arrow overnight.","Kaelen gives you a simple rule: the forest frees only what stands in nothing’s way. Find the order the lightning wrote, and unwind it.","The looping storm follows its arrows out of the wood and fades over the sea. ‘Roots remember,’ Kaelen says. ‘Go up — Selene keeps the night.’")),
+        ArrowOutWorld(4, "Moonlit Ruins", "Ancient stones beneath a waiting moon", "Selene · the Moonwarden", "Ruins", 376, 500, "Carefully unbind the moonlit ruins, one clear path at a time.", listOf("The moon over Selene’s ruins did not set, and the stones that drank its light grew restless. Selene sealed the ruins with moonlight so nothing wakes before its time.","Only careful hands may open her seal: arrows in the right order, no wrong pull, no rushed heart. Each cleared path dims one restless stone.","The ruins settle into honest shadow, and the moon finally moves. ‘You unbind gently,’ Selene says. ‘The sky fleet could use a fletcher.’")),
+        ArrowOutWorld(5, "Zephyr Skies", "Cloudward fleets and open skies", "Captain Zephyr", "Sky", 501, 625, "Free the fleet's tangled ropes and send the ships back into the wind.", listOf("Captain Zephyr’s cloud fleet ran aground on a wind that refuses to blow. Arrows dropped from an old battle now pin each vessel’s rope to the sky itself.","The captain does not ask for bravery — only order. Cut the fleet loose arrow by arrow, the way a sailor reads a knot: from the outside in.","With a snap of canvas the fleet rides the first honest wind in years. ‘Fine hands, fletcher!’ Zephyr laughs. ‘Valkor’s mountains sit heavy on the horizon.’")),
+        ArrowOutWorld(6, "Emberforge Peaks", "A sleeping forge beneath the mountains", "Valkor · the Forgemaster", "Volcanic", 626, 750, "Clear the forge vents and bring warmth back to the peaks.", listOf("Valkor’s forge cooled the night a thousand arrows jammed its chimneys, and the peaks above have been snowing ash ever since. The Forgemaster will not relight a forge he cannot clear.","He sets one rule in smoke and ember: free the paths that choke the vents, hottest first, and the forge will remember its fire.","The forge breathes orange again, and the ash turns back to clean snow. ‘Forged in order, cleared in order,’ Valkor rumbles. ‘Thalor has been waiting at the eclipse.’")),
+        ArrowOutWorld(7, "Eclipse Sanctum", "A sanctuary held between light and shadow", "Archmage Thalor", "Eclipse", 751, 875, "Unbind the arches and let dawn return to the sanctum.", listOf("An eclipse over Thalor’s sanctum stuck halfway, and the light it trapped now binds every arch in the halls. The Archmage has kept his silence through a hundred years of half-day.","Thalor’s terms are exact: unbind each arch by the order of its making. Break the sequence, and the trapped light will simply wait for you to begin again.","The eclipse slides shut and open like an eye, and dawn arrives a century late. ‘Precisely done,’ Thalor says. ‘Astraea has watched you from the first arrow.’")),
+        ArrowOutWorld(8, "Starfall Court", "A constellation waiting to fall into place", "Queen Astraea", "Cosmic", 876, 1000, "Untangle the stars and complete the fletcher's thousand-level journey.", listOf("Queen Astraea’s court of falling stars stalled mid-descent when its constellations tangled into knots of light. She has waited a thousand levels of dark for a fletcher with patient hands.","Her final ask is the oldest one: free every arrow in order, and let the stars fall true. The court counts each clear path as one star coming home.","The sky fills with falling light, and the court lands softly for the first time in an age. ‘The arrows are out,’ Queen Astraea says. ‘The story is yours now, fletcher.’"))
     )
 
     fun forLevel(level: Int): ArrowOutWorld = worlds.first { level in it.firstLevel..it.lastLevel }
@@ -95,13 +102,19 @@ internal fun ArrowOutHomeScreen(
     }
 }
 
+internal fun pendingGuardianWorld(unlockedLevel:Int,seenWorldIds:List<Int>):ArrowOutWorld? =
+    ArrowOutWorldCatalog.worlds.firstOrNull { unlockedLevel >= it.firstLevel && it.id !in seenWorldIds }
+
 @Composable
 internal fun ArrowOutWorldMapScreen(
     state: ArrowGameState,
     onBack: () -> Unit,
     onWorldSelected: (Int) -> Unit,
+    onStorySeen: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    var storyAct by rememberSaveable(state.unlockedLevel,state.storySeenWorlds) { mutableIntStateOf(0) }
+    val pendingStory = if (com.aaryapratik.arrowout.nativeapp.core.config.GameFeatureFlags.guardianStories) pendingGuardianWorld(state.unlockedLevel,state.storySeenWorlds) else null
     Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(16.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             OutlinedButton(onClick = onBack) { Text("Home") }
@@ -130,6 +143,22 @@ internal fun ArrowOutWorldMapScreen(
             }
         }
     }
+    if(pendingStory!=null) AlertDialog(
+        onDismissRequest={onStorySeen(pendingStory.id);storyAct=0},
+        title={Text("${pendingStory.guardian} · ${pendingStory.title}")},
+        text={
+            Column(verticalArrangement=Arrangement.spacedBy(10.dp)){
+                Text("GUARDIAN STORY · ACT ${storyAct+1} OF 3",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.primary)
+                Text(pendingStory.storyActs[storyAct],style=MaterialTheme.typography.bodyLarge)
+            }
+        },
+        confirmButton={
+            TextButton(onClick={
+                if(storyAct<2)storyAct++ else {onStorySeen(pendingStory.id);storyAct=0}
+            }){Text(if(storyAct<2)"Next" else "Begin adventure")}
+        },
+        dismissButton={TextButton(onClick={onStorySeen(pendingStory.id)}){Text("Skip story")}}
+    )
 }
 
 @Composable

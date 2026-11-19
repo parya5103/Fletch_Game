@@ -30,12 +30,13 @@ data class ArrowGameState(
  val bestStars:Map<Int,Int> = emptyMap(),
  val bestPlays:Map<Int,Int> = emptyMap(),
  val legacySaveJson:String?=null,
- val solutionOrder:List<Int> = emptyList()
+ val solutionOrder:List<Int> = emptyList(),
+ val storySeenWorlds:List<Int> = emptyList()
 ){
  val remaining:Int get()=board.pieces.count{it.alive}
 }
 sealed interface ArrowUiEvent{
  data class TapCell(val cell:Cell):ArrowUiEvent
  data object Restart:ArrowUiEvent
- data object Continue:ArrowUiEvent;data object Hint:ArrowUiEvent;data object ToggleEraser:ArrowUiEvent;data object Undo:ArrowUiEvent;data class SelectLevel(val level:Int):ArrowUiEvent;data object DailyChallenge:ArrowUiEvent;data object ExitDaily:ArrowUiEvent;data object ShowSolution:ArrowUiEvent;data object ClearSolution:ArrowUiEvent
+ data object Continue:ArrowUiEvent;data object Hint:ArrowUiEvent;data object ToggleEraser:ArrowUiEvent;data object Undo:ArrowUiEvent;data class SelectLevel(val level:Int):ArrowUiEvent;data object DailyChallenge:ArrowUiEvent;data object ExitDaily:ArrowUiEvent;data object ShowSolution:ArrowUiEvent;data object ClearSolution:ArrowUiEvent;data class MarkStorySeen(val worldId:Int):ArrowUiEvent
 }
