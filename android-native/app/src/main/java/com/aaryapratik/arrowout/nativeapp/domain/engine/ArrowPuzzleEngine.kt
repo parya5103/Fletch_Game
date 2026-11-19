@@ -5,7 +5,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 class ArrowPuzzleEngine{
- companion object{const val FREE_HINTS=3;private const val MAX_UNDO=10}
+ companion object{const val FREE_HINTS=3;private const val MAX_UNDO=100}
  fun newGame()=ArrowGameState(ArrowBoard(6,6,listOf(
   ArrowPiece(listOf(Cell(0,2),Cell(1,2),Cell(1,1),Cell(2,1)),Direction.RIGHT,0),
   ArrowPiece(listOf(Cell(4,1),Cell(5,1)),Direction.RIGHT,1),
