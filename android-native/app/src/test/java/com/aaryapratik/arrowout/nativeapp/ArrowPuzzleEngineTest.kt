@@ -81,7 +81,6 @@ class ArrowPuzzleEngineTest{
   assertEquals(3,exhausted.hintsUsed)
   assertEquals("No free hints remaining — continue without a hint",exhausted.message)
  }
-}
  @Test fun undoHistoryIsNotTruncatedAfterTenMoves(){
   val pieces=(0 until 13).map{row->ArrowPiece(listOf(Cell(0,row*2),Cell(1,row*2)),Direction.RIGHT,row%8)}
   val board=ArrowBoard(4,24,pieces)
