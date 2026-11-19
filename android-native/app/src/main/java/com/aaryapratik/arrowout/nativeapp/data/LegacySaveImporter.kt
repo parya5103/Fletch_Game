@@ -22,7 +22,8 @@ data class ImportedArrowProgress(
  val dailyBest:Int,
  val mistakes:Int,
  val hintsUsed:Int,
- val rawSaveJson:String
+ val rawSaveJson:String,
+ val storySeenWorlds:List<Int>
 )
 object LegacySaveImporter{
  const val CURRENT_KEY="arrowOut.v2"
@@ -52,6 +53,10 @@ object LegacySaveImporter{
   val hearts=(cur?.get("hearts")?.takeIf{it.isJsonPrimitive}?.asInt?:3).coerceIn(1,3)
   val mistakes=(cur?.get("wrong")?.takeIf{it.isJsonPrimitive}?.asInt?:0).coerceIn(0,3)
   val hints=(cur?.get("hintsUsed")?.takeIf{it.isJsonPrimitive}?.asInt?:0).coerceAtLeast(0)
+  val storySeen=root.getAsJsonObject("storySeen")?.entrySet()?.mapNotNull{(key,value)->
+   val worldId=key.removePrefix("w").toIntOrNull()?.takeIf{it in 1..8}?:return@mapNotNull null
+   worldId.takeIf{value.isJsonPrimitive&&value.asJsonPrimitive.isBoolean&&value.asBoolean}
+  }?.distinct()?.sorted().orEmpty()
   val daily=root.get("daily")?.takeIf{it.isJsonObject}?.asJsonObject
   val dailyDate=daily?.get("lastDate")?.takeIf{it.isJsonPrimitive}?.asString.orEmpty().replace("-","")
   val dailyCompleted=daily?.get("completed")?.takeIf{it.isJsonPrimitive}?.asBoolean==true
@@ -66,7 +71,7 @@ object LegacySaveImporter{
    dailyCompletedDate=if(dailyCompleted)dailyDate else "",lastDailyDate=if(dailyCompleted)dailyDate else "",
    dailyStreak=if(dailyCompleted)(streaks?.get("current")?.asInt?:0).coerceAtLeast(0)else 0,
    dailyBest=(streaks?.get("best")?.asInt?:0).coerceAtLeast(0),mistakes=mistakes,hintsUsed=hints,
-   rawSaveJson=root.toString()
+   rawSaveJson=root.toString(),storySeenWorlds=storySeen
   )
  }
  private fun parseCurrentPuzzle(cur:com.google.gson.JsonObject):ArrowBoard?=runCatching{
