@@ -4,11 +4,6 @@ on:
   push:
     branches:
       - feat/native-cocos2dx-v4-vertical-slice
-    paths:
-      - "android-native/**"
-      - "js/game.js"
-      - "scripts/generate-native-levels.cjs"
-      - ".github/workflows/arrow-out-free-apk.yml"
   workflow_dispatch:
 
 permissions:
