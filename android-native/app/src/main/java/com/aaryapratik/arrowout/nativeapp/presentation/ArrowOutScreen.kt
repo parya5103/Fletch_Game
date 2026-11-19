@@ -55,7 +55,8 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
    )
    "worlds" -> ArrowOutWorldMapScreen(
     state=state,onBack={destination="home"},
-    onWorldSelected={selectedWorldId=it;destination="levels"}
+    onWorldSelected={selectedWorldId=it;destination="levels"},
+    onStorySeen={viewModel.onEvent(ArrowUiEvent.MarkStorySeen(it))}
    )
    "levels" -> {
     val world=ArrowOutWorldCatalog.byId(selectedWorldId)
