@@ -102,5 +102,9 @@ class ArrowPuzzleEngineTest{
    board=board.copy(pieces=pieces)
   }
   assertEquals(state.remaining,engine.solution(state).size)
+  val shown=engine.showSolution(state)
+  assertEquals(solution,shown.solutionOrder)
+  assertEquals(0,state.hintsUsed)
+  assertEquals(0,shown.hintsUsed)
  }
 
