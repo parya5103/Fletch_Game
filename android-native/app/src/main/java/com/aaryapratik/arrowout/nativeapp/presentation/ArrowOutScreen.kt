@@ -127,6 +127,13 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
    Text("Unlocked campaign levels: ${state.unlockedLevel} / 1000",color=MaterialTheme.colorScheme.onSurfaceVariant,style=MaterialTheme.typography.labelSmall)
    if(state.isDaily)TextButton(onClick={onEvent(ArrowUiEvent.ExitDaily)},enabled=!isRestoring,modifier=Modifier.fillMaxWidth()){Text("Back to campaign")}
    Text(if(isRestoring)"Restoring your progress…" else if(state.eraserMode)"Tap an arrow to erase it" else state.message,color=if(state.eraserMode)Color(0xFFFFD166)else MaterialTheme.colorScheme.onSurfaceVariant,style=MaterialTheme.typography.bodyMedium)
+   if(state.solutionOrder.isNotEmpty()) Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.secondaryContainer)){
+    Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
+     Text("Solution guide",style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.onSecondaryContainer)
+     Text("Tap the highlighted arrow next. ${state.solutionOrder.size} moves remain in this solution.",color=MaterialTheme.colorScheme.onSecondaryContainer)
+     TextButton(onClick={onEvent(ArrowUiEvent.ClearSolution)}){Text("Hide solution")}
+    }
+   }
    Canvas(
     Modifier.fillMaxWidth().aspectRatio(board.width.toFloat()/board.height.toFloat())
      .clip(RoundedCornerShape(18.dp)).background(MaterialTheme.colorScheme.surface)
@@ -148,7 +155,7 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
     }
     for((pieceIndex,piece) in board.pieces.withIndex().filter{it.value.alive}){
      if(piece.cells.isEmpty())continue
-     val color=if(pieceIndex==state.hintedPieceIndex)Color(0xFFFFD166)else arrowColors[piece.colorIndex%arrowColors.size]
+     val color=if(pieceIndex==state.solutionOrder.firstOrNull()||pieceIndex==state.hintedPieceIndex)Color(0xFFFFD166)else arrowColors[piece.colorIndex%arrowColors.size]
      val points=piece.cells.map{Offset((it.x+0.5f)*cw,(it.y+0.5f)*ch)}
      val path=Path().apply{moveTo(points.first().x,points.first().y);points.drop(1).forEach{lineTo(it.x,it.y)}}
      drawPath(path,color,style=Stroke(width=unit*0.48f,cap=StrokeCap.Round,join=StrokeJoin.Round))
@@ -163,6 +170,7 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
    }
    Text("Pinch to zoom · drag to explore larger boards",color=MaterialTheme.colorScheme.onSurfaceVariant,style=MaterialTheme.typography.labelSmall)
    if(state.isSolved)Button(onClick={onEvent(ArrowUiEvent.Continue)},enabled=!isRestoring&&(state.isDaily||state.level<1000),modifier=Modifier.fillMaxWidth()){Text(if(state.isDaily)"Return to campaign" else if(state.level<1000)"Continue to Level ${state.level+1}" else "All 1,000 levels cleared")}
+   if(GameFeatureFlags.showSolution)OutlinedButton(onClick={onEvent(ArrowUiEvent.ShowSolution)},enabled=!isRestoring&&!state.isSolved&&!state.isFailed,modifier=Modifier.fillMaxWidth()){Text("Show solution")}
    Button(onClick={onEvent(ArrowUiEvent.Hint)},enabled=!isRestoring&&!state.isSolved&&!state.isFailed&&state.hintsUsed<ArrowPuzzleEngine.FREE_HINTS,modifier=Modifier.fillMaxWidth()){Text("Hint · ${ArrowPuzzleEngine.FREE_HINTS-state.hintsUsed} free left")}
    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){
     OutlinedButton(onClick={onEvent(ArrowUiEvent.Undo)},enabled=!isRestoring&&!state.isFailed&&state.undoStack.isNotEmpty(),modifier=Modifier.weight(1f)){Text("Undo")}
