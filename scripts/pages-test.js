@@ -148,6 +148,18 @@ test('public pages are precached with matching worker/display version and valid 
 });
 
 
+test('legacy Supabase daily push is retired while GoGo Central FCM remains isolated', () => {
+  const pwa = read('js/pwa.js'), reminders = read('js/reminders.js');
+  const worker = read('sw.js'), index = read('index.html');
+  assert.doesNotMatch(pwa,/SUPABASE_URL|VAPID_PUBLIC_KEY|subscribePush|submitPushSubscription/);
+  assert.doesNotMatch(reminders,/pushToggle|submitPushSubscription|chk-push/);
+  assert.doesNotMatch(worker,/addEventListener\(['"]push['"]/);
+  assert(!fs.existsSync(path.join(root,'.github/workflows/notify.yml')));
+  assert.match(index,/data-gogo-notifications/);
+  const fcmWorker = read('fcm/firebase-messaging-sw.js');
+  assert.match(fcmWorker,/onBackgroundMessage/);
+  assert.doesNotMatch(fcmWorker,/addEventListener\(['"]fetch['"]/);
+});
 test('game landing page has one primary heading and complete VideoGame publisher schema', () => {
   const index = read('index.html');
   assert.doesNotMatch(index,/adsbygoogle\.js|js\/ads\.js/,'advertising remains disabled until a certified consent flow exists');
