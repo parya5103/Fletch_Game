@@ -10,6 +10,9 @@ val releaseKeyAlias=providers.gradleProperty("ANDROID_KEY_ALIAS").orNull
 val releaseKeyPassword=providers.gradleProperty("ANDROID_KEY_PASSWORD").orNull
 val hasReleaseSigning=listOf(releaseStorePath,releaseStorePassword,releaseKeyAlias,releaseKeyPassword).all{!it.isNullOrBlank()}
 val admobAppId = providers.gradleProperty("ADMOB_APP_ID").orElse("ca-app-pub-3940256099942544~3347511713").get()
+val admobInterstitialUnitId = providers.gradleProperty("ADMOB_INTERSTITIAL_UNIT_ID").orElse("").get()
+val admobRewardedUnitId = providers.gradleProperty("ADMOB_REWARDED_UNIT_ID").orElse("").get()
+val removeAdsProductId = providers.gradleProperty("REMOVE_ADS_PRODUCT_ID").orElse("").get()
 android{
  namespace="com.aaryapratik.arrowout.nativeapp"
  compileSdk=37
@@ -20,6 +23,9 @@ android{
   versionCode=3
   versionName="1.2.0"
   resValue("string", "admob_app_id", admobAppId)
+  buildConfigField("String","ADMOB_INTERSTITIAL_UNIT_ID","\"$admobInterstitialUnitId\"")
+  buildConfigField("String","ADMOB_REWARDED_UNIT_ID","\"$admobRewardedUnitId\"")
+  buildConfigField("String","REMOVE_ADS_PRODUCT_ID","\"$removeAdsProductId\"")
   testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
  }
  signingConfigs{
@@ -35,7 +41,7 @@ android{
  buildTypes{
   getByName("release"){if(hasReleaseSigning)signingConfig=signingConfigs.getByName("release")}
  }
- buildFeatures{resValues=true;compose=true}
+ buildFeatures{resValues=true;compose=true;buildConfig=true}
  compileOptions{sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17}
  kotlin{compilerOptions{jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)}}
  packaging{resources.excludes+="/META-INF/{AL2.0,LGPL2.1}"}
