@@ -1,4 +1,6 @@
 package com.aaryapratik.arrowout.nativeapp.presentation
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -137,6 +139,7 @@ import kotlin.math.min
  var importText by remember{mutableStateOf("")}
  var zoom by remember(state.level,board.width,board.height){mutableFloatStateOf(1f)}
  var pan by remember(state.level,board.width,board.height){mutableStateOf(Offset.Zero)}
+ val pieceAlphas=board.pieces.mapIndexed{index,piece->animateFloatAsState(targetValue=if(piece.alive)1f else 0f,animationSpec=tween(durationMillis=220),label="arrow-exit-$index").value}
  val transformState=rememberTransformableState{zoomChange,panChange,_->
   val next=(zoom*zoomChange).coerceIn(1f,4f)
   pan=if(next==1f)Offset.Zero else pan+panChange
@@ -205,17 +208,17 @@ import kotlin.math.min
     for(cell in board.activeCells){
      drawRect(boardCellColor,topLeft=Offset(cell.x*cw+1f,cell.y*ch+1f),size=androidx.compose.ui.geometry.Size(cw-2f,ch-2f))
     }
-    for((pieceIndex,piece) in board.pieces.withIndex().filter{it.value.alive}){
+    for((pieceIndex,piece) in board.pieces.withIndex().filter{it.value.alive||pieceAlphas[it.index]>0.01f}){
      if(piece.cells.isEmpty())continue
      val color=if(pieceIndex==state.solutionOrder.firstOrNull()||pieceIndex==state.hintedPieceIndex)Color(0xFFFFD166)else activeArrowColors[piece.colorIndex%activeArrowColors.size]
      val points=piece.cells.map{Offset((it.x+0.5f)*cw,(it.y+0.5f)*ch)}
      val path=Path().apply{moveTo(points.first().x,points.first().y);points.drop(1).forEach{lineTo(it.x,it.y)}}
-     drawPath(path,color,style=Stroke(width=unit*0.48f,cap=StrokeCap.Round,join=StrokeJoin.Round))
+     drawPath(path,color.copy(alpha=pieceAlphas[pieceIndex]),style=Stroke(width=unit*0.48f,cap=StrokeCap.Round,join=StrokeJoin.Round))
      val head=points.last();val dx=piece.direction.dx.toFloat();val dy=piece.direction.dy.toFloat();val px=-dy;val py=dx
      val tip=Offset(head.x+dx*unit*0.42f,head.y+dy*unit*0.42f)
      val base=Offset(head.x-dx*unit*0.26f,head.y-dy*unit*0.26f)
      val arrowHead=Path().apply{moveTo(tip.x,tip.y);lineTo(base.x+px*unit*0.31f,base.y+py*unit*0.31f);lineTo(base.x-px*unit*0.31f,base.y-py*unit*0.31f);close()}
-     drawPath(arrowHead,Color.White)
+     drawPath(arrowHead,Color.White.copy(alpha=pieceAlphas[pieceIndex]))
     }
     for(x in 0..board.width)drawLine(boardGridColor,Offset(x*cw,0f),Offset(x*cw,size.height),1f)
     for(y in 0..board.height)drawLine(boardGridColor.copy(alpha=0.35f),Offset(0f,y*ch),Offset(size.width,y*ch),1f)
