@@ -6,6 +6,9 @@ import com.aaryapratik.arrowout.nativeapp.domain.model.*
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
 private data class ArrowLevelCatalogDto(val version:Int,val generator:String,val levels:List<ArrowLevelDto>)
 private data class ArrowDailyCatalogDto(val version:Int,val generator:String,val dailyChallenges:List<ArrowDailyDto>)
@@ -45,8 +48,14 @@ private data class ArrowDto(val cells:List<List<Int>>,val dir:Int,val color:Int,
  }
  fun dailyBoard(dateKey:String):ArrowBoard{
   val data=dailyCatalog.dailyChallenges.firstOrNull{it.date==dateKey}
-   ?:throw IllegalStateException("Daily challenge $dateKey is not included in this build. Update the app to refresh daily puzzles.")
-  return board(data.cols,data.rows,data.shape,data.arrows)
+  return if(data!=null) board(data.cols,data.rows,data.shape,data.arrows)
+  else boardFor(dailyFallbackLevel(dateKey))
  }
  fun levelCount()=catalog.levels.size
+}
+/** Stable, bounded fallback so daily play never stops when the bundled calendar expires. */
+internal fun dailyFallbackLevel(dateKey:String):Int {
+ val date=try { LocalDate.parse(dateKey,DateTimeFormatter.BASIC_ISO_DATE) }
+ catch(error:DateTimeParseException) { throw IllegalArgumentException("Daily challenge date must use yyyyMMdd",error) }
+ return Math.floorMod(date.toEpochDay(),1000L).toInt()+1
 }

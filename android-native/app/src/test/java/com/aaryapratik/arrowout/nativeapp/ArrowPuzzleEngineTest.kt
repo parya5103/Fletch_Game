@@ -1,4 +1,5 @@
 package com.aaryapratik.arrowout.nativeapp
+import com.aaryapratik.arrowout.nativeapp.data.dailyFallbackLevel
 import com.aaryapratik.arrowout.nativeapp.domain.engine.ArrowPuzzleEngine
 import com.aaryapratik.arrowout.nativeapp.domain.model.*
 import com.aaryapratik.arrowout.nativeapp.presentation.utcDailyDateKey
@@ -53,6 +54,15 @@ class ArrowPuzzleEngineTest{
   val afterUndo=engine.undo(solved)
   assertTrue(afterUndo.isSolved)
   assertEquals(10,afterUndo.coins)
+ }
+ @Test fun dailyFallbackSelectsStableCampaignBoardsBeyondBundledCalendar(){
+  val first=dailyFallbackLevel("20281117")
+  assertEquals(first,dailyFallbackLevel("20281117"))
+  assertTrue(first in 1..1000)
+  assertNotEquals(first,dailyFallbackLevel("20281118"))
+ }
+ @Test fun dailyFallbackRejectsMalformedDateKeys(){
+  assertThrows(IllegalArgumentException::class.java){dailyFallbackLevel("not-a-date")}
  }
  @Test fun dailyDateKeyUsesUtcEvenWhenDeviceTimezoneDiffers(){
   val original=TimeZone.getDefault()
