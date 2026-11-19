@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Density
 import kotlinx.coroutines.delay
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -51,7 +52,7 @@ import kotlin.math.min
  var selectedWorldId by rememberSaveable { mutableIntStateOf(1) }
  ArrowOutTheme(darkTheme=settings.darkTheme){
   val density = LocalDensity.current
-  CompositionLocalProvider(LocalDensity provides density.copy(fontScale = density.fontScale * if(settings.largeTextEnabled) 1.15f else 1f)) {
+  CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale * if(settings.largeTextEnabled) 1.15f else 1f)) {
   when(destination){
    "home" -> ArrowOutHomeScreen(
     state=state,isRestoring=restoring,
