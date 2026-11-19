@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,11 +26,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.aaryapratik.arrowout.nativeapp.data.local.NativeSettings
+import com.aaryapratik.arrowout.nativeapp.core.config.GameFeatureFlags
 import com.aaryapratik.arrowout.nativeapp.domain.engine.ArrowPuzzleEngine
 import com.aaryapratik.arrowout.nativeapp.domain.model.*
 import com.aaryapratik.arrowout.nativeapp.presentation.theme.ArrowOutTheme
@@ -42,8 +42,37 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
  val restoring by viewModel.isRestoring.collectAsStateWithLifecycle()
  val importMessage by viewModel.importMessage.collectAsStateWithLifecycle()
  val settings by viewModel.settings.collectAsStateWithLifecycle()
+ var destination by rememberSaveable { mutableStateOf("home") }
+ var selectedWorldId by rememberSaveable { mutableIntStateOf(1) }
  ArrowOutTheme(darkTheme=settings.darkTheme){
-  ArrowOutScreen(state,viewModel::onEvent,privacyOptionsRequired=privacyOptionsRequired,onShowPrivacyOptions=onShowPrivacyOptions,isRestoring=restoring,onImportSave=viewModel::importLegacy,importMessage=importMessage,settings=settings,onDarkThemeChange=viewModel::setDarkTheme,onHapticsChange=viewModel::setHapticsEnabled)
+  when(destination){
+   "home" -> ArrowOutHomeScreen(
+    state=state,isRestoring=restoring,
+    onContinue={if(state.isSolved)viewModel.onEvent(ArrowUiEvent.Continue);destination="game"},
+    onWorlds={destination=if(GameFeatureFlags.worldMap)"worlds" else "game"},
+    onDaily={viewModel.onEvent(ArrowUiEvent.DailyChallenge);destination="game"}
+   )
+   "worlds" -> ArrowOutWorldMapScreen(
+    state=state,onBack={destination="home"},
+    onWorldSelected={selectedWorldId=it;destination="levels"}
+   )
+   "levels" -> {
+    val world=ArrowOutWorldCatalog.byId(selectedWorldId)
+    if(world==null) destination="worlds" else ArrowOutLevelSelectScreen(
+     state=state,world=world,onBack={destination="worlds"},
+     onLevelSelected={level->viewModel.onEvent(ArrowUiEvent.SelectLevel(level));destination="game"}
+    )
+   }
+   else -> ArrowOutScreen(
+    state,viewModel::onEvent,privacyOptionsRequired=privacyOptionsRequired,
+    onShowPrivacyOptions=onShowPrivacyOptions,isRestoring=restoring,
+    onImportSave=viewModel::importLegacy,importMessage=importMessage,
+    settings=settings,onDarkThemeChange=viewModel::setDarkTheme,
+    onHapticsChange=viewModel::setHapticsEnabled,
+    onNavigateHome={destination="home"},
+    onNavigateWorlds={destination=if(GameFeatureFlags.worldMap)"worlds" else "home"}
+   )
+  }
  }
 }
 @Composable fun ArrowOutScreen(
@@ -57,7 +86,9 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
  importMessage:String="",
  settings:NativeSettings=NativeSettings(),
  onDarkThemeChange:(Boolean)->Unit={},
- onHapticsChange:(Boolean)->Unit={}
+ onHapticsChange:(Boolean)->Unit={},
+ onNavigateHome:()->Unit={},
+ onNavigateWorlds:()->Unit={}
 ){
  val board=state.board
  val boardCellColor=MaterialTheme.colorScheme.surfaceVariant
@@ -66,7 +97,6 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
  var showImport by remember{mutableStateOf(false)}
  var showSettings by remember{mutableStateOf(false)}
  var importText by remember{mutableStateOf("")}
- var levelInput by remember(state.level){mutableStateOf(state.level.toString())}
  var zoom by remember(state.level,board.width,board.height){mutableFloatStateOf(1f)}
  var pan by remember(state.level,board.width,board.height){mutableStateOf(Offset.Zero)}
  val transformState=rememberTransformableState{zoomChange,panChange,_->
@@ -79,6 +109,10 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
    Spacer(Modifier.height(8.dp))
    Text("ARROW OUT",style=MaterialTheme.typography.headlineLarge,color=MaterialTheme.colorScheme.onBackground)
    Text("A path puzzle",color=MaterialTheme.colorScheme.onSurfaceVariant)
+   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){
+    OutlinedButton(onClick=onNavigateHome,modifier=Modifier.weight(1f)){Text("Home")}
+    OutlinedButton(onClick=onNavigateWorlds,modifier=Modifier.weight(1f)){Text("World map")}
+   }
    OutlinedButton(onClick={showSettings=!showSettings},modifier=Modifier.fillMaxWidth()){Text(if(showSettings)"Close settings" else "Player settings")}
    if(showSettings){
     SettingsRow("Dark theme","Use the dark game palette",settings.darkTheme,onDarkThemeChange)
@@ -91,11 +125,6 @@ private val arrowColors=listOf(Color(0xFF48C6EF),Color(0xFFFFB454),Color(0xFF9D8
    Text("COINS ${state.coins}   ·   BEST ${if(state.isDaily)state.dailyStars else state.bestStars[state.level]?:0} ★   ·   ERASERS ${state.erasersRemaining}   ·   STREAK ${state.dailyStreak}",color=Color(0xFFFFD166),style=MaterialTheme.typography.labelMedium)
    OutlinedButton(onClick={onEvent(ArrowUiEvent.DailyChallenge)},enabled=!isRestoring&&!state.isDaily,modifier=Modifier.fillMaxWidth()){Text("Daily Challenge · ${state.dailyStreak}-day streak")}
    Text("Unlocked campaign levels: ${state.unlockedLevel} / 1000",color=MaterialTheme.colorScheme.onSurfaceVariant,style=MaterialTheme.typography.labelSmall)
-   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=Alignment.CenterVertically){
-    OutlinedTextField(value=levelInput,onValueChange={levelInput=it.filter{ch->ch.isDigit()}.take(4)},modifier=Modifier.weight(1f),singleLine=true,label={Text("Open level")},keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number))
-    val selectedLevel=levelInput.toIntOrNull()
-    Button(onClick={selectedLevel?.let{onEvent(ArrowUiEvent.SelectLevel(it))}},enabled=!isRestoring&&!state.isDaily&&selectedLevel!=null&&selectedLevel in 1..state.unlockedLevel){Text("Play")}
-   }
    if(state.isDaily)TextButton(onClick={onEvent(ArrowUiEvent.ExitDaily)},enabled=!isRestoring,modifier=Modifier.fillMaxWidth()){Text("Back to campaign")}
    Text(if(isRestoring)"Restoring your progress…" else if(state.eraserMode)"Tap an arrow to erase it" else state.message,color=if(state.eraserMode)Color(0xFFFFD166)else MaterialTheme.colorScheme.onSurfaceVariant,style=MaterialTheme.typography.bodyMedium)
    Canvas(
