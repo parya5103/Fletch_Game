@@ -38,14 +38,13 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install required Android SDK packages
         run: |
-          yes | sdkmanager --licenses >/dev/null
-          sdkmanager --install "platforms;android-37" "build-tools;36.0.0"
-          sdkmanager --list_installed
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort | tail -n 1)"
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null
+          "$SDKMANAGER" --install "platforms;android-37" "build-tools;36.0.0"
+          "$SDKMANAGER" --list_installed
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
