@@ -1,6 +1,8 @@
 package com.aaryapratik.arrowout.nativeapp
 
 import com.aaryapratik.arrowout.nativeapp.data.local.NativeSettings
+import com.aaryapratik.arrowout.nativeapp.presentation.ArrowColorPalette
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -25,6 +27,8 @@ class NativeSettingsTest {
         assertTrue(settings.colorblindPaletteEnabled)
         assertTrue(settings.largeTextEnabled)
         assertTrue(settings.darkTheme)
+        assertEquals(8, ArrowColorPalette.colorblindArgb.distinct().size)
+        assertEquals(8, ArrowColorPalette.standardArgb.distinct().size)
         assertTrue(settings.hapticsEnabled)
     }
 }
