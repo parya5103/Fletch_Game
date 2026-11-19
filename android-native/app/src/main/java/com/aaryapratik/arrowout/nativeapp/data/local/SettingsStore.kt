@@ -19,7 +19,10 @@ class SettingsStore @Inject constructor(@ApplicationContext context: Context) {
     val settings: Flow<NativeSettings> = store.data.map { preferences ->
         NativeSettings(
             darkTheme = preferences[DARK_THEME] ?: true,
-            hapticsEnabled = preferences[HAPTICS_ENABLED] ?: true
+            hapticsEnabled = preferences[HAPTICS_ENABLED] ?: true,
+            soundEffectsEnabled = preferences[SOUND_EFFECTS_ENABLED] ?: false,
+            colorblindPaletteEnabled = preferences[COLORBLIND_PALETTE_ENABLED] ?: false,
+            largeTextEnabled = preferences[LARGE_TEXT_ENABLED] ?: false
         )
     }
 
@@ -31,8 +34,23 @@ class SettingsStore @Inject constructor(@ApplicationContext context: Context) {
         store.edit { it[HAPTICS_ENABLED] = enabled }
     }
 
+    suspend fun setSoundEffectsEnabled(enabled: Boolean) {
+        store.edit { it[SOUND_EFFECTS_ENABLED] = enabled }
+    }
+
+    suspend fun setColorblindPaletteEnabled(enabled: Boolean) {
+        store.edit { it[COLORBLIND_PALETTE_ENABLED] = enabled }
+    }
+
+    suspend fun setLargeTextEnabled(enabled: Boolean) {
+        store.edit { it[LARGE_TEXT_ENABLED] = enabled }
+    }
+
     private companion object {
         val DARK_THEME = booleanPreferencesKey("dark_theme")
         val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
+        val SOUND_EFFECTS_ENABLED = booleanPreferencesKey("sound_effects_enabled")
+        val COLORBLIND_PALETTE_ENABLED = booleanPreferencesKey("colorblind_palette_enabled")
+        val LARGE_TEXT_ENABLED = booleanPreferencesKey("large_text_enabled")
     }
 }
