@@ -23,9 +23,9 @@ android{
   versionCode=3
   versionName="1.2.0"
   resValue("string", "admob_app_id", admobAppId)
- buildConfigField("String","ADMOB_INTERSTITIAL_UNIT_ID","\"$admobInterstitialUnitId\"")
- buildConfigField("String","ADMOB_REWARDED_UNIT_ID","\"$admobRewardedUnitId\"")
- buildConfigField("String","REMOVE_ADS_PRODUCT_ID","\"$removeAdsProductId\"")
+  buildConfigField("String","ADMOB_INTERSTITIAL_UNIT_ID","\"$admobInterstitialUnitId\"")
+  buildConfigField("String","ADMOB_REWARDED_UNIT_ID","\"$admobRewardedUnitId\"")
+  buildConfigField("String","REMOVE_ADS_PRODUCT_ID","\"$removeAdsProductId\"")
   testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
  }
  signingConfigs{
@@ -42,9 +42,6 @@ android{
   getByName("release"){if(hasReleaseSigning)signingConfig=signingConfigs.getByName("release")}
  }
  buildFeatures{resValues=true;compose=true;buildConfig=true}
- buildConfigField("String","ADMOB_INTERSTITIAL_UNIT_ID","\"$admobInterstitialUnitId\"")
- buildConfigField("String","ADMOB_REWARDED_UNIT_ID","\"$admobRewardedUnitId\"")
- buildConfigField("String","REMOVE_ADS_PRODUCT_ID","\"$removeAdsProductId\"")
  compileOptions{sourceCompatibility=JavaVersion.VERSION_17;targetCompatibility=JavaVersion.VERSION_17}
  kotlin{compilerOptions{jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)}}
  packaging{resources.excludes+="/META-INF/{AL2.0,LGPL2.1}"}
