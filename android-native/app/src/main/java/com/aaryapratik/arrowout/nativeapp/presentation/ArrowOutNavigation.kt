@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -24,10 +25,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.saveable.rememberSaveable
 import com.aaryapratik.arrowout.nativeapp.domain.model.ArrowGameState
 
 internal data class ArrowOutWorld(
@@ -96,13 +100,19 @@ internal fun ArrowOutHomeScreen(
     }
 }
 
+internal fun pendingGuardianWorld(unlockedLevel:Int,seenWorldIds:List<Int>):ArrowOutWorld? =
+    ArrowOutWorldCatalog.worlds.firstOrNull { unlockedLevel >= it.firstLevel && it.id !in seenWorldIds }
+
 @Composable
 internal fun ArrowOutWorldMapScreen(
     state: ArrowGameState,
     onBack: () -> Unit,
     onWorldSelected: (Int) -> Unit,
+    onStorySeen: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    var storyAct by rememberSaveable(state.unlockedLevel,state.storySeenWorlds) { mutableIntStateOf(0) }
+    val pendingStory = if (com.aaryapratik.arrowout.nativeapp.core.config.GameFeatureFlags.guardianStories) pendingGuardianWorld(state.unlockedLevel,state.storySeenWorlds) else null
     Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(16.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             OutlinedButton(onClick = onBack) { Text("Home") }
@@ -131,6 +141,22 @@ internal fun ArrowOutWorldMapScreen(
             }
         }
     }
+    if(pendingStory!=null) AlertDialog(
+        onDismissRequest={onStorySeen(pendingStory.id);storyAct=0},
+        title={Text("${pendingStory.guardian} · ${pendingStory.title}")},
+        text={
+            Column(verticalArrangement=Arrangement.spacedBy(10.dp)){
+                Text("GUARDIAN STORY · ACT ${storyAct+1} OF 3",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.primary)
+                Text(pendingStory.storyActs[storyAct],style=MaterialTheme.typography.bodyLarge)
+            }
+        },
+        confirmButton={
+            TextButton(onClick={
+                if(storyAct<2)storyAct++ else {onStorySeen(pendingStory.id);storyAct=0}
+            }){Text(if(storyAct<2)"Next" else "Begin adventure")}
+        },
+        dismissButton={TextButton(onClick={onStorySeen(pendingStory.id)}){Text("Skip story")}}
+    )
 }
 
 @Composable
