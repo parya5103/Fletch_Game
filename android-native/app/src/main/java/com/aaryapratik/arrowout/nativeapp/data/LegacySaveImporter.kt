@@ -58,7 +58,7 @@ object LegacySaveImporter{
   val streaks=root.get("streaks")?.takeIf{it.isJsonObject}?.asJsonObject
   val erasers=(cur?.get("erasersUsed")?.takeIf{it.isJsonPrimitive}?.asInt?:0).coerceAtLeast(0)
   val undoIds=cur?.getAsJsonArray("undoIds")?.mapNotNull{runCatching{it.asInt}.getOrNull()}.orEmpty()
-  val undoStack=undoIds.mapNotNull{step->currentPuzzle?.pieces?.indexOfFirst{!it.alive&&it.step==step}?.takeIf{it>=0}}.takeLast(10)
+  val undoStack=undoIds.mapNotNull{step->currentPuzzle?.pieces?.indexOfFirst{!it.alive&&it.step==step}?.takeIf{it>=0}}
   return ImportedArrowProgress(
    version=version,unlocked=unlocked,coins=coins,bestStars=stars,bestPlays=plays,
    sound=root.get("sound")?.takeIf{it.isJsonPrimitive&&it.asJsonPrimitive.isBoolean}?.asBoolean?:true,
