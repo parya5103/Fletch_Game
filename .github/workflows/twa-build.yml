@@ -1,7 +1,8 @@
 name: TWA APK build
 
 # Builds the signed APK + AAB for the Play Store from android/twa-manifest.json
-# using Bubblewrap. Manual run only, after the "TWA signing key" secrets are set.
+# using Bubblewrap. Manual run only, after the private keystore has been generated
+# locally and the protected Actions secrets are configured. See docs/ANDROID_SIGNING.md.
 # Requirements: repo public + GitHub Pages enabled (the TWA loads the live site
 # and the build downloads the launcher icons from it).
 
@@ -21,7 +22,7 @@ jobs:
           node-version: '20'
       # Bubblewrap requires JDK 17 exactly (lower won't compile, higher is
       # incompatible with the Android command line tools).
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v4
         with:
           distribution: temurin
           java-version: '17'
