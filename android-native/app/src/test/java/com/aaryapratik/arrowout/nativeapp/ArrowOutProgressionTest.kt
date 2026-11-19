@@ -40,7 +40,25 @@ class ArrowOutProgressionTest {
         assertTrue(achievements.first { it.id == "coin_hoarder" }.unlocked)
     }
 
-    @Test fun purchaseUsesCoinsAndPersistsUnlockedSelectionInState() {\n        val initial = ArrowGameState(board = board(), coins = 100)\n        val purchased = ArrowOutProgression.purchase(initial, "aurora")\n        assertEquals(25, purchased.coins)\n        assertTrue(purchased.unlockedArrowSkins.contains("aurora"))\n        assertEquals("aurora", purchased.selectedArrowSkin)\n    }\n\n    @Test fun purchaseCannotSpendCoinsTwiceOrEquipLockedSkins() {\n        val initial = ArrowGameState(board = board(), coins = 100)\n        val purchased = ArrowOutProgression.purchase(initial, "aurora")\n        val duplicate = ArrowOutProgression.purchase(purchased, "aurora")\n        assertEquals(25, duplicate.coins)\n        assertEquals("aurora", duplicate.selectedArrowSkin)\n        val locked = ArrowOutProgression.select(initial, "ember")\n        assertEquals("classic", locked.selectedArrowSkin)\n    }\n\n    private fun board() = ArrowBoard(4, 4, listOf(
+    @Test fun purchaseUsesCoinsAndPersistsUnlockedSelectionInState() {
+        val initial = ArrowGameState(board = board(), coins = 100)
+        val purchased = ArrowOutProgression.purchase(initial, "aurora")
+        assertEquals(25, purchased.coins)
+        assertTrue(purchased.unlockedArrowSkins.contains("aurora"))
+        assertEquals("aurora", purchased.selectedArrowSkin)
+    }
+
+    @Test fun purchaseCannotSpendCoinsTwiceOrEquipLockedSkins() {
+        val initial = ArrowGameState(board = board(), coins = 100)
+        val purchased = ArrowOutProgression.purchase(initial, "aurora")
+        val duplicate = ArrowOutProgression.purchase(purchased, "aurora")
+        assertEquals(25, duplicate.coins)
+        assertEquals("aurora", duplicate.selectedArrowSkin)
+        val locked = ArrowOutProgression.select(initial, "ember")
+        assertEquals("classic", locked.selectedArrowSkin)
+    }
+
+    private fun board() = ArrowBoard(4, 4, listOf(
         ArrowPiece(listOf(Cell(0, 0), Cell(1, 0)), Direction.RIGHT, 0)
     ))
 }
