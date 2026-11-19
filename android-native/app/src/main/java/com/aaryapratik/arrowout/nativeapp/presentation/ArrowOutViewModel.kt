@@ -2,6 +2,7 @@ package com.aaryapratik.arrowout.nativeapp.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aaryapratik.arrowout.nativeapp.data.GameRepository
+import com.aaryapratik.arrowout.nativeapp.core.config.GameFeatureFlags
 import com.aaryapratik.arrowout.nativeapp.data.local.SettingsStore
 import com.aaryapratik.arrowout.nativeapp.data.local.NativeSettings
 import com.aaryapratik.arrowout.nativeapp.di.IoDispatcher
@@ -63,6 +64,8 @@ import java.util.TimeZone
    ArrowUiEvent.Undo->{_uiState.update{engine.undo(it)};saveQueue.trySend(_uiState.value)}
    is ArrowUiEvent.SelectLevel->{if(event.level in 1.._uiState.value.unlockedLevel)openLevel(event.level)else _uiState.update{it.copy(message="Unlock level ${event.level} first")}}
    ArrowUiEvent.DailyChallenge->startDaily()
+   ArrowUiEvent.ShowSolution->{if(GameFeatureFlags.showSolution)_uiState.update{engine.showSolution(it)}}
+   ArrowUiEvent.ClearSolution->{_uiState.update{engine.clearSolution(it)}}
    ArrowUiEvent.ExitDaily->{
     val current=_uiState.value
     if(current.isDaily)viewModelScope.launch(io){
