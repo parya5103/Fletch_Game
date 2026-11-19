@@ -22,7 +22,8 @@ class SettingsStore @Inject constructor(@ApplicationContext context: Context) {
             hapticsEnabled = preferences[HAPTICS_ENABLED] ?: true,
             soundEffectsEnabled = preferences[SOUND_EFFECTS_ENABLED] ?: false,
             colorblindPaletteEnabled = preferences[COLORBLIND_PALETTE_ENABLED] ?: false,
-            largeTextEnabled = preferences[LARGE_TEXT_ENABLED] ?: false
+            largeTextEnabled = preferences[LARGE_TEXT_ENABLED] ?: false,
+            reducedMotionEnabled = preferences[REDUCED_MOTION_ENABLED] ?: false
         )
     }
 
@@ -46,11 +47,16 @@ class SettingsStore @Inject constructor(@ApplicationContext context: Context) {
         store.edit { it[LARGE_TEXT_ENABLED] = enabled }
     }
 
+    suspend fun setReducedMotionEnabled(enabled: Boolean) {
+        store.edit { it[REDUCED_MOTION_ENABLED] = enabled }
+    }
+
     private companion object {
         val DARK_THEME = booleanPreferencesKey("dark_theme")
         val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
         val SOUND_EFFECTS_ENABLED = booleanPreferencesKey("sound_effects_enabled")
         val COLORBLIND_PALETTE_ENABLED = booleanPreferencesKey("colorblind_palette_enabled")
         val LARGE_TEXT_ENABLED = booleanPreferencesKey("large_text_enabled")
+        val REDUCED_MOTION_ENABLED = booleanPreferencesKey("reduced_motion_enabled")
     }
 }

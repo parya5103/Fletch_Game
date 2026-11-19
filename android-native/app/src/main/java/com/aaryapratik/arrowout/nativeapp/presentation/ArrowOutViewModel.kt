@@ -42,6 +42,7 @@ import java.util.TimeZone
  fun setSoundEffectsEnabled(enabled:Boolean){viewModelScope.launch(io){settingsStore.setSoundEffectsEnabled(enabled)}}
  fun setColorblindPaletteEnabled(enabled:Boolean){viewModelScope.launch(io){settingsStore.setColorblindPaletteEnabled(enabled)}}
  fun setLargeTextEnabled(enabled:Boolean){viewModelScope.launch(io){settingsStore.setLargeTextEnabled(enabled)}}
+ fun setReducedMotionEnabled(enabled:Boolean){viewModelScope.launch(io){settingsStore.setReducedMotionEnabled(enabled)}}
  private val saveQueue=Channel<ArrowGameState>(Channel.CONFLATED)
  init{
   viewModelScope.launch(io){
@@ -70,6 +71,9 @@ import java.util.TimeZone
    ArrowUiEvent.ShowSolution->{if(GameFeatureFlags.showSolution)_uiState.update{engine.showSolution(it)}}
    ArrowUiEvent.ClearSolution->{_uiState.update{engine.clearSolution(it)};saveQueue.trySend(_uiState.value)}
    is ArrowUiEvent.MarkStorySeen->{if(GameFeatureFlags.guardianStories){_uiState.update{it.copy(storySeenWorlds=(it.storySeenWorlds+event.worldId).distinct())};saveQueue.trySend(_uiState.value)}}
+   is ArrowUiEvent.PurchaseArrowSkin->{if(GameFeatureFlags.cosmetics){_uiState.update{ArrowOutProgression.purchase(it,event.skinId)};saveQueue.trySend(_uiState.value)}}
+   is ArrowUiEvent.SelectArrowSkin->{if(GameFeatureFlags.cosmetics){_uiState.update{ArrowOutProgression.select(it,event.skinId)};saveQueue.trySend(_uiState.value)}}
+   ArrowUiEvent.ClaimDailyReward->{if(GameFeatureFlags.achievements){_uiState.update{ArrowOutProgression.claimDailyReward(it,utcDailyDateKey(Date()))};saveQueue.trySend(_uiState.value)}}
    ArrowUiEvent.ExitDaily->{
     val current=_uiState.value
     if(current.isDaily)viewModelScope.launch(io){

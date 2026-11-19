@@ -15,7 +15,7 @@ object GameFeatureFlags {
     const val showSolution = true
     const val unlimitedUndo = true
     const val guardianStories = true
-    const val achievements = false
-    const val cosmetics = false
+    const val achievements = true
+    const val cosmetics = true
     const val rewardedAds = false
 }
