@@ -45,6 +45,7 @@ import kotlinx.coroutines.flow.Flow
   if(!json.has("bestStars"))json.add("bestStars",JsonObject())
   if(!json.has("bestPlays"))json.add("bestPlays",JsonObject())
   if(!json.has("solutionOrder"))json.add("solutionOrder",JsonArray())
+  if(!json.has("storySeenWorlds"))json.add("storySeenWorlds",JsonArray())
   val state=gson.fromJson(json,ArrowGameState::class.java)?:throw IllegalStateException("Saved Arrow Out state is empty")
   require(engine.valid(state.board)){"Saved Arrow Out puzzle is invalid"}
   return state
