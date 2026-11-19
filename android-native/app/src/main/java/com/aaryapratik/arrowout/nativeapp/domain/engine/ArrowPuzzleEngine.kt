@@ -1,5 +1,6 @@
 package com.aaryapratik.arrowout.nativeapp.domain.engine
 import com.aaryapratik.arrowout.nativeapp.domain.model.*
+import com.aaryapratik.arrowout.nativeapp.core.config.GameFeatureFlags
 import kotlin.math.abs
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -36,12 +37,48 @@ class ArrowPuzzleEngine{
   }
   return -1
  }
+ fun solution(state:ArrowGameState):List<Int>{
+  val board=state.board
+  if(!valid(board)||state.isSolved||state.isFailed)return emptyList()
+  val alive=BooleanArray(board.pieces.size){board.pieces[it].alive}
+  val occupied=HashMap<Cell,Int>()
+  board.pieces.forEachIndexed{index,piece->piece.cells.forEach{occupied[it]=index}}
+  val candidates=board.pieces.indices.sortedByDescending{board.pieces[it].step}
+  val order=ArrayList<Int>(alive.count{it})
+  while(alive.any{it}){
+   var next=-1
+   for(index in candidates){
+    if(!alive[index])continue
+    val piece=board.pieces[index]
+    var x=piece.cells.last().x+piece.direction.dx
+    var y=piece.cells.last().y+piece.direction.dy
+    var blocked=false
+    while(x in 0 until board.width&&y in 0 until board.height){
+     val other=occupied[Cell(x,y)]
+     if(other!=null&&other!=index&&alive[other]){blocked=true;break}
+     x+=piece.direction.dx
+     y+=piece.direction.dy
+    }
+    if(!blocked){next=index;break}
+   }
+   if(next<0)return emptyList()
+   order+=next
+   alive[next]=false
+  }
+  return order
+ }
+ fun showSolution(state:ArrowGameState):ArrowGameState{
+  if(state.isSolved||state.isFailed)return state
+  val order=solution(state)
+  return state.copy(solutionOrder=order,message=if(order.isEmpty())"No complete solution is available for this board" else "Solution revealed — follow the highlighted arrows in order")
+ }
+ fun clearSolution(state:ArrowGameState)=state.copy(solutionOrder=emptyList())
  fun hint(state:ArrowGameState):ArrowGameState{
   if(state.isSolved||state.isFailed)return state
   if(state.hintsUsed>=FREE_HINTS)return state.copy(message="No free hints remaining — continue without a hint")
   val next=state.board.pieces.indices.sortedByDescending{state.board.pieces[it].step}.firstOrNull{state.board.pieces[it].alive&&blocker(state.board,it)==-1}
    ?:return state.copy(message="No safe arrow found — restart this puzzle")
-  return state.copy(hintedPieceIndex=next,hintsUsed=state.hintsUsed+1,message="Hint: release the highlighted arrow")
+  return state.copy(hintedPieceIndex=next,hintsUsed=state.hintsUsed+1,solutionOrder=emptyList(),message="Hint: release the highlighted arrow")
  }
  fun toggleEraser(state:ArrowGameState):ArrowGameState{
   if(state.isSolved||state.isFailed)return state
@@ -54,7 +91,7 @@ class ArrowPuzzleEngine{
   val index=state.undoStack.lastOrNull()?:return state.copy(message="No move to undo")
   if(index !in state.board.pieces.indices)return state.copy(undoStack=emptyList(),message="Undo history was invalid")
   val pieces=state.board.pieces.toMutableList();pieces[index]=pieces[index].copy(alive=true)
-  return state.copy(board=state.board.copy(pieces=pieces),isSolved=false,undoStack=state.undoStack.dropLast(1),undosUsed=state.undosUsed+1,eraserMode=false,hintedPieceIndex=-1,message="Last move undone")
+  return state.copy(board=state.board.copy(pieces=pieces),isSolved=false,undoStack=state.undoStack.dropLast(1),undosUsed=state.undosUsed+1,eraserMode=false,hintedPieceIndex=-1,solutionOrder=emptyList(),message="Last move undone")
  }
  fun tap(state:ArrowGameState,cell:Cell):ArrowGameState{
   if(state.isSolved||state.isFailed||cell.x !in 0 until state.board.width||cell.y !in 0 until state.board.height)return state
@@ -65,16 +102,17 @@ class ArrowPuzzleEngine{
   if(blocker==-2)return state.copy(message="Puzzle data is invalid")
   if(blocker>=0){val hearts=(state.hearts-1).coerceAtLeast(0);return state.copy(hearts=hearts,mistakes=state.mistakes+1,isFailed=hearts==0,message=if(hearts==0)"No hearts left — retry the level" else "Blocked — one heart lost. Clear the exit lane first")}
   val pieces=state.board.pieces.toMutableList();pieces[index]=pieces[index].copy(alive=false)
-  val history=(state.undoStack+index).takeLast(MAX_UNDO)
-  return finishMove(state.copy(hintedPieceIndex=-1),state.board.copy(pieces=pieces),history,"Arrow cleared — find the next exit")
+  val history=if(GameFeatureFlags.unlimitedUndo)state.undoStack+index else (state.undoStack+index).takeLast(MAX_UNDO)
+  val remainingSolution=if(state.solutionOrder.firstOrNull()==index)state.solutionOrder.drop(1)else emptyList()
+  return finishMove(state.copy(hintedPieceIndex=-1,solutionOrder=remainingSolution),state.board.copy(pieces=pieces),history,"Arrow cleared — find the next exit")
  }
  private fun erase(state:ArrowGameState,cell:Cell):ArrowGameState{
   if(state.erasersRemaining<=0)return state.copy(eraserMode=false,message="No erasers remaining")
   val index=state.board.pieces.indexOfFirst{it.alive&&it.cells.contains(cell)}
   if(index<0)return state.copy(message="Tap an arrow to erase")
   val pieces=state.board.pieces.toMutableList();pieces[index]=pieces[index].copy(alive=false)
-  val history=(state.undoStack+index).takeLast(MAX_UNDO)
-  return finishMove(state.copy(erasersRemaining=state.erasersRemaining-1,erasersUsed=state.erasersUsed+1,eraserMode=false,hintedPieceIndex=-1),state.board.copy(pieces=pieces),history,"Eraser used — arrow removed")
+  val history=if(GameFeatureFlags.unlimitedUndo)state.undoStack+index else (state.undoStack+index).takeLast(MAX_UNDO)
+  return finishMove(state.copy(erasersRemaining=state.erasersRemaining-1,erasersUsed=state.erasersUsed+1,eraserMode=false,hintedPieceIndex=-1,solutionOrder=emptyList()),state.board.copy(pieces=pieces),history,"Eraser used — arrow removed")
  }
  private fun nextDailyStreak(lastDate:String,currentDate:String,currentStreak:Int):Int{
   if(lastDate==currentDate)return currentStreak

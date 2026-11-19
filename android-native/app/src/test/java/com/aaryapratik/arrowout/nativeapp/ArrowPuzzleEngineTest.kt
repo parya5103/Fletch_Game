@@ -73,7 +73,7 @@ class ArrowPuzzleEngineTest{
   }finally{TimeZone.setDefault(original)}
  }
  @Test fun malformedOverlappingPathsAreRejected(){val board=ArrowBoard(4,4,listOf(ArrowPiece(listOf(Cell(0,1),Cell(1,1)),Direction.RIGHT,0),ArrowPiece(listOf(Cell(0,1),Cell(0,2)),Direction.DOWN,1)));assertFalse(engine.valid(board))}
- @Test fun undoHistoryMatchesWebLimitOfOneHundredMoves(){
+ @Test fun undoHistoryIsNotTruncatedAfterOneHundredMoves(){
   val pieces=(0 until 72).map{x->ArrowPiece(listOf(Cell(x,1),Cell(x,0)),Direction.UP,x%8)}+
    (0 until 72).map{x->ArrowPiece(listOf(Cell(x,70),Cell(x,71)),Direction.DOWN,x%8)}
   val board=ArrowBoard(72,72,pieces)
@@ -81,9 +81,9 @@ class ArrowPuzzleEngineTest{
   var state=ArrowGameState(board)
   repeat(101){index->state=engine.tap(state,pieces[index].cells.last())}
   assertEquals(43,state.remaining)
-  assertEquals(100,state.undoStack.size)
-  repeat(100){state=engine.undo(state)}
-  assertEquals(143,state.remaining)
+  assertEquals(101,state.undoStack.size)
+  repeat(101){state=engine.undo(state)}
+  assertEquals(144,state.remaining)
   assertTrue(state.undoStack.isEmpty())
  }
  @Test fun freeHintsAreLimitedToThreePerLevel(){
@@ -93,5 +93,25 @@ class ArrowPuzzleEngineTest{
   val exhausted=engine.hint(state)
   assertEquals(3,exhausted.hintsUsed)
   assertEquals("No free hints remaining — continue without a hint",exhausted.message)
+ }
+ @Test fun solutionOverlayReturnsACompleteValidExitOrderWithoutConsumingHints(){
+  val state=engine.newGame()
+  val solution=engine.solution(state)
+  assertEquals(state.remaining,solution.size)
+  var board=state.board
+  solution.forEach{index->
+   assertEquals(-1,engine.blocker(board,index))
+   val pieces=board.pieces.toMutableList()
+   pieces[index]=pieces[index].copy(alive=false)
+   board=board.copy(pieces=pieces)
+  }
+  val shown=engine.showSolution(state)
+  assertEquals(solution,shown.solutionOrder)
+  assertEquals(0,state.hintsUsed)
+  assertEquals(0,shown.hintsUsed)
+  val nextIndex=shown.solutionOrder.first()
+  val nextPiece=shown.board.pieces[nextIndex]
+  val progressed=engine.tap(shown,nextPiece.cells.last())
+  assertEquals(shown.solutionOrder.drop(1),progressed.solutionOrder)
  }
 }
