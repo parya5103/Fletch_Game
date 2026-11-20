@@ -511,7 +511,7 @@
         <li>A blocked tap <b>costs one heart</b> (&#9829;&#9829;&#9829;). Lose all three and the level restarts.</li>
         <li>Clear <b>every arrow</b> to finish the level. Order is everything!</li>
         <li>Stars: &#9733;&#9733;&#9733; = no mistakes & no hints &middot; &#9733;&#9733; = up to 2 mistakes & 1 hint &middot; &#9733; = cleared.</li>
-        <li><b>3 free hints</b> per level &mdash; after that, watch a short ad to reveal another hint.</li>
+        <li><b>3 free hints</b> per level. Additional rewarded ads are not available yet.</li>
         <li><b>Hint</b> glows a free arrow &middot; <b>Undo</b> brings the last arrow back &middot; <b>Restart</b> resets.</li>
         <li>Your progress saves automatically &mdash; come back any time.</li>
       </ul>
@@ -668,21 +668,11 @@
     <div class="card" style="text-align:center;">
       <div class="big-emoji" aria-hidden="true"><svg class="ic" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5a6 6 0 0 0-12 0c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></div>
       <h2 id="adhint-title">Out of free hints</h2>
-      <p style="margin-bottom:16px;">You get <b>3 free hints</b> per level. Watch a short ad to reveal one more.</p>
+      <p style="margin-bottom:16px;">You get <b>3 free hints</b> per level. Rewarded ads are not available yet.</p>
       <div class="stack">
-        <button class="btn primary" id="btn-adhint-watch" type="button"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg> Watch ad for a hint</button>
+        <button class="btn primary" id="btn-adhint-watch" type="button" disabled aria-disabled="true"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg> Rewarded ads unavailable</button>
         <button class="btn" id="btn-adhint-close" type="button">No thanks</button>
       </div>
-    </div>
-  </div>
-
-  <!-- ===== DEMO AD ===== -->
-  <div class="overlay" id="dlg-ad" role="dialog" aria-modal="true" aria-labelledby="ad-title">
-    <div class="card" style="text-align:center;">
-      <h2 id="ad-title">Demo ad</h2>
-      <p style="font-size:12.5px;color:#8a97b8;margin-bottom:14px;">A real ad plays here once an ad provider is connected.</p>
-      <div class="ad-box" aria-hidden="true">Ad space</div>
-      <p id="ad-count" style="font-size:14px;font-weight:700;margin:12px 0 0;">Demo ad &mdash; hint in 5s&hellip;</p>
     </div>
   </div>
 
