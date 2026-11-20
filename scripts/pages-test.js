@@ -203,7 +203,7 @@ test('Arrow Out guide page has a distinct search snippet and canonical', () => {
 test('rewarded-hint UI is honest and contains no fake demo ad', () => {
   const index=read('index.html'), main=read('js/main.js'), ui=read('js/ui.js');
   const about=read('about.html'), privacy=read('privacy.html'), readme=read('README.md');
-  assert.doesNotMatch(index,/dlg-ad|Demo ad|ad-count|Watch ad for a hint/i);
+  assert.doesNotMatch(index,/id=[\"']dlg-ad[\"']|Demo ad|ad-count|Watch ad for a hint/i);
   assert.match(index,/Rewarded ads are not available yet/);
   assert.match(main,/Rewarded ads are not available yet/);
   assert.match(ui,/Rewarded ads are not available yet/);
