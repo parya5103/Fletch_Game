@@ -9,6 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const { harness } = require('./qa-harness');
 
 const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'game.js'), 'utf8');
 const sandbox = {};
@@ -484,6 +485,21 @@ console.log('# SEO metadata sanity');
   check('contact page meta description stays within 155 characters',
     !!description && description[1].length <= 155,
     description ? 'length ' + description[1].length : 'missing description');
+}
+
+
+console.log('# rewarded hint safety');
+{
+  const h = harness();
+  h.G.loadLevel(1);
+  const state = h.G.getState();
+  state.hintsUsed = GC.FREE_HINTS;
+  let threw = false;
+  try { h.G.test.adForHint(); } catch (_) { threw = true; }
+  const fakeTimers = [...h.timers.values()].filter(task => task.ms === 1000).length;
+  check('missing rewarded-ad provider never throws, starts a demo timer or grants a hint',
+    !threw && h.G.getState().hintsUsed === GC.FREE_HINTS && fakeTimers === 0,
+    'threw=' + threw + ', hints=' + h.G.getState().hintsUsed + ', fakeTimers=' + fakeTimers);
 }
 
 if (failures) {
