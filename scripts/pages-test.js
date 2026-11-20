@@ -198,3 +198,16 @@ test('Arrow Out guide page has a distinct search snippet and canonical', () => {
   assert.ok(faq && faq.mainEntity.length >= 5, 'FAQ schema must match the visible guide FAQs');
   assert.ok(schema['@graph'].some(node => node['@type'] === 'WebPage'));
 });
+
+
+test('rewarded-hint UI is honest and contains no fake demo ad', () => {
+  const index=read('index.html'), main=read('js/main.js'), ui=read('js/ui.js');
+  const about=read('about.html'), privacy=read('privacy.html'), readme=read('README.md');
+  assert.doesNotMatch(index,/id=[\"']dlg-ad[\"']|Demo ad|ad-count|Watch ad for a hint/i);
+  assert.match(index,/Rewarded ads are not available yet/);
+  assert.match(main,/Rewarded ads are not available yet/);
+  assert.match(ui,/Rewarded ads are not available yet/);
+  assert.match(about,/additional rewarded ads are not available yet/i);
+  assert.match(privacy,/rewarded hint ads are not available yet/i);
+  assert.match(readme,/Rewarded ads are not available yet/i);
+});

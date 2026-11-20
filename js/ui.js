@@ -199,7 +199,7 @@ const UI = (function() {
     var t = $('adhint-title');
     if (t) t.textContent = 'Stuck on this one?';
     var sub = document.querySelector('#dlg-adhint .card p');
-    if (sub) sub.innerHTML = 'Stuck happens \u2014 watch a short ad and we\u2019ll point out a safe arrow for free.';
+    if (sub) sub.innerHTML = 'This puzzle is tricky. Rewarded ads are not available yet; try another move or use one of your free hints.';
     openDlg('dlg-adhint');
   }
 
@@ -208,7 +208,7 @@ const UI = (function() {
     var t = $('adhint-title');
     if (t) t.textContent = 'Out of free hints';
     var sub = document.querySelector('#dlg-adhint .card p');
-    if (sub) sub.innerHTML = 'You get <b>3 free hints</b> per level. Watch a short ad to reveal one more.';
+    if (sub) sub.innerHTML = 'You get <b>3 free hints</b> per level. Rewarded ads are not available yet.';
   }
 
   // Preview is local to the shop: closing it never equips or spends coins.

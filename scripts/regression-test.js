@@ -185,15 +185,19 @@ test('PWA keeps install/update helpers and exposes no legacy Web Push or Supabas
   assert.equal(await box.P.getServiceWorkerSource(),source('sw.js'));
 });
 
-test('bonus expiry survives restore and rewarded hint callbacks belong to their original level', () => {
+test('bonus expiry survives restore', () => {
   const h=harness();h.G.loadLevel(5);const s=h.G.getState();
   s.bonus.active=false;h.G.test.saveCur();assert(h.G.test.tryRestore());assert.equal(h.G.getState().bonus,null);
   h.G.loadLevel(5);h.G.getState().bonus.deadline=1600;h.G.test.saveCur();assert(h.G.test.tryRestore());
   assert.equal(h.G.getState().bonus.deadline,1600);
+});
+
+test('rewarded hints never grant a fake hint when no real provider is available', () => {
+  const h=harness();h.G.loadLevel(5);const state=h.G.getState();
+  state.hintsUsed=h.GC.FREE_HINTS;
   h.G.test.adForHint();h.G.test.adForHint();
-  assert.equal([...h.timers.values()].filter(t=>t.ms===1000).length,1);
-  const callback=[...h.timers.values()].find(t=>t.ms===1000).fn;
-  h.G.loadLevel(6);for(let i=0;i<5;i++)callback();assert.equal(h.G.getState().hintsUsed,0);
+  assert.equal(h.G.getState().hintsUsed,h.GC.FREE_HINTS);
+  assert.equal([...h.timers.values()].filter(t=>t.ms===1000).length,0);
 });
 
 test('pointer input rejects invalid coordinates, secondary buttons, multitouch and modal background taps', () => {
