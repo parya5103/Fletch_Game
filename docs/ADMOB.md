@@ -17,8 +17,8 @@ Activity (TWA) wrapper around the PWA.
 
 ## What does NOT work
 
-- The game's existing rewarded-hint "demo ad" flow on the web cannot be wired
-  to AdMob rewarded ads inside the TWA - the web page cannot trigger native ads.
+- The web game currently has no rewarded-hint ad flow. A web page cannot trigger
+  native AdMob rewarded ads inside the TWA.
 - Showing website AdSense ads inside the TWA app is against Google's policies:
   AdSense is for websites, apps must use AdMob. Never enable AdSense
   simultaneously with the TWA distribution.
