@@ -1242,41 +1242,28 @@ const Game = (function() {
   var rewardedState = null;
   function adForHint() {
     if (!gameState || gameState.over || gameState.failed || rewardedState === gameState) return;
+    var adsProvider = typeof Ads !== 'undefined' ? Ads : null;
+    if (!adsProvider || !adsProvider.enabled || !adsProvider.provider
+        || typeof adsProvider.provider.requestRewarded !== 'function'
+        || typeof adsProvider.requestRewarded !== 'function') {
+      UI.closeAll();
+      Audio.ui();
+      UI.toast('Rewarded ads are not available yet. Please try again later.');
+      return;
+    }
+
     var state = gameState;
     rewardedState = state;
     UI.closeAll();
     Audio.ui();
     Audio.unlock();
-    
-    // In demo mode, just give a hint after a delay
-    if (!Ads.enabled || !Ads.provider || !Ads.provider.requestRewarded) {
-      UI.openDlg('dlg-ad');
-      var t = 5, el = document.getElementById('ad-count');
-      if (el) {
-        el.textContent = 'Demo ad \u2014 hint in ' + t + 's\u2026';
-      }
-      var iv = setInterval(function() {
-        t--;
-        if (t <= 0) {
-          clearInterval(iv);
-          if (rewardedState === state) rewardedState = null;
-          if (gameState !== state || state.over || state.failed) return;
-          UI.closeAll();
-          doHint();
-          UI.toast('Hint unlocked \u2713');
-        } else if (el) {
-          el.textContent = 'Demo ad \u2014 hint in ' + t + 's\u2026';
-        }
-      }, 1000);
-      return;
-    }
-    
-    Ads.requestRewarded(function(ok) {
+
+    adsProvider.requestRewarded(function(ok) {
       if (rewardedState !== state) return;
       rewardedState = null;
       if (ok && gameState === state && !state.over && !state.failed) {
         doHint();
-        UI.toast('Hint unlocked \u2713');
+        UI.toast('Hint unlocked ✓');
       }
     });
   }
@@ -1501,7 +1488,7 @@ const Game = (function() {
       if (this.enabled && this.provider && this.provider.requestRewarded) {
         this.provider.requestRewarded(onReward);
       } else {
-        onReward(true);
+        onReward(false);
       }
     }
   };
