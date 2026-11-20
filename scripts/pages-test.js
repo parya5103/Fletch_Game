@@ -207,7 +207,7 @@ test('rewarded-hint UI is honest and contains no fake demo ad', () => {
   assert.match(index,/Rewarded ads are not available yet/);
   assert.match(main,/Rewarded ads are not available yet/);
   assert.match(ui,/Rewarded ads are not available yet/);
-  assert.match(about,/Rewarded ads are not available yet/);
-  assert.match(privacy,/Rewarded ads are not available yet/);
+  assert.match(about,/additional rewarded ads are not available yet/i);
+  assert.match(privacy,/rewarded hint ads are not available yet/i);
   assert.match(readme,/Rewarded ads are not available yet/i);
 });
