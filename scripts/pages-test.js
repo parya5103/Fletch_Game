@@ -211,3 +211,11 @@ test('rewarded-hint UI is honest and contains no fake demo ad', () => {
   assert.match(privacy,/rewarded hint ads are not available yet/i);
   assert.match(readme,/Rewarded ads are not available yet/i);
 });
+
+
+test('Arrow Out loads the shared GoGo analytics container without inline scripts', () => {
+  const gamePage = read('index.html');
+  const analytics = read('js/analytics.js');
+  assert.ok(gamePage.includes('src="js/analytics.js"'), 'game page should load analytics.js');
+  assert.ok(analytics.includes('GTM-TH4NX8MH'), 'analytics loader should use the shared GoGo container');
+});
