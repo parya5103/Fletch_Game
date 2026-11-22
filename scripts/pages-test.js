@@ -185,9 +185,10 @@ test('Canvas renderer respects device pixel ratio and Pointer Events', () => {
 });
 
 test('Arrow Out guide page has a distinct search snippet and canonical', () => {
-  const guide = read('about.html');
-  assert.ok(guide.includes('<title>Arrow Out Guide: How to Play &amp; Solve Arrow Puzzles</title>'));
-  assert.ok(guide.includes('href="https://gogocompany.in/arrowout/about.html"'));
+  const guide = read('guide/index.html');
+  assert.ok(guide.includes('<title>Arrow Out! Guide: Free Tap-Away Puzzle Tips</title>'));
+  assert.ok(guide.includes('href="https://gogocompany.in/arrowout/guide/"'));
+  assert.ok(read('about.html').includes('noindex, follow'));
   assert.ok(guide.includes('rel="icon"') && guide.includes('https://gogocompany.in/favicon.svg'));
   assert.equal([...guide.matchAll(/<h1\b/gi)].length, 1);
   assert.ok(guide.includes('clear blocked exit corridors'));
@@ -218,4 +219,15 @@ test('Arrow Out loads the shared GoGo analytics container without inline scripts
   const analytics = read('js/analytics.js');
   assert.ok(gamePage.includes('src="js/analytics.js"'), 'game page should load analytics.js');
   assert.ok(analytics.includes('GTM-TH4NX8MH'), 'analytics loader should use the shared GoGo container');
+});
+
+
+test('canonical Arrow Out guide route has game, breadcrumb and FAQ structured data', () => {
+  const guide = source('guide/index.html');
+  assert.match(guide, /rel="canonical" href="https:\/\/gogocompany\.in\/arrowout\/guide\//);
+  assert.match(guide, /"@type": "VideoGame"/);
+  assert.match(guide, /"@type": "BreadcrumbList"/);
+  assert.match(guide, /"@type": "FAQPage"/);
+  assert.equal([...guide.matchAll(/<h1\b/gi)].length, 1);
+  assert.match(read('about.html'), /noindex, follow/);
 });
