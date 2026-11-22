@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Learn how to play Arrow Out!, clear blocked exit corridors, use hints and undo, and master 1,000 winding-path levels on mobile or desktop." />
+  <meta name="theme-color" content="#0d1230" />
+  <meta name="robots" content="index, follow" />
+  <title>Arrow Out! Guide: Free Tap-Away Puzzle Tips</title>
+  <link rel="canonical" href="https://gogocompany.in/arrowout/guide/" />
+  <link rel="icon" type="image/svg+xml" href="https://gogocompany.in/favicon.svg" />
+  <meta property="og:title" content="Arrow Out Guide: How to Play &amp; Solve Arrow Puzzles" />
+  <meta property="og:description" content="Learn how to play Arrow Out!, clear blocked exit corridors, use hints and undo, and master 1,000 winding-path levels on mobile or desktop." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://gogocompany.in/arrowout/guide/" />
+  <meta property="og:image" content="https://gogocompany.in/arrowout/docs/screenshot-home.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Arrow Out Guide: How to Play &amp; Solve Arrow Puzzles" />
+  <meta name="twitter:description" content="Learn how to play Arrow Out!, clear blocked exit corridors, use hints and undo, and master 1,000 winding-path levels on mobile or desktop." />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 24px 16px 48px;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(180deg, #1b2550 0%, #0d1230 55%, #090d20 100%);
+      background-attachment: fixed;
+      color: #e8ecff; font-size: 16px; line-height: 1.65;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    a { color: #748ffc; overflow-wrap: anywhere; }
+    h1 { font-size: 26px; margin: 0 0 6px; }
+    h2 { font-size: 18px; margin: 26px 0 8px; color: #a5b4fc; }
+    .sub { color: #93a0c8; font-size: 14px; margin: 0 0 22px; }
+    p, li { font-size: 15.5px; }
+    ul { padding-left: 20px; }
+    .btn {
+      display: inline-block; margin-top: 20px;
+      background: #748ffc; color: #0b1026; text-decoration: none; font-weight: 700;
+      padding: 10px 18px; border-radius: 14px; font-size: 15px;
+    }
+    .muted { color: #8a97b8; font-size: 13px; margin-top: 28px; }
+  
+    /* UI refresh: consistent reading surface and accessible controls */
+    body { padding: clamp(16px, 4vw, 40px) 14px 48px; background: radial-gradient(ellipse at 50% 0%, #25366d 0%, #111a3c 42%, #090d20 100%); }
+    .wrap { max-width: 760px; padding: clamp(20px, 4vw, 40px); background: rgba(20,27,61,.82); border: 1px solid #354779; border-radius: 22px; box-shadow: 0 18px 48px rgba(0,0,0,.28); }
+    h1 { font-size: clamp(1.8rem, 5vw, 2.5rem); letter-spacing: -.035em; line-height: 1.15; }
+    h2 { color: #9aeaf2; letter-spacing: -.015em; }
+    a { color: #9aeaf2; }
+    .btn { min-height: 46px; padding: 11px 20px; border-radius: 12px; background: #91a8ff; color: #101a3c; }
+    :focus-visible { outline: 3px solid #9aeaf2; outline-offset: 3px; }
+    @media(max-width:420px) { .wrap { padding: 20px 16px; border-radius: 16px; } p,li { font-size: 15px; } }
+
+  </style>
+  <script type="application/ld+json">
+  {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": "https://gogocompany.in/arrowout/guide/#webpage",
+      "url": "https://gogocompany.in/arrowout/guide/",
+      "name": "Arrow Out! Guide: Free Tap-Away Puzzle Tips",
+      "description": "Learn how to play a free tap-away arrow puzzle online, plan exit corridors, use hints and undo, and solve 1,000 levels on mobile or desktop.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "GoGo Company",
+        "url": "https://gogocompany.in/"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://gogocompany.in/arrowout/guide/#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is Arrow Out free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Arrow Out has no real-money purchases and is ad-free. Each level includes three free hints; additional rewarded ads are not available yet."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Arrow Out work offline?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. After a successful service-worker installation has cached the game files, gameplay works offline in browsers that support it."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do I need an account to play Arrow Out?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Progress saves automatically in browser storage when available. Blocking or clearing storage can prevent progress from being restored."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I install Arrow Out?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "On Android with Chrome, use Install in the game menu. On iPhone or iPad, use Share and then Add to Home Screen."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Where can I report an Arrow Out bug?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Use the Contact page to open an email draft to officialgogocompany@gmail.com."
+          }
+        }
+      ]
+    },
+    {
+      "@type": "VideoGame",
+      "@id": "https://gogocompany.in/arrowout/#game",
+      "name": "Arrow Out!",
+      "url": "https://gogocompany.in/arrowout/",
+      "description": "A free single-player tap-away arrow puzzle game for mobile and desktop browsers, with 1,000 levels and offline PWA support after installation.",
+      "genre": [
+        "Puzzle",
+        "Casual"
+      ],
+      "gamePlatform": [
+        "Web Browser",
+        "Mobile Web"
+      ],
+      "applicationCategory": "Game",
+      "operatingSystem": "Any",
+      "playMode": "SinglePlayer",
+      "isAccessibleForFree": true,
+      "publisher": {
+        "@type": "Organization",
+        "name": "GoGo Company",
+        "url": "https://gogocompany.in/"
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://gogocompany.in/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Arrow Out!",
+          "item": "https://gogocompany.in/arrowout/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Guide",
+          "item": "https://gogocompany.in/arrowout/guide/"
+        }
+      ]
+    }
+  ]
+}
+  </script>
+</head>
+<body>
+  <main class="wrap">
+    <h1>Free Tap-Away Arrow Puzzle Online — Arrow Out! Guide</h1>
+    <p class="sub">A free, offline-first tap-away puzzle &middot; 1000 levels &middot; no sign-up &middot; ad-free today</p>
+
+    <p>Arrow Out! is a browser-based arrow puzzle game. Every board is a dense maze of winding arrows, and your job is simple to learn and hard to master: <b>tap arrows away in the right order until the board is empty</b>. It runs directly in supported mobile and desktop browsers &mdash; no downloads, no sign-up.</p>
+
+    <h2>Our goal</h2>
+    <p>We want Arrow Out! to be an enjoyable, accessible, mobile-friendly puzzle experience: quick to open, comfortable to play one-handed on a phone, and just as playable on a desktop browser. It is an independent project with a simple deal &mdash; free to play, progress stays on your device, no sign-up. The game is continuously improved: the automated CI suite regenerates all 1000 campaign levels and checks three removal orders, plus 366 daily seeds. Recorded browser checks cover selected desktop engines and mobile viewport sizes; they do not establish compatibility with every browser or physical device.</p>
+
+    <h2>How to play</h2>
+    <ul>
+      <li><b>Tap an arrow</b> &mdash; it slithers off the board in the direction its head points.</li>
+      <li>An arrow only launches if its <b>path to the edge is clear</b> &mdash; any other arrow in the corridor blocks it.</li>
+      <li>A blocked tap costs one of your <b>3 hearts</b>. Lose them all and a failure dialog lets you retry. Generated boards are checked for a complete solution.</li>
+      <li>Clear <b>every arrow</b> to win. Stars reward clean runs: 3 stars for no mistakes and no hints.</li>
+      <li><b>Hints:</b> 3 free per level. <b>Undo</b> brings back your last launch. <b>Restart</b> resets the board.</li>
+    </ul>
+
+    <h2>What makes it different</h2>
+    <ul>
+      <li><b>Every level is guaranteed solvable</b> &mdash; campaign boards are built in reverse, validated during generation, and checked in CI.</li>
+      <li><b>1000 handcrafted-feeling levels</b> &mdash; boards grow from 12&times;12 to dense 65&times;65, with 20 to 600 real arrow paths. Zoom and pan to inspect dense puzzles.</li>
+      <li><b>Daily Challenge</b> &mdash; a fresh puzzle every date; keep your streak alive.</li>
+      <li><b>Timed bonus objectives</b> &mdash; golden bonus pieces on levels ending in 5 pay extra coins if you clear them before the timer.</li>
+      <li><b>Skins shop</b> &mdash; coins come from play and daily login rewards; unlock 9 board themes and 17 arrow cosmetics (colour palettes and six distinct designs), including free defaults, with live previews before you buy.</li>
+      <li><b>Achievements and statistics</b> &mdash; everything tracked privately on your device.</li>
+    </ul>
+
+    <h2>FAQ</h2>
+    <ul>
+      <li><b>Is it free?</b> Yes &mdash; no real-money purchases. The game is ad-free today; each level includes three free hints; additional rewarded ads are not available yet &mdash; the <a href="privacy.html">Privacy Policy</a> explains what that would mean.</li>
+      <li><b>Does it work offline?</b> Yes. After a successful service-worker installation has cached the game files, gameplay works offline in browsers that support it. Opening the Contact page's email draft requires a connection. Local reminders work without an external service.</li>
+      <li><b>Do I need an account?</b> No. Progress saves automatically in browser storage when available. Blocking or clearing storage can prevent progress from being restored.</li>
+      <li><b>How do I install it?</b> On Android/Chrome: tap Install in the game menu. On iPhone/iPad: Share &rarr; Add to Home Screen.</li>
+      <li><b>What are daily reminders?</b> Optional notifications (off by default). Open Settings &rarr; Notification &amp; reminder settings to choose 1, 1&frac12; or 2 hours of inactivity. In-game reminders need the page open; optional system notifications need explicit permission and a running page. Closed or suspended browsers cannot schedule these reminders. You can turn them off any time. See the <a href="privacy.html">Privacy Policy</a>.</li>
+      <li><b>Where do I report a bug?</b> Use the <a href="contact.html">Contact page</a> &mdash; it opens your email app with a pre-filled draft to <a href="mailto:officialgogocompany@gmail.com">officialgogocompany@gmail.com</a>.</li>
+    </ul>
+
+    <a class="btn" href="index.html">Play Arrow Out! &rarr;</a>
+    <p class="muted">Built as a zero-dependency PWA &mdash; no frameworks, no trackers, runs entirely in your browser. Questions or ideas? <a href="contact.html">Contact us</a>.</p>
+  </main>
+</body>
+</html>
+
