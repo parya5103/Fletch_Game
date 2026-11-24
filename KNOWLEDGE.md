@@ -41,7 +41,7 @@ reload,
   boards) from the canonical js/game.js generator via scripts/generate-native-levels.cjs and
   solver-validates all of them before packaging. Toolchain: JDK 17, Gradle 9.5.0, AGP 9.3.1,
   Kotlin 2.4.21, Android SDK Platform 37 / Build Tools 36.0.0. Native ID is intentionally
-  separate from the legacy TWA ID com.aaryapratik.arrowunit (see android/).
+  separate from the legacy TWA ID com.aaryapratik.arrowout (see android/).
 - android/: legacy TWA/Bubblewrap pipeline (twa-keygen.yml, twa-build.yml, docs/PLAYSTORE.md,
   docs/ADMOB.md). AdMob app-open patch (scripts/admob-patch.sh) runs only when the
   ADMOB_APP_ID repo secret is set; otherwise builds stay ad-free.
@@ -50,7 +50,7 @@ reload,
 
 ## GitHub Actions workflows (repo listing, 2026-11-24: f android-native-kotlin.yml 1602, f ci-tests.yml 530, f ci.yml 1903, f gen-icons.yml 997, f lighthouse.yml 856, f native-rules.yml 629, f release-notify.yml 1681, f scorecard.yml 1048, f screenshot.yml 2160, f security-scan.yml 2858, f twa-build.yml 3771)
 
-- ci.yml: full test job (naive open-url: runs ci-test.js, pages-test.js, commercial-test.js,
+- ci.yml: full test job running the repo script suites (ci-test.js, pages-test.js, commercial-test.js,
   map-redesign-test.js and more), SHA-pinned actions, least-privilege permissions.
 - Screenshots/docs-bot: headless Chromium run (scripts/screenshot.js) commits
   docs/screenshot-home.png, docs/screenshot-board.png and docs/test-log.txt; the log must end
