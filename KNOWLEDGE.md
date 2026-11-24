@@ -48,16 +48,24 @@ reload,
 - Browser save migration: PWA Settings export (clipboard JSON) then import inside the Android
   app. Never delete or silently discard player saves.
 
-## GitHub Actions workflows (repo listing, 2026-11-24: f android-native-kotlin.yml 1602, f ci-tests.yml 530, f ci.yml 1903, f gen-icons.yml 997, f lighthouse.yml 856, f native-rules.yml 629, f release-notify.yml 1681, f scorecard.yml 1048, f screenshot.yml 2160, f security-scan.yml 2858, f twa-build.yml 3771)
+## GitHub Actions workflows (repo listing, 2026-11-24)
 
-- ci.yml: full test job running the repo script suites (ci-test.js, pages-test.js, commercial-test.js,
-  map-redesign-test.js and more), SHA-pinned actions, least-privilege permissions.
-- Screenshots/docs-bot: headless Chromium run (scripts/screenshot.js) commits
+- android-native-kotlin.yml: native app CI (level generation + solver validation via
+  scripts/generate-native-levels.cjs, unit tests, debug APK / unsigned release AAB).
+- ci.yml + ci-tests.yml: test jobs running the repository script suites
+  (ci-test.js, pages-test.js, commercial-test.js, map-redesign-test.js) with SHA-pinned
+  actions and least-privilege permissions.
+- screenshot.yml: headless Chromium run of scripts/screenshot.js; commits
   docs/screenshot-home.png, docs/screenshot-board.png and docs/test-log.txt; the log must end
   ALL CHECKS PASSED. Console errors are fatal except expected offline noise during the
-  pwa-5 offline phase.
-- Others (from the listing above): gen-icons, lighthouse, scorecard, security scanning,
-  CodeQL, TWA keygen/build, dependabot config.
+  offline test phase.
+- native-rules.yml: native engine rule checks. gen-icons.yml: regenerates PNG icons (icons are
+  opportunistically cached by sw.js; their absence never fails install).
+- lighthouse.yml: Lighthouse audits. scorecard.yml: OSSF scorecard. security-scan.yml:
+  gitleaks + trivy scanning. twa-build.yml: legacy TWA/AAB packaging (workflow_dispatch;
+  ADMOB patch step only when the ADMOB_APP_ID secret exists). release-notify.yml: release
+  announcements.
+
 
 ## Testing instructions
 
